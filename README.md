@@ -35,6 +35,12 @@ The site in `public/index.html` loads jobs and talent from this API (and keeps w
 | GET | `/api/me/saved`, `/api/me/applications`, `/api/me/jobs` 🔒 | dashboards |
 | PUT | `/api/me/profile` 🔒 talent | headline, bio, skills, hourly_rate, province, city |
 
+## Deploy on Railway
+1. Variables: `NODE_ENV=production`, `JWT_SECRET=<long random string>`, `CORS_ORIGIN=https://<your-domain>`.
+2. Add a Volume mounted at `/data` and set `DB_PATH=/data/siira.db` so the database survives redeploys.
+3. Settings → Networking → Generate Domain (a service is not public until you do).
+Without `JWT_SECRET` the app now starts with an auto-generated secret and logs a warning. Demo data is not seeded in production.
+
 ## Before launch
 - Set `NODE_ENV=production`, a strong `JWT_SECRET` and `CORS_ORIGIN`; serve behind HTTPS.
 - Hire requests are stored but not emailed yet: add your mailer/WhatsApp call in `src/routes/talent.js`.

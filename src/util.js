@@ -1,11 +1,32 @@
 const jwt = require('jsonwebtoken');
 const { z } = require('zod');
 
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
 const isProd = process.env.NODE_ENV === 'production';
-if (isProd && (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'change-me')) {
-  throw new Error('JWT_SECRET must be set to a strong random value in production');
+
+// Prefer JWT_SECRET from the environment. If it is missing in production, generate a strong random
+// secret and keep it next to the database so logins survive restarts (set JWT_SECRET yourself to be safe).
+function loadSecret() {
+  const env = process.env.JWT_SECRET;
+  if (env && env !== 'change-me') return env;
+  if (!isProd) return 'dev-only-secret';
+  const dir = path.dirname(process.env.DB_PATH || path.join(__dirname, '..', 'data', 'siira.db'));
+  const file = path.join(dir, '.jwt_secret');
+  console.warn('WARNING: JWT_SECRET is not set. Using an auto-generated secret. Set JWT_SECRET in your host variables.');
+  try {
+    if (fs.existsSync(file)) return fs.readFileSync(file, 'utf8').trim();
+    const secret = crypto.randomBytes(48).toString('hex');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(file, secret, { mode: 0o600 });
+    return secret;
+  } catch {
+    return crypto.randomBytes(48).toString('hex'); // read-only disk: valid until the next restart
+  }
 }
-const SECRET = process.env.JWT_SECRET || 'dev-only-secret';
+const SECRET = loadSecret();
 
 class HttpError extends Error {
   constructor(status, message, details) { super(message); this.status = status; this.details = details; }

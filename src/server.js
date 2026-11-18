@@ -67,7 +67,9 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Something went wrong on our side' });
 });
 
-if (process.env.SEED_DEMO !== 'false' && seed()) console.log('Seeded demo data (password for demo accounts: Siira#2026)');
+// Demo accounts share a public password, so they are only seeded outside production unless SEED_DEMO=true
+const seedDemo = process.env.SEED_DEMO ? process.env.SEED_DEMO === 'true' : !isProd;
+if (seedDemo && seed()) console.log('Seeded demo data (password for demo accounts: Siira#2026)');
 
 if (require.main === module) {
   const port = process.env.PORT || 3000;
