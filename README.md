@@ -35,11 +35,28 @@ The site in `public/index.html` loads jobs and talent from this API (and keeps w
 | GET | `/api/me/saved`, `/api/me/applications`, `/api/me/jobs` 🔒 | dashboards |
 | PUT | `/api/me/profile` 🔒 talent | headline, bio, skills, hourly_rate, province, city |
 
-## Deploy on Railway
-1. Variables: `NODE_ENV=production`, `JWT_SECRET=<long random string>`, `CORS_ORIGIN=https://<your-domain>`.
-2. Add a Volume mounted at `/data` and set `DB_PATH=/data/siira.db` so the database survives redeploys.
-3. Settings → Networking → Generate Domain (a service is not public until you do).
-Without `JWT_SECRET` the app now starts with an auto-generated secret and logs a warning. Demo data is not seeded in production.
+## Dashboards (`/app.html`)
+One login page, three workspaces based on the account role.
+- **Admin**: KPIs (volume, revenue, VAT, escrow), ID verification queue, payments and escrow (confirm EFT, resolve disputes, record payouts), reports, job moderation, users (suspend), hire enquiries, fee settings, audit log.
+- **Client**: post jobs, review applicants, make offers, fund escrow, approve work, dispute, review, find talent.
+- **Professional**: find and save jobs, apply, accept offers, deliver work, profile, verification, earnings, notifications.
+- **Everyone**: contract messaging, notifications, POPIA data export and account deletion.
+
+Create the first admin with `ADMIN_EMAIL` / `ADMIN_PASSWORD` (see `.env.example`).
+
+## Money flow
+Offer → professional accepts → client funds escrow → work delivered → client approves → payout recorded by admin.
+The commission (default 10%) and VAT on it (default 15%) are deducted from the professional's payout and stored on every contract.
+`PAYMENTS_MODE=manual` (production default): client pays by EFT with a reference, an admin confirms receipt. `paystack`: card/EFT checkout; set `PAYSTACK_SECRET` and point the Paystack webhook to `/api/webhooks/paystack`.
+Payouts to professionals are paid by you (EFT) and then recorded in the dashboard.
+
+## South Africa checklist (confirm each with an attorney or accountant)
+- Register the company (CIPC), tax number and, when you pass the threshold, VAT with SARS.
+- POPIA: appoint an Information Officer and register with the Information Regulator; publish a Privacy Policy. Sign-up already records consent.
+- Publish Terms of Use and company details on the site (ECTA / Consumer Protection Act).
+- Employment services: introducing people to jobs may require registration as a private employment agency with the Department of Employment and Labour. Get advice before launch.
+- Holding client money in escrow: use a payment provider's escrow/split features or a dedicated trust account, and get advice on the rules that apply.
+- Keep financial records (5 years) and add backups for the database.
 
 ## Before launch
 - Set `NODE_ENV=production`, a strong `JWT_SECRET` and `CORS_ORIGIN`; serve behind HTTPS.

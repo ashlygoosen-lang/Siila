@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIIRA Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#17356f;--blue:#2a5bb5;--or:#ff9526;--ink:#1d2b4a;--mut:#667592;--bg:#f4f7fc;--card:#fff;--line:#e8edf6;--sh:0 16px 50px -26px rgba(30,60,120,.3)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Figtree,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-weight:700;letter-spacing:-.015em;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:3px solid rgba(255,149,38,.6);outline-offset:2px;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border-radius:999px;font-weight:600;color:#1a1000;background:linear-gradient(135deg,#ffb552,#ff9526);box-shadow:0 12px 26px -16px rgba(255,140,30,.9);transition:transform .25s}
+.btn:hover{transform:translateY(-2px)}.btn.sm{padding:7px 15px;font-size:13.5px}.btn.ghost{background:#eef3fb;color:var(--navy);box-shadow:none}.btn.navy{background:var(--navy);color:#fff;box-shadow:none}.btn.red{background:#fde8e6;color:#b42318;box-shadow:none}
+.mut{color:var(--mut)}.right{margin-left:auto}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+input,select,textarea{width:100%;padding:12px 16px;border:1.5px solid transparent;border-radius:16px;background:#eef3fb;margin-top:6px}
+input:focus,select:focus,textarea:focus{background:#fff;border-color:var(--blue);outline:0}
+label{display:block;font-weight:600;font-size:13.5px;margin-bottom:14px;color:var(--navy)}
+/* auth */
+#auth{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(1000px 500px at 80% -10%,#dfe9fb,transparent),radial-gradient(800px 500px at -10% 100%,#ffe9d2,transparent),var(--bg)}
+.auth{width:min(480px,100%);background:var(--card);border-radius:36px;padding:34px;box-shadow:var(--sh)}
+.auth img{height:60px;display:block;margin:0 auto 18px}.tabs{display:flex;background:#eef3fb;border-radius:999px;padding:4px;margin-bottom:22px}
+.tabs button{flex:1;padding:10px;border-radius:999px;font-weight:600;color:var(--mut)}.tabs .on{background:#fff;color:var(--navy);box-shadow:0 4px 14px -6px rgba(30,60,120,.3)}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.roles button{padding:14px;border-radius:18px;background:#eef3fb;font-weight:600;text-align:left;border:1.5px solid transparent}.roles .on{background:#fff;border-color:var(--or)}
+.chk{display:flex;gap:10px;font-weight:400;font-size:13px;color:var(--mut)}.chk input{width:auto;margin:3px 0 0}
+/* shell */
+#app{display:none;min-height:100vh}.side{position:fixed;inset:0 auto 0 0;width:260px;background:#fff;padding:22px 16px;display:flex;flex-direction:column;gap:4px;box-shadow:var(--sh);z-index:5}
+.side img{height:50px;margin:0 0 18px 8px;align-self:flex-start}.side a{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-radius:16px;color:var(--mut);font-weight:600;cursor:pointer}
+.side a:hover{background:#f1f5fb;color:var(--navy)}.side a.on{background:#e9f0fd;color:var(--navy)}.dot{background:var(--or);color:#1a1000;border-radius:99px;font-size:11px;padding:1px 8px}
+.who{margin-top:auto;padding:14px;border-radius:20px;background:#f4f7fc;font-size:13px}.who b{display:block;font-size:14px}
+main{margin-left:260px;padding:28px 34px 60px;max-width:1280px}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px;flex-wrap:wrap}.top h1{font-size:30px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-bottom:22px}
+.card{background:var(--card);border-radius:28px;padding:22px;box-shadow:var(--sh)}.stat small{color:var(--mut);font-weight:600;font-size:13px}.stat b{display:block;font:700 30px 'Bricolage Grotesque';margin-top:4px}.stat span{font-size:13px;color:var(--mut)}
+.bar{height:8px;border-radius:9px;background:#e8eef9;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--or));border-radius:9px}
+.tw{overflow-x:auto;border-radius:28px;background:#fff;box-shadow:var(--sh)}table{width:100%;border-collapse:collapse;min-width:640px}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);padding:16px 18px}td{padding:14px 18px;border-top:1px solid var(--line);vertical-align:middle}
+.b{display:inline-block;padding:3px 12px;border-radius:99px;font-size:12.5px;font-weight:700;text-transform:capitalize;white-space:nowrap}.b.o{background:#fff1de;color:#a8580a}.b.bl{background:#e4edff;color:#2349a0}.b.g{background:#e0f6ea;color:#12714a}.b.r{background:#fde8e6;color:#b42318}.b.x{background:#eef1f6;color:#5a6782}
+.list{display:grid;gap:14px}.item{background:#fff;border-radius:26px;padding:20px 22px;box-shadow:var(--sh);display:flex;gap:16px;align-items:center;flex-wrap:wrap}.item h3{font-size:18px}
+.empty{text-align:center;padding:50px 20px;color:var(--mut);background:#fff;border-radius:28px}
+.modal{position:fixed;inset:0;background:rgba(15,30,70,.4);backdrop-filter:blur(4px);display:grid;place-items:center;padding:18px;z-index:50;overflow:auto}.sheet{background:#fff;border-radius:32px;padding:28px;width:min(560px,100%);max-height:92vh;overflow:auto;box-shadow:0 40px 90px -30px rgba(10,20,60,.6)}.sheet h3{margin-bottom:14px;font-size:22px}
+.msgs{max-height:220px;overflow:auto;display:grid;gap:8px;margin:12px 0}.msg{background:#eef3fb;border-radius:16px;padding:9px 14px;font-size:14px}.msg.me{background:#fff1de}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 22px;border-radius:99px;z-index:99;box-shadow:0 20px 40px -20px #000}.toast.err{background:#b42318}
+.fee{display:grid;grid-template-columns:1fr auto;gap:4px 18px;background:#f4f7fc;border-radius:18px;padding:14px 18px;font-size:14px;margin:12px 0}
+@media(max-width:860px){.side{position:static;width:auto;flex-direction:row;overflow-x:auto;padding:10px;gap:2px}.side img,.who{display:none}.side a{white-space:nowrap;padding:9px 14px}main{margin:0;padding:18px 16px 50px}}
+</style>
+</head>
+<body>
+<section id="auth"><div class="auth">
+  <img src="/assets/siira-logo.png" alt="SIIRA">
+  <div class="tabs"><button id="tl" class="on">Log in</button><button id="tr">Create account</button></div>
+  <form id="fl"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="btn" style="width:100%">Log in</button></form>
+  <form id="fr" hidden>
+    <div class="roles"><button type="button" data-role="talent" class="on">I want to find work</button><button type="button" data-role="client">I want to hire</button></div>
+    <label>Full name<input name="name" required minlength="2"></label><label>Email<input name="email" type="email" required></label>
+    <label>Mobile number<input name="phone" type="tel" placeholder="082 000 0000"></label>
+    <label>Province<select name="province"></select></label>
+    <label>Password<input name="password" type="password" minlength="8" required placeholder="8+ characters, letters and a number"></label>
+    <label class="chk"><input type="checkbox" name="accept_terms" required><span>I accept the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>, and consent to SIIRA processing my personal information (POPIA).</span></label>
+    <button class="btn" style="width:100%">Create account</button>
+  </form>
+  <p id="aerr" style="color:#b42318;font-weight:600;margin:14px 0 0"></p>
+</div></section>
+<div id="app"><nav class="side" id="side"></nav><main id="main"></main></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R=c=>'R'+Math.round((c||0)/100).toLocaleString('en-ZA');
+const D=s=>s?new Date(s.replace(' ','T')+'Z').toLocaleDateString('en-ZA',{day:'numeric',month:'short'}):'';
+const PROV=['Eastern Cape','Free State','Gauteng','KwaZulu-Natal','Limpopo','Mpumalanga','North West','Northern Cape','Western Cape'];
+const CATS=['Trades & Repairs','Construction','Cleaning & Care','Creative & Digital','Transport & Delivery','Business Support'];
+const TYPES=['Full-Time','Part-Time','Freelance','Short-Term'];
+const BC={open:'o',pending:'o',new:'o',offered:'o',accepted:'o',funded:'bl',delivered:'bl',reviewing:'bl',contacted:'bl',submitted:'bl',released:'g',paid_out:'g',approved:'g',resolved:'g',active:'g',shortlisted:'g',hired:'g',paid:'g',disputed:'r',rejected:'r',suspended:'r'};
+const badge=s=>`<span class="b ${BC[s]||'x'}">${esc(String(s).replace('_',' '))}</span>`;
+let token=null,me=null,view='overview';try{token=localStorage.getItem('siira_token')}catch{}
+
+async function api(p,o={}){
+  const r=await fetch('/api'+p,{method:o.method||(o.body?'POST':'GET'),headers:{'content-type':'application/json',...(token&&{authorization:'Bearer '+token})},body:o.body?JSON.stringify(o.body):undefined});
+  if(r.status===204)return null;
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){if(r.status===401&&token&&p!=='/auth/login')logout();const d=j.details?.[0];throw new Error(d?`${d.field}: ${d.message}`:j.error||'Something went wrong')}
+  return j}
+function toast(m,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3600)}
+function modal(html,onClose){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="sheet">${html}</div>`;
+  m.onclick=e=>{if(e.target===m||e.target.closest('[data-close]')){m.remove();onClose&&onClose()}};document.body.append(m);return m}
+function ask(title,fields,ok='Save',intro=''){return new Promise(res=>{
+  const inp=f=>f.type==='textarea'?`<textarea name="${f.name}" rows="3">${esc(f.value)}</textarea>`:f.type==='select'?`<select name="${f.name}">${f.options.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return`<option value="${esc(v)}"${v==f.value?' selected':''}>${esc(l)}</option>`}).join('')}</select>`:`<input name="${f.name}" type="${f.type||'text'}" value="${esc(f.value)}">`;
+  const m=modal(`<h3>${esc(title)}</h3>${intro?`<p class="mut">${intro}</p>`:''}<form>${fields.map(f=>`<label>${esc(f.label)}${inp(f)}</label>`).join('')}<div class="row"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn right">${ok}</button></div></form>`,()=>res(null));
+  m.querySelector('form').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));m.remove();res(v)}})}
+const info=(t,h)=>modal(`<h3>${esc(t)}</h3>${h}<div class="row" style="margin-top:16px"><button class="btn right" data-close>Done</button></div>`);
+const stat=(l,v,s='')=>`<div class="card stat"><small>${l}</small><b>${v}</b><span>${s}</span></div>`;
+const table=(h,rows)=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nothing here yet.</div>';
+const btn=(a,id,l,c='ghost')=>`<button class="btn sm ${c}" data-act="${a}" data-id="${id}">${l}</button>`;
+const head=(t,extra='')=>`<div class="top"><h1>${t}</h1><div class="right row">${extra}</div></div>`;
+
+/* ---------- auth ---------- */
+$('#fr [name=province]').innerHTML=PROV.map(p=>`<option>${p}</option>`).join('');
+let role='talent';
+const tab=r=>{$('#fl').hidden=r;$('#fr').hidden=!r;$('#tl').classList.toggle('on',!r);$('#tr').classList.toggle('on',r);$('#aerr').textContent=''};
+$('#tl').onclick=()=>tab(false);$('#tr').onclick=()=>tab(true);if(location.hash==='#register')tab(true);
+document.querySelectorAll('.roles button').forEach(b=>b.onclick=()=>{role=b.dataset.role;document.querySelectorAll('.roles button').forEach(x=>x.classList.toggle('on',x===b))});
+async function authSubmit(e,path,body){e.preventDefault();$('#aerr').textContent='';try{const j=await api(path,{body});token=j.token;try{localStorage.setItem('siira_token',token)}catch{}start()}catch(err){$('#aerr').textContent=err.message}}
+$('#fl').onsubmit=e=>authSubmit(e,'/auth/login',Object.fromEntries(new FormData(e.target)));
+$('#fr').onsubmit=e=>{const f=Object.fromEntries(new FormData(e.target));authSubmit(e,'/auth/register',{...f,role,accept_terms:f.accept_terms==='on'})};
+function logout(){token=null;me=null;try{localStorage.removeItem('siira_token')}catch{}$('#app').style.display='none';$('#auth').style.display='grid'}
+
+/* ---------- shell ---------- */
+const NAV={
+ admin:[['overview','Overview'],['verifications','Verifications'],['contracts','Payments & escrow'],['reports','Disputes & reports'],['jobs','Jobs'],['users','Users'],['leads','Leads'],['settings','Fees & settings'],['audit','Audit log']],
+ client:[['overview','Overview'],['myjobs','My jobs'],['contracts','Contracts'],['talent','Find talent'],['notifications','Notifications'],['account','Account']],
+ talent:[['overview','Overview'],['find','Find work'],['applications','Applications'],['contracts','Contracts'],['profile','Profile & verification'],['notifications','Notifications'],['account','Account']]};
+async function start(){
+  try{me=(await api('/auth/me')).user}catch{return logout()}
+  $('#auth').style.display='none';$('#app').style.display='block';
+  const h=location.hash.slice(1);view=NAV[me.role].some(n=>n[0]===h)?h:'overview';render();
+}
+async function render(){
+  const n=await api('/me/notifications').catch(()=>({unread:0}));
+  $('#side').innerHTML=`<img src="/assets/siira-logo.png" alt="SIIRA">${NAV[me.role].map(([k,l])=>`<a data-go="${k}" class="${k===view?'on':''}">${l}${k==='notifications'&&n.unread?`<span class="dot">${n.unread}</span>`:''}</a>`).join('')}<div class="who"><b>${esc(me.name)}</b><span class="mut">${me.role==='admin'?'Administrator':me.role==='client'?'Client':'Professional'}</span><br><a style="padding:6px 0;color:var(--blue)" data-act="logout">Log out</a></div>`;
+  const m=$('#main');m.innerHTML='<div class="empty">Loading…</div>';
+  try{m.innerHTML=await (V[me.role][view]||V.shared[view])()}catch(e){m.innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+document.addEventListener('click',async e=>{
+  const g=e.target.closest('[data-go]');if(g){view=g.dataset.go;location.hash=view;return render()}
+  const b=e.target.closest('[data-act]');if(!b)return;
+  try{await A[b.dataset.act](b.dataset.id,b)}catch(err){toast(err.message,true)}});
+
+/* ---------- views ---------- */
+const V={shared:{},admin:{},client:{},talent:{}};
+V.shared.notifications=async()=>{const j=await api('/me/notifications');return head('Notifications',btn('readall','', 'Mark all read'))+(j.data.length?`<div class="list">${j.data.map(n=>`<div class="item" style="${n.read?'opacity:.6':''}"><div>${esc(n.text)}<br><small class="mut">${D(n.created_at)}</small></div>${n.read?'':'<span class="dot right">new</span>'}</div>`).join('')}</div>`:'<div class="empty">You are all caught up.</div>')};
+V.shared.account=async()=>head('Account')+`<div class="card" style="max-width:640px"><h3>${esc(me.name)}</h3><p class="mut">${esc(me.email)}</p><p>Under POPIA you can download everything SIIRA holds about you, or ask us to delete your account. Financial records are kept for tax purposes but anonymised.</p><div class="row">${btn('export','','Download my data','navy')}${btn('delacc','','Delete my account','red')}</div></div>`;
+V.shared.contracts=async()=>{const j=await api(me.role==='admin'?'/admin/contracts':'/contracts');
+  if(me.role==='admin')return head('Payments & escrow')+table(['#','Contract','Parties','Amount','SIIRA fee + VAT','Status','Payment',''],j.data.map(c=>[c.id,esc(c.job_title),`${esc(c.client_name)} → ${esc(c.talent_name)}`,R(c.amount_cents),`${R(c.commission_cents)} + ${R(c.vat_cents)}`,badge(c.status),c.payment_status?`${badge(c.payment_status)} <small class="mut">${esc(c.provider)}</small>`:'',
+    (c.status==='accepted'&&c.payment_status==='pending'&&c.provider==='manual'?btn('confirmpay',c.id,'Confirm EFT received'):'')+(c.status==='disputed'?btn('resolve',c.id,'Resolve','red'):'')+(['released','refunded'].includes(c.status)?btn('payout',c.id,c.status==='released'?'Record payout':'Record refund'):'')+btn('open',c.id,'View')]));
+  const cl=me.role==='client';
+  return head('Contracts')+(j.data.length?`<div class="list">${j.data.map(c=>{const s=c.status;let a='';
+    if(cl){if(s==='accepted')a+=btn('fund',c.id,'Fund escrow','');if(s==='delivered')a+=btn('release',c.id,'Approve & release','');if(['funded','delivered'].includes(s))a+=btn('dispute',c.id,'Dispute','red');if(['released','paid_out'].includes(s))a+=btn('review',c.id,'Leave review')}
+    else{if(s==='offered')a+=btn('accept',c.id,'Accept','')+btn('decline',c.id,'Decline','red');if(s==='funded')a+=btn('deliver',c.id,'Mark delivered','')+btn('dispute',c.id,'Dispute','red');if(s==='delivered')a+=btn('dispute',c.id,'Dispute','red')}
+    return`<div class="item"><div><h3>${esc(c.job_title)}</h3><span class="mut">${cl?'Professional: '+esc(c.talent_name):'Client: '+esc(c.client_name)} · ${D(c.updated_at)}</span></div><b class="right">${R(cl?c.amount_cents:c.payout_cents)}</b>${badge(s)}<div class="row">${a}${btn('open',c.id,'Open','ghost')}</div></div>`}).join('')}</div>`:'<div class="empty">No contracts yet. They appear here once an offer is made.</div>')};
+
+V.admin.overview=async()=>{const o=await api('/admin/overview');
+  const todo=[['verifications',o.pending_verifications,'ID verifications to review'],['contracts',o.payments_to_confirm,'EFT payments to confirm'],['contracts',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`],['reports',o.open_reports,'open disputes & reports'],['leads',o.new_leads,'new hire enquiries']];
+  return head('Overview')+`<div class="grid">${stat('Gross volume (GMV)',R(o.gmv_cents),'funded and completed work')}${stat('SIIRA revenue',R(o.revenue_cents),'commission, excl. VAT')}${stat('VAT on fees',R(o.vat_cents),'set aside for SARS')}${stat('Held in escrow',R(o.escrow_cents),'client money not yet released')}${stat('Professionals',o.talent,'+'+o.signups_30d+' signups in 30 days')}${stat('Clients',o.clients,'')}${stat('Open jobs',o.jobs_open,'')}${stat('Active contracts',o.contracts_active,'')}</div><div class="card"><h3>Needs your attention</h3><div class="list" style="margin-top:12px">${todo.map(([v,n,t])=>`<a class="item" data-go="${v}" style="cursor:pointer;box-shadow:none;background:#f4f7fc;padding:14px 18px"><b>${n}</b> ${t}<span class="right mut">Open →</span></a>`).join('')}</div></div>`};
+V.admin.verifications=async()=>{const j=await api('/admin/verifications');return head('Verifications')+`<p class="mut">Check the document off-platform (we store only the last 4 characters), then approve or reject.</p>`+table(['Person','Role','Document','Ref (last 4)','Note','Submitted',''],j.data.map(v=>[`${esc(v.name)}<br><small class="mut">${esc(v.email)}</small>`,v.role,esc(v.id_type),esc(v.ref_last4),esc(v.note),D(v.created_at),btn('vapprove',v.id,'Approve','')+btn('vreject',v.id,'Reject','red')]))};
+V.admin.contracts=V.shared.contracts;
+V.admin.reports=async()=>{const j=await api('/admin/reports');return head('Disputes & reports')+table(['#','About','Reporter','Reason','Status','Note',''],j.data.map(r=>[r.id,`${r.target_type} #${r.target_id}`,esc(r.reporter),esc(r.reason),badge(r.status),esc(r.admin_note),(r.target_type==='contract'?btn('open',r.target_id,'Contract'):'')+btn('rstatus',r.id,'Update')]))};
+V.admin.jobs=async()=>{const j=await api('/admin/jobs');return head('Jobs')+table(['Job','Client','Where','Type','Applicants','Status',''],j.data.map(x=>[`${esc(x.title)}${x.featured?' ⭐':''}`,esc(x.client_name),esc(x.city),x.type,x.applicants,badge(x.status),btn('feature',x.id,x.featured?'Unfeature':'Feature')+btn('jstatus',x.id,x.status==='open'?'Close':'Reopen',x.status==='open'?'red':'ghost')]))};
+V.admin.users=async()=>{const j=await api('/admin/users');return head('Users')+table(['Name','Email','Role','Verified','Joined','Status',''],j.data.map(u=>[esc(u.name),esc(u.email),u.role,u.verified?'✓':'',D(u.created_at),badge(u.status),u.role==='admin'?'':btn('ustatus',u.id+':'+u.status,u.status==='active'?'Suspend':'Reactivate',u.status==='active'?'red':'ghost')]))};
+V.admin.leads=async()=>{const j=await api('/admin/leads');return head('Hire enquiries')+`<p class="mut">People who asked to hire a professional from the public site. Contact them and help close the job.</p>`+table(['From','Wants','Message','Status','Received',''],j.data.map(l=>[`${esc(l.from_name)}<br><small class="mut">${esc(l.from_email)}</small>`,esc(l.talent_name),esc(l.message),badge(l.status),D(l.created_at),btn('lead',l.id,'Update')]))};
+V.admin.settings=async()=>{const s=await api('/admin/settings');return head('Fees & settings')+`<div class="card" style="max-width:560px"><p class="mut">Commission is deducted from the professional's payout. VAT is charged on the commission. New values apply to new contracts only. Confirm your VAT registration status with your accountant.</p><form id="sf"><label>Commission %<input name="commission_pct" type="number" step="0.5" min="0" max="40" value="${s.commission_pct}"></label><label>VAT %<input name="vat_pct" type="number" step="0.5" min="0" max="25" value="${s.vat_pct}"></label><button class="btn">Save settings</button></form></div>`};
+V.admin.audit=async()=>{const j=await api('/admin/audit');return head('Audit log')+table(['When','Who','Action','Target'],j.data.map(a=>[D(a.created_at),esc(a.actor||'system'),esc(a.action),esc(a.target)]))};
+
+V.client.overview=async()=>{const o=await api('/me/overview');return head('Welcome back, '+esc(me.name.split(' ')[0]),btn('postjob','','Post a job'))+`<div class="grid">${stat('Open jobs',o.open_jobs)}${stat('Applicants',o.applicants,'across your jobs')}${stat('Active contracts',o.active_contracts)}${stat('Needs your action',o.needs_action,'fund or approve work')}${stat('Total spent',R(o.spent_cents))}</div><div class="card"><h3>How it works</h3><p class="mut">1. Post a job. 2. Review applicants and make an offer. 3. Fund the contract, your money is held safely. 4. Approve the work to release payment.</p></div>`};
+V.client.myjobs=async()=>{const j=await api('/me/jobs');return head('My jobs',btn('postjob','','Post a job'))+(j.data.length?`<div class="list">${j.data.map(x=>`<div class="item"><div><h3>${esc(x.title)}</h3><span class="mut">${esc(x.location)} · ${x.type} · ${esc(x.pay_label)}</span></div>${badge(x.status)}<b class="right">${x.applicants} applicants</b><div class="row">${btn('applicants',x.id,'Applicants','')}${btn('jclose',x.id+':'+x.status,x.status==='open'?'Close':'Reopen')}</div></div>`).join('')}</div>`:'<div class="empty">Post your first job to start receiving applications.</div>')};
+V.client.contracts=V.shared.contracts;
+V.client.talent=async()=>{const j=await api('/talent');return head('Find talent')+`<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(290px,1fr))">${j.data.map(t=>`<div class="card"><h3>${esc(t.name)} ${t.verified?'✓':''}</h3><span class="mut">${esc(t.headline)} · ${esc(t.city)}</span><p>★ ${t.rating.toFixed(1)} · ${t.jobs_done} jobs · <b>R${t.hourly_rate}/hr</b></p><p class="mut">${t.skills.map(esc).join(' · ')}</p>${btn('offer',t.id,'Make an offer','')}</div>`).join('')}</div>`};
+
+V.talent.overview=async()=>{const o=await api('/me/overview');return head('Welcome back, '+esc(me.name.split(' ')[0]))+`<div class="grid">${stat('Earned',R(o.earned_cents),'paid out to you')}${stat('In progress',R(o.pending_cents),'funded or awaiting payout')}${stat('Active contracts',o.active_contracts)}${stat('Rating','★ '+(o.rating||'–'),o.jobs_done+' jobs done')}${stat('Applications',o.applications)}</div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))"><div class="card"><h3>Profile strength ${o.profile_pct}%</h3><div class="bar"><i style="width:${o.profile_pct}%"></i></div><p class="mut">A complete profile gets far more offers.</p><button class="btn sm ghost" data-go="profile">Improve profile</button></div><div class="card"><h3>Verification</h3><p>${o.verified?badge('approved')+' You show the verified badge.':o.verification==='pending'?badge('pending')+' We are reviewing your documents.':'Verified professionals are hired more often.'}</p>${o.verified||o.verification==='pending'?'':'<button class="btn sm" data-go="profile">Get verified</button>'}</div></div>`};
+V.talent.find=async()=>{const j=await api('/jobs?limit=30');return head('Find work')+(j.data.length?`<div class="list">${j.data.map(x=>`<div class="item"><div><h3>${esc(x.title)}</h3><span class="mut">${esc(x.location)} · ${x.type} · ${esc(x.pay_label)}</span></div><div class="row right">${btn('save',x.id,x.saved?'Saved ♥':'Save ♡')}${btn('apply',x.id,'Apply','')}</div></div>`).join('')}</div>`:'<div class="empty">No open jobs right now.</div>')};
+V.talent.applications=async()=>{const j=await api('/me/applications');return head('Applications')+table(['Job','Where','Applied','Status'],j.data.map(a=>[esc(a.title),esc(a.city+', '+a.province),D(a.created_at),badge(a.status)]))};
+V.talent.contracts=V.shared.contracts;
+V.talent.profile=async()=>{const[p,o]=await Promise.all([api('/talent/'+me.id),api('/me/overview')]);const t=p.data;
+  return head('Profile & verification')+`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))"><div class="card"><h3>Your public profile</h3><form id="pf"><label>Headline<input name="headline" value="${esc(t.headline)}" placeholder="e.g. Qualified electrician"></label><label>About you<textarea name="bio" rows="3">${esc(t.bio)}</textarea></label><label>Skills (comma separated)<input name="skills" value="${esc(t.skills.join(', '))}"></label><label>Hourly rate (R)<input name="hourly_rate" type="number" min="0" value="${t.hourly_rate??''}"></label><label>Province<select name="province">${PROV.map(x=>`<option${x===t.province?' selected':''}>${x}</option>`).join('')}</select></label><label>City<input name="city" value="${esc(t.city)}"></label><button class="btn">Save profile</button></form></div><div class="card"><h3>Get verified</h3><p>${o.verified?badge('approved')+' You are verified.':o.verification==='pending'?badge('pending')+' Under review.':'Submit your ID or trade certificate to earn the verified badge.'}</p>${o.verified||o.verification==='pending'?'':btn('verify','','Request verification','')}<p class="mut" style="margin-top:14px">Privacy: SIIRA keeps only the last 4 characters of your document number.</p></div></div>`};
+
+/* ---------- actions ---------- */
+const A={
+ logout,readall:async()=>{await api('/me/notifications/read',{method:'POST'});render()},
+ async export(){const r=await fetch('/api/me/export',{headers:{authorization:'Bearer '+token}});const u=URL.createObjectURL(await r.blob());Object.assign(document.createElement('a'),{href:u,download:'siira-my-data.json'}).click()},
+ async delacc(){const v=await ask('Delete your account',[{label:'Confirm your password',name:'password',type:'password'}],'Delete forever','This cannot be undone. Active contracts must be finished first.');if(!v)return;await api('/me/delete',{body:v});toast('Account deleted');logout()},
+ async open(id){const j=await api('/contracts/'+id),c=j.data,tal=me.id===c.talent_id;
+  const m=modal(`<h3>${esc(c.job_title)} ${badge(c.status)}</h3><p class="mut">${esc(c.client_name)} → ${esc(c.talent_name)}</p><p>${esc(c.description)}</p><div class="fee"><span>Contract price</span><b>${R(c.amount_cents)}</b><span class="mut">SIIRA commission</span><span>−${R(c.commission_cents)}</span><span class="mut">VAT on commission</span><span>−${R(c.vat_cents)}</span><b>Professional receives</b><b>${R(c.payout_cents)}</b></div>${c.delivery_note?`<p><b>Delivery note:</b> ${esc(c.delivery_note)}</p>`:''}${j.review?`<p>Review: ${'★'.repeat(j.review.rating)} ${esc(j.review.comment)}</p>`:''}<div class="msgs">${j.messages.map(x=>`<div class="msg ${x.sender_id===me.id?'me':''}"><b>${esc(x.name)}</b> ${esc(x.body)}</div>`).join('')||'<span class="mut">No messages yet.</span>'}</div><form id="mf" class="row"><input name="body" placeholder="Write a message…" required style="flex:1;margin:0"><button class="btn">Send</button></form>`);
+  m.querySelector('#mf').onsubmit=async e=>{e.preventDefault();await api(`/contracts/${id}/messages`,{body:{body:new FormData(e.target).get('body')}});m.remove();A.open(id)}},
+ async accept(id){await api(`/contracts/${id}/accept`,{method:'POST'});toast('Offer accepted');render()},
+ async decline(id){await api(`/contracts/${id}/decline`,{method:'POST'});render()},
+ async fund(id){const f=await api(`/contracts/${id}/fund`,{method:'POST'});
+  if(f.mode==='paystack')return location.href=f.checkout_url;
+  if(f.mode==='manual')return info('Pay by EFT',`<p>${esc(f.instructions)}</p>`);
+  if(confirm('Sandbox mode: simulate a successful payment?')){await api(`/contracts/${id}/fund/simulate`,{method:'POST'});toast('Escrow funded');render()}},
+ async deliver(id){const v=await ask('Mark as delivered',[{label:'Note for the client',name:'note',type:'textarea'}],'Send');if(!v)return;await api(`/contracts/${id}/deliver`,{body:v});toast('Sent to client');render()},
+ async release(id){if(!confirm('Approve the work and release payment to the professional?'))return;await api(`/contracts/${id}/release`,{method:'POST'});toast('Payment released');render()},
+ async dispute(id){const v=await ask('Open a dispute',[{label:'What went wrong?',name:'reason',type:'textarea'}],'Open dispute','Funds stay in escrow while SIIRA reviews.');if(!v)return;await api(`/contracts/${id}/dispute`,{body:v});toast('Dispute opened');render()},
+ async review(id){const v=await ask('Rate this professional',[{label:'Rating',name:'rating',type:'select',options:[5,4,3,2,1],value:5},{label:'Comment',name:'comment',type:'textarea'}],'Submit');if(!v)return;await api(`/contracts/${id}/review`,{body:{rating:+v.rating,comment:v.comment}});toast('Thanks for your review');render()},
+ async postjob(){const v=await ask('Post a job',[{label:'Title',name:'title'},{label:'Description',name:'description',type:'textarea'},{label:'Category',name:'category',type:'select',options:CATS},{label:'Type',name:'type',type:'select',options:TYPES},{label:'Province',name:'province',type:'select',options:PROV,value:'Gauteng'},{label:'City',name:'city'},{label:'Pay from (R)',name:'pay_min',type:'number'},{label:'Pay to (R)',name:'pay_max',type:'number'},{label:'Pay unit',name:'pay_unit',type:'select',options:['hour','day','month','project']}],'Post job');if(!v)return;
+  await api('/jobs',{body:{...v,pay_min:+v.pay_min,pay_max:+v.pay_max}});toast('Job posted');view='myjobs';render()},
+ async jclose(x){const[id,s]=x.split(':');await api('/jobs/'+id,{method:'PATCH',body:{status:s==='open'?'closed':'open'}});render()},
+ async applicants(id){const j=await api(`/jobs/${id}/applications`);info('Applicants',j.data.length?`<div class="list">${j.data.map(a=>`<div class="item" style="box-shadow:none;background:#f4f7fc"><div><b>${esc(a.name)} ${a.verified?'✓':''}</b><br><span class="mut">${esc(a.headline||'')} · ★ ${a.rating||'–'}</span><br>${esc(a.message)}</div><span class="right">${btn('offerjob',id+':'+a.talent_id,'Make offer','')}</span></div>`).join('')}</div>`:'<p class="mut">No applicants yet.</p>')},
+ async offerjob(x){const[job,t]=x.split(':');document.querySelector('.modal')?.remove();const v=await ask('Make an offer',[{label:'Price (R)',name:'amount',type:'number'},{label:'What is included?',name:'description',type:'textarea'}],'Send offer');if(!v)return;await api('/contracts',{body:{job_id:+job,talent_id:+t,amount:+v.amount,description:v.description}});toast('Offer sent');view='contracts';render()},
+ async offer(t){const jobs=(await api('/me/jobs')).data.filter(x=>x.status==='open');if(!jobs.length)return toast('Post a job first, then make an offer',true);
+  const v=await ask('Make an offer',[{label:'For which job?',name:'job',type:'select',options:jobs.map(j=>[j.id,j.title])},{label:'Price (R)',name:'amount',type:'number'},{label:'What is included?',name:'description',type:'textarea'}],'Send offer');if(!v)return;
+  await api('/contracts',{body:{job_id:+v.job,talent_id:+t,amount:+v.amount,description:v.description}});toast('Offer sent');view='contracts';render()},
+ async apply(id){const v=await ask('Apply for this job',[{label:'Message to the client',name:'message',type:'textarea'}],'Send application');if(!v)return;await api(`/jobs/${id}/apply`,{body:v});toast('Application sent')},
+ async save(id,b){const on=b.textContent.includes('♥');await api(`/jobs/${id}/save`,{method:on?'DELETE':'POST'});b.textContent=on?'Save ♡':'Saved ♥'},
+ async verify(){const v=await ask('Request verification',[{label:'Document type',name:'id_type',type:'select',options:['SA ID','Passport','Trade certificate','Company (CIPC)']},{label:'Document number',name:'reference',type:'text'},{label:'Anything we should know?',name:'note',type:'textarea'}],'Submit','SIIRA stores only the last 4 characters of the number. We contact you to see the document.');if(!v)return;await api('/me/verification',{body:v});toast('Submitted for review');render()},
+ async vapprove(id){await api(`/admin/verifications/${id}/decision`,{body:{decision:'approved'}});render()},
+ async vreject(id){const v=await ask('Reject verification',[{label:'Reason (shown to the user)',name:'note'}],'Reject');if(!v)return;await api(`/admin/verifications/${id}/decision`,{body:{decision:'rejected',note:v.note}});render()},
+ async confirmpay(id){if(!confirm('Confirm the EFT has arrived in the SIIRA account?'))return;await api(`/admin/contracts/${id}/mark-funded`,{method:'POST'});render()},
+ async resolve(id){const v=await ask('Resolve dispute',[{label:'Decision',name:'action',type:'select',options:[['release','Release payment to professional'],['refund','Refund the client']]},{label:'Note',name:'note',type:'textarea'}],'Resolve');if(!v)return;await api(`/admin/contracts/${id}/resolve`,{body:v});render()},
+ async payout(id){const v=await ask('Record payout',[{label:'Bank / EFT reference',name:'payout_ref'}],'Record','Do this after you have paid the money out from the SIIRA account.');if(!v)return;await api(`/admin/contracts/${id}/payout`,{body:v});render()},
+ async rstatus(id){const v=await ask('Update report',[{label:'Status',name:'status',type:'select',options:['open','reviewing','resolved','dismissed']},{label:'Note',name:'admin_note',type:'textarea'}]);if(!v)return;await api('/admin/reports/'+id,{method:'PATCH',body:v});render()},
+ async feature(id){const rows=(await api('/admin/jobs')).data.find(j=>j.id==id);await api('/admin/jobs/'+id,{method:'PATCH',body:{featured:!rows.featured}});render()},
+ async jstatus(id){const rows=(await api('/admin/jobs')).data.find(j=>j.id==id);await api('/admin/jobs/'+id,{method:'PATCH',body:{status:rows.status==='open'?'closed':'open'}});render()},
+ async ustatus(x){const[id,s]=x.split(':');if(!confirm(s==='active'?'Suspend this account?':'Reactivate this account?'))return;await api('/admin/users/'+id,{method:'PATCH',body:{status:s==='active'?'suspended':'active'}});render()},
+ async lead(id){const v=await ask('Update enquiry',[{label:'Status',name:'status',type:'select',options:['new','contacted','closed']},{label:'Note',name:'admin_note',type:'textarea'}]);if(!v)return;await api('/admin/leads/'+id,{method:'PATCH',body:v});render()},
+};
+document.addEventListener('submit',async e=>{
+  if(e.target.id==='sf'){e.preventDefault();const f=Object.fromEntries(new FormData(e.target));try{await api('/admin/settings',{method:'PUT',body:{commission_pct:+f.commission_pct,vat_pct:+f.vat_pct}});toast('Settings saved')}catch(err){toast(err.message,true)}}
+  if(e.target.id==='pf'){e.preventDefault();const f=Object.fromEntries(new FormData(e.target));try{await api('/me/profile',{method:'PUT',body:{...f,skills:f.skills.split(',').map(s=>s.trim()).filter(Boolean),hourly_rate:f.hourly_rate===''?undefined:+f.hourly_rate}});toast('Profile saved')}catch(err){toast(err.message,true)}}
+});
+if(token)start();
+</script>
+</body>
+</html>

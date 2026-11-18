@@ -74,4 +74,50 @@ CREATE TABLE IF NOT EXISTS hire_requests (
 );
 `);
 
+const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map(c => c.name);
+const addCol = (t, c, def) => { if (!cols(t).includes(c)) db.exec(`ALTER TABLE ${t} ADD COLUMN ${c} ${def}`); };
+addCol('users', 'status', "TEXT NOT NULL DEFAULT 'active'");
+addCol('users', 'phone', "TEXT DEFAULT ''");
+addCol('users', 'consent_at', 'TEXT');
+addCol('jobs', 'featured', 'INTEGER NOT NULL DEFAULT 0');
+addCol('jobs', 'moderation_note', "TEXT DEFAULT ''");
+addCol('hire_requests', 'status', "TEXT NOT NULL DEFAULT 'new'");
+addCol('hire_requests', 'admin_note', "TEXT DEFAULT ''");
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+INSERT OR IGNORE INTO settings VALUES ('commission_pct','10'),('vat_pct','15');
+CREATE TABLE IF NOT EXISTS verifications (
+  id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id_type TEXT NOT NULL, ref_last4 TEXT NOT NULL DEFAULT '', note TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending', review_note TEXT DEFAULT '', reviewed_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS contracts (
+  id INTEGER PRIMARY KEY, job_id INTEGER NOT NULL REFERENCES jobs(id), client_id INTEGER NOT NULL REFERENCES users(id),
+  talent_id INTEGER NOT NULL REFERENCES users(id), description TEXT NOT NULL DEFAULT '',
+  amount_cents INTEGER NOT NULL, commission_cents INTEGER NOT NULL, vat_cents INTEGER NOT NULL, payout_cents INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'offered', delivery_note TEXT DEFAULT '', payout_ref TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS payments (
+  id INTEGER PRIMARY KEY, contract_id INTEGER NOT NULL REFERENCES contracts(id), provider TEXT NOT NULL,
+  reference TEXT NOT NULL UNIQUE, amount_cents INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS reviews (
+  id INTEGER PRIMARY KEY, contract_id INTEGER NOT NULL UNIQUE REFERENCES contracts(id), reviewer_id INTEGER NOT NULL,
+  talent_id INTEGER NOT NULL, rating INTEGER NOT NULL, comment TEXT DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY, contract_id INTEGER NOT NULL REFERENCES contracts(id), sender_id INTEGER NOT NULL,
+  body TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, type TEXT NOT NULL,
+  text TEXT NOT NULL, read INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS reports (
+  id INTEGER PRIMARY KEY, reporter_id INTEGER NOT NULL, target_type TEXT NOT NULL, target_id INTEGER NOT NULL,
+  reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', admin_note TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY, actor_id INTEGER, action TEXT NOT NULL, target TEXT DEFAULT '', meta TEXT DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')));
+`);
+
 module.exports = db;

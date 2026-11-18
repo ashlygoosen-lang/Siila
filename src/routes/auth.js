@@ -12,12 +12,14 @@ router.post('/register', validate(z.object({
     .refine(p => /[A-Za-z]/.test(p) && /\d/.test(p), 'Use letters and at least one number'),
   role: z.enum(['talent', 'client']),
   province: z.enum(PROVINCES).optional(),
+  phone: z.string().trim().max(20).optional(),
+  accept_terms: z.literal(true, { error: 'You must accept the Terms and Privacy Policy (POPIA consent)' }),
 })), (req, res) => {
-  const { name, email, password, role, province } = req.body;
+  const { name, email, password, role, province, phone } = req.body;
   if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) throw new HttpError(409, 'An account with that email already exists');
   const hash = bcrypt.hashSync(password, 11);
   const id = db.transaction(() => {
-    const uid = db.prepare('INSERT INTO users (name,email,password_hash,role) VALUES (?,?,?,?)').run(name, email, hash, role).lastInsertRowid;
+    const uid = db.prepare('INSERT INTO users (name,email,password_hash,role,phone,consent_at) VALUES (?,?,?,?,?,datetime(\'now\'))').run(name, email, hash, role, phone || '').lastInsertRowid;
     if (role === 'talent') db.prepare('INSERT INTO profiles (user_id, province) VALUES (?,?)').run(uid, province || '');
     return uid;
   })();
@@ -29,6 +31,7 @@ router.post('/login', validate(z.object({ email: z.email(), password: z.string()
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(req.body.email);
   // Same message for unknown email and wrong password to avoid account enumeration
   if (!user || !bcrypt.compareSync(req.body.password, user.password_hash)) throw new HttpError(401, 'Incorrect email or password');
+  if (user.status !== 'active') throw new HttpError(403, 'This account is not active. Contact support.');
   res.json({ token: signToken(user), user: publicUser(user) });
 });
 

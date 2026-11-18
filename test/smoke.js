@@ -31,9 +31,10 @@ const app = require('../src/server');
   let talentTok, clientTok, jobId;
   await step('register validation and duplicate email', async () => {
     assert.equal((await call('POST', '/auth/register', { name: 'A', email: 'bad', password: 'x', role: 'talent' })).status, 400);
-    const r = await call('POST', '/auth/register', { name: 'Test Talent', email: 'new@siira.test', password: 'Passw0rdOK', role: 'talent', province: 'Gauteng' });
+    assert.equal((await call('POST', '/auth/register', { name: 'No Consent', email: 'nc@siira.test', password: 'Passw0rdOK', role: 'talent' })).status, 400); // POPIA consent required
+    const r = await call('POST', '/auth/register', { name: 'Test Talent', email: 'new@siira.test', password: 'Passw0rdOK', role: 'talent', province: 'Gauteng', accept_terms: true });
     assert.equal(r.status, 201); talentTok = r.body.token;
-    assert.equal((await call('POST', '/auth/register', { name: 'Test Talent', email: 'NEW@siira.test', password: 'Passw0rdOK', role: 'talent' })).status, 409);
+    assert.equal((await call('POST', '/auth/register', { name: 'Test Talent', email: 'NEW@siira.test', password: 'Passw0rdOK', role: 'talent', accept_terms: true })).status, 409);
   });
   await step('login (good and bad)', async () => {
     const ok = await call('POST', '/auth/login', { email: 'client@siira.test', password: 'Siira#2026' });
@@ -64,8 +65,57 @@ const app = require('../src/server');
     const p = await call('PUT', '/me/profile', { headline: 'Painter', skills: ['Interior', 'Exterior'], hourly_rate: 180 }, talentTok);
     assert.equal(p.status, 200);
     const req = { from_name: 'Jo', from_email: 'jo@example.com', message: 'Need a quote for a rewire.' };
-    assert.equal((await call('POST', '/talent/1/hire-request', req)).status, 404); // user 1 is the client, not talent
-    assert.equal((await call('POST', '/talent/2/hire-request', req)).status, 201);
+    assert.equal((await call('POST', '/talent/1/hire-request', req)).status, 404); // user 1 is the admin, not talent
+    assert.equal((await call('POST', '/talent/3/hire-request', req)).status, 201);
+  });
+  await step('contract lifecycle: offer, escrow, deliver, release, review, payout', async () => {
+    const adminTok = (await call('POST', '/auth/login', { email: 'admin@siira.test', password: 'Siira#2026' })).body.token;
+    const t2 = (await call('POST', '/auth/login', { email: 'talent1@siira.test', password: 'Siira#2026' })).body.token;
+    const job = (await call('POST', '/jobs', { title: 'Rewire house', description: 'Full rewire of a small house.', category: 'Trades & Repairs', type: 'Freelance', province: 'Gauteng', city: 'Sandton', pay_min: 5000, pay_max: 9000, pay_unit: 'project' }, clientTok)).body.data;
+    const o = await call('POST', '/contracts', { job_id: job.id, talent_id: 3, amount: 8000, description: 'Rewire, incl. DB board' }, clientTok);
+    assert.equal(o.status, 201);
+    const c = o.body.data;
+    assert.equal(c.commission_cents, 80000); assert.equal(c.vat_cents, 12000); assert.equal(c.payout_cents, 708000);
+    assert.equal((await call('POST', `/contracts/${c.id}/fund`, null, clientTok)).status, 409); // not accepted yet
+    assert.equal((await call('POST', `/contracts/${c.id}/accept`, null, t2)).status, 200);
+    assert.equal((await call('POST', `/contracts/${c.id}/fund`, null, clientTok)).body.mode, 'sandbox');
+    assert.equal((await call('POST', `/contracts/${c.id}/fund/simulate`, null, clientTok)).status, 200);
+    assert.equal((await call('POST', `/contracts/${c.id}/release`, null, clientTok)).status, 409); // not delivered
+    assert.equal((await call('POST', `/contracts/${c.id}/deliver`, { note: 'Done, COC attached' }, t2)).status, 200);
+    assert.equal((await call('POST', `/contracts/${c.id}/messages`, { body: 'Thanks!' }, clientTok)).status, 201);
+    assert.equal((await call('GET', `/contracts/${c.id}`, null, talentTok)).status, 403); // outsider
+    assert.equal((await call('POST', `/contracts/${c.id}/release`, null, clientTok)).status, 200);
+    assert.equal((await call('POST', `/contracts/${c.id}/review`, { rating: 5, comment: 'Great' }, clientTok)).status, 201);
+    assert.equal((await call('POST', `/contracts/${c.id}/payout`, { payout_ref: 'EFT-1' }, adminTok)).status, 404);
+    assert.equal((await call('POST', `/admin/contracts/${c.id}/payout`, { payout_ref: 'EFT-1' }, clientTok)).status, 403);
+    assert.equal((await call('POST', `/admin/contracts/${c.id}/payout`, { payout_ref: 'EFT-1' }, adminTok)).status, 200);
+    const ov = (await call('GET', '/admin/overview', null, adminTok)).body;
+    assert.equal(ov.gmv_cents, 800000); assert.equal(ov.revenue_cents, 80000); assert.equal(ov.vat_cents, 12000);
+    const me = (await call('GET', '/me/overview', null, t2)).body;
+    assert.equal(me.earned_cents, 708000);
+  });
+  await step('disputes, verification, suspension and POPIA export/delete', async () => {
+    const adminTok = (await call('POST', '/auth/login', { email: 'admin@siira.test', password: 'Siira#2026' })).body.token;
+    const t3 = (await call('POST', '/auth/login', { email: 'talent2@siira.test', password: 'Siira#2026' })).body.token;
+    const job = (await call('POST', '/jobs', { title: 'Logo design', description: 'Logo and brand sheet.', category: 'Creative & Digital', type: 'Freelance', province: 'Western Cape', city: 'Cape Town', pay_min: 2000, pay_max: 4000, pay_unit: 'project' }, clientTok)).body.data;
+    const cr = await call('POST', '/contracts', { job_id: job.id, talent_id: 4, amount: 3000, description: 'Logo and brand sheet' }, clientTok); const c = cr.body.data;
+    await call('POST', `/contracts/${c.id}/accept`, null, t3);
+    await call('POST', `/contracts/${c.id}/fund`, null, clientTok); await call('POST', `/contracts/${c.id}/fund/simulate`, null, clientTok);
+    assert.equal((await call('POST', `/contracts/${c.id}/dispute`, { reason: 'Work was never delivered.' }, clientTok)).status, 200);
+    assert.equal((await call('POST', `/admin/contracts/${c.id}/resolve`, { action: 'refund', note: 'No delivery' }, adminTok)).status, 200);
+    assert.equal((await call('POST', `/admin/contracts/${c.id}/payout`, { payout_ref: 'REFUND-1' }, adminTok)).status, 200);
+    assert.equal((await call('POST', '/me/verification', { id_type: 'SA ID', reference: '8001015009087' }, t3)).status, 201);
+    const v = (await call('GET', '/admin/verifications', null, adminTok)).body.data;
+    assert.equal(v[0].ref_last4, '9087');
+    assert.equal((await call('POST', `/admin/verifications/${v[0].id}/decision`, { decision: 'approved' }, adminTok)).status, 200);
+    assert.equal((await call('GET', '/talent/4')).body.data.verified, true);
+    const ul = await call('GET', '/admin/users?q=Test%20Talent', null, adminTok); const u = ul.body.data[0];
+    assert.equal((await call('PATCH', `/admin/users/${u.id}`, { status: 'suspended' }, adminTok)).status, 200);
+    assert.equal((await call('GET', '/auth/me', null, talentTok)).status, 403); // suspended token stops working
+    assert.equal((await call('GET', '/admin/overview', null, clientTok)).status, 403);
+    assert.equal((await call('GET', '/me/export', null, clientTok)).body.account.email, 'client@siira.test');
+    assert.equal((await call('POST', '/me/delete', { password: 'Siira#2026' }, t3)).status, 204);
+    assert.equal((await call('POST', '/auth/login', { email: 'talent2@siira.test', password: 'Siira#2026' })).status, 401);
   });
   await step('unknown API route returns JSON 404', async () => {
     assert.equal((await call('GET', '/nope')).status, 404);

@@ -9,7 +9,9 @@ const rateLimit = require('express-rate-limit');
 const { ZodError } = require('zod');
 
 const db = require('./db');
-const { seed } = require('./seed');
+const crypto = require('crypto');
+const { seed, ensureAdmin } = require('./seed');
+const { markFunded } = require('./services');
 const { HttpError, PROVINCES, CATEGORIES, TYPES } = require('./util');
 
 const app = express();
@@ -31,7 +33,7 @@ app.use(helmet({
 const origins = (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({ origin: origins.length ? origins : !isProd }));
 app.use(compression());
-app.use(express.json({ limit: '50kb' }));
+app.use(express.json({ limit: '50kb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 if (process.env.NODE_ENV !== 'test') app.use(morgan(isProd ? 'combined' : 'dev'));
 
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false }));
@@ -50,10 +52,25 @@ app.get('/api/stats', (_req, res) => {
   });
 });
 
+app.post('/api/webhooks/paystack', (req, res) => {
+  const secret = process.env.PAYSTACK_SECRET;
+  if (!secret) return res.sendStatus(404);
+  const sig = Buffer.from(crypto.createHmac('sha512', secret).update(req.rawBody || '').digest('hex'));
+  const got = Buffer.from(String(req.headers['x-paystack-signature'] || ''));
+  if (sig.length !== got.length || !crypto.timingSafeEqual(sig, got)) return res.sendStatus(401);
+  if (req.body.event === 'charge.success') {
+    const p = db.prepare('SELECT * FROM payments WHERE reference = ?').get(req.body.data.reference);
+    if (p && Number(req.body.data.amount) === p.amount_cents) markFunded(p.contract_id, p.reference); // amount must match
+  }
+  res.sendStatus(200);
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/talent', require('./routes/talent'));
 app.use('/api/me', require('./routes/me'));
+app.use('/api/contracts', require('./routes/contracts'));
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Endpoint not found')));
 
 app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: isProd ? '1h' : 0 }));
@@ -69,6 +86,7 @@ app.use((err, _req, res, _next) => {
 
 // Demo accounts share a public password, so they are only seeded outside production unless SEED_DEMO=true
 const seedDemo = process.env.SEED_DEMO ? process.env.SEED_DEMO === 'true' : !isProd;
+if (ensureAdmin()) console.log('Created admin account from ADMIN_EMAIL');
 if (seedDemo && seed()) console.log('Seeded demo data (password for demo accounts: Siira#2026)');
 
 if (require.main === module) {

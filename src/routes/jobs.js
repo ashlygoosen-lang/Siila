@@ -6,7 +6,7 @@ const shape = (j, saved = false) => ({
   id: j.id, title: j.title, description: j.description, category: j.category, type: j.type,
   province: j.province, city: j.city, location: `${j.city}, ${j.province}`,
   pay_min: j.pay_min, pay_max: j.pay_max, pay_unit: j.pay_unit, pay_label: payLabel(j),
-  icon: j.icon, gradient: j.gradient, status: j.status, created_at: j.created_at, saved,
+  icon: j.icon, gradient: j.gradient, featured: !!j.featured, status: j.status, created_at: j.created_at, saved,
 });
 
 const listQuery = z.object({
@@ -27,7 +27,7 @@ router.get('/', auth(false), validate(listQuery, 'query'), (req, res) => {
   if (q) { where.push('(title LIKE ? OR description LIKE ? OR category LIKE ?)'); args.push(...Array(3).fill(`%${q}%`)); }
   const w = where.join(' AND ');
   const total = db.prepare(`SELECT COUNT(*) c FROM jobs WHERE ${w}`).get(...args).c;
-  const rows = db.prepare(`SELECT * FROM jobs WHERE ${w} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`).all(...args, limit, (page - 1) * limit);
+  const rows = db.prepare(`SELECT * FROM jobs WHERE ${w} ORDER BY featured DESC, created_at DESC, id DESC LIMIT ? OFFSET ?`).all(...args, limit, (page - 1) * limit);
   const savedIds = new Set(req.user ? db.prepare('SELECT job_id FROM saved_jobs WHERE user_id = ?').all(req.user.id).map(r => r.job_id) : []);
   res.json({ data: rows.map(j => shape(j, savedIds.has(j.id))), meta: { page, limit, total, pages: Math.ceil(total / limit) } });
 });

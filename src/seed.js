@@ -13,6 +13,7 @@ function seed() {
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
 
   db.transaction(() => {
+    addUser.run('SIIRA Admin', 'admin@siira.test', hash, 'admin');
     const client = addUser.run('Demo Client', 'client@siira.test', hash, 'client').lastInsertRowid;
     const talent = [
       ['Thando M.', 'Electrician', ['Wiring', 'Solar', 'Compliance'], 350, 'Gauteng', 'Johannesburg', 4.9, 212, '#0a3d8f'],
@@ -42,5 +43,14 @@ function seed() {
   return true;
 }
 
-module.exports = { seed, DEMO_PASSWORD };
+// Production: create the first admin from ADMIN_EMAIL / ADMIN_PASSWORD (min 10 chars) if no admin exists yet.
+function ensureAdmin() {
+  const { ADMIN_EMAIL: email, ADMIN_PASSWORD: pw } = process.env;
+  if (!email || !pw || pw.length < 10) return false;
+  if (db.prepare("SELECT 1 FROM users WHERE role = 'admin'").get()) return false;
+  db.prepare('INSERT INTO users (name,email,password_hash,role) VALUES (?,?,?,?)').run('SIIRA Admin', email, bcrypt.hashSync(pw, 11), 'admin');
+  return true;
+}
+
+module.exports = { seed, ensureAdmin, DEMO_PASSWORD };
 if (require.main === module) console.log(seed() ? 'Seeded demo data.' : 'Database already has data; nothing seeded.');

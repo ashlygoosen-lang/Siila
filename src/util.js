@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { z } = require('zod');
+const db = require('./db');
 
 const fs = require('fs');
 const path = require('path');
@@ -42,7 +43,9 @@ function auth(required = true) {
     if (!token) return required ? next(new HttpError(401, 'Authentication required')) : next();
     try {
       const p = jwt.verify(token, SECRET);
-      req.user = { id: p.sub, role: p.role };
+      const row = db.prepare('SELECT role,status FROM users WHERE id = ?').get(p.sub);
+      if (!row || row.status !== 'active') return next(new HttpError(403, 'This account is not active'));
+      req.user = { id: p.sub, role: row.role };
       next();
     } catch {
       next(new HttpError(401, 'Invalid or expired token'));
