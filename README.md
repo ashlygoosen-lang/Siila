@@ -42,6 +42,9 @@ Accounts with email verification and password reset, role-based access, document
 ## Email
 Set `SMTP_*` and `MAIL_FROM` (any SMTP service works, for example Brevo, Mailgun or Amazon SES). Without SMTP, verification and reset emails are never delivered, so people cannot activate accounts. Posting jobs, applying and making offers require a verified email.
 
+## CI
+Copy `docs/ci.yml.example` to `.github/workflows/ci.yml` to run the tests on every push. GitHub only lets you add that file with a token that has the `workflow` scope, or through the GitHub website.
+
 ## Backups
 In production the database is copied to `<data dir>/backups` daily (last 14 kept). That is on the same disk, so also copy it off-site regularly (`npm run backup` creates one on demand).
 
