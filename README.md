@@ -35,6 +35,16 @@ The site in `public/index.html` loads jobs and talent from this API (and keeps w
 | GET | `/api/me/saved`, `/api/me/applications`, `/api/me/jobs` 🔒 | dashboards |
 | PUT | `/api/me/profile` 🔒 talent | headline, bio, skills, hourly_rate, province, city |
 
+## What is included
+Public site (`/`), Terms (`/terms.html`), Privacy (`/privacy.html`), dashboards (`/app.html`), REST API (`/api`), SEO (`robots.txt`, `sitemap.xml`), 404 page.
+Accounts with email verification and password reset, role-based access, document upload for ID checks (deleted after review), contracts with escrow and fees, invoices, accountant CSV export, notifications by email and in-app, contact inbox, audit log, daily backups, graceful shutdown, Dockerfile, CI.
+
+## Email
+Set `SMTP_*` and `MAIL_FROM` (any SMTP service works, for example Brevo, Mailgun or Amazon SES). Without SMTP, verification and reset emails are never delivered, so people cannot activate accounts. Posting jobs, applying and making offers require a verified email.
+
+## Backups
+In production the database is copied to `<data dir>/backups` daily (last 14 kept). That is on the same disk, so also copy it off-site regularly (`npm run backup` creates one on demand).
+
 ## Dashboards (`/app.html`)
 One login page, three workspaces based on the account role.
 - **Admin**: KPIs (volume, revenue, VAT, escrow), ID verification queue, payments and escrow (confirm EFT, resolve disputes, record payouts), reports, job moderation, users (suspend), hire enquiries, fee settings, audit log.

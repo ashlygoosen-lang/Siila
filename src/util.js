@@ -56,6 +56,10 @@ function auth(required = true) {
 const requireRole = (...roles) => (req, _res, next) =>
   roles.includes(req.user?.role) ? next() : next(new HttpError(403, 'You do not have permission to do that'));
 
+const requireEmailVerified = (req, _res, next) =>
+  db.prepare('SELECT email_verified v FROM users WHERE id = ?').get(req.user.id)?.v ? next()
+    : next(new HttpError(403, 'Please verify your email address first. Check your inbox or request a new link from your dashboard.'));
+
 const validate = (schema, source = 'body') => (req, _res, next) => {
   const r = schema.safeParse(req[source]);
   if (!r.success) {
@@ -72,4 +76,4 @@ const PROVINCES = ['Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Li
 const CATEGORIES = ['Trades & Repairs', 'Construction', 'Cleaning & Care', 'Creative & Digital', 'Transport & Delivery', 'Business Support'];
 const TYPES = ['Full-Time', 'Part-Time', 'Freelance', 'Short-Term'];
 
-module.exports = { HttpError, signToken, auth, requireRole, validate, payLabel, PROVINCES, CATEGORIES, TYPES, z };
+module.exports = { requireEmailVerified, HttpError, signToken, auth, requireRole, validate, payLabel, PROVINCES, CATEGORIES, TYPES, z };

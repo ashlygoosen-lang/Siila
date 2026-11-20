@@ -79,6 +79,7 @@ const addCol = (t, c, def) => { if (!cols(t).includes(c)) db.exec(`ALTER TABLE $
 addCol('users', 'status', "TEXT NOT NULL DEFAULT 'active'");
 addCol('users', 'phone', "TEXT DEFAULT ''");
 addCol('users', 'consent_at', 'TEXT');
+addCol('users', 'email_verified', 'INTEGER NOT NULL DEFAULT 0');
 addCol('jobs', 'featured', 'INTEGER NOT NULL DEFAULT 0');
 addCol('jobs', 'moderation_note', "TEXT DEFAULT ''");
 addCol('hire_requests', 'status', "TEXT NOT NULL DEFAULT 'new'");
@@ -87,6 +88,13 @@ addCol('hire_requests', 'admin_note', "TEXT DEFAULT ''");
 db.exec(`
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 INSERT OR IGNORE INTO settings VALUES ('commission_pct','10'),('vat_pct','15');
+CREATE TABLE IF NOT EXISTS tokens (
+  id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL,
+  token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS idx_tokens ON tokens(kind, token_hash);
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, topic TEXT NOT NULL, message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'new', created_at TEXT NOT NULL DEFAULT (datetime('now')));
 CREATE TABLE IF NOT EXISTS verifications (
   id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   id_type TEXT NOT NULL, ref_last4 TEXT NOT NULL DEFAULT '', note TEXT DEFAULT '',
@@ -119,5 +127,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
   id INTEGER PRIMARY KEY, actor_id INTEGER, action TEXT NOT NULL, target TEXT DEFAULT '', meta TEXT DEFAULT '{}',
   created_at TEXT NOT NULL DEFAULT (datetime('now')));
 `);
+
+addCol('verifications', 'doc_path', "TEXT DEFAULT ''");
+addCol('verifications', 'doc_mime', "TEXT DEFAULT ''");
 
 module.exports = db;

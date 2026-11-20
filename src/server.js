@@ -13,6 +13,8 @@ const crypto = require('crypto');
 const { seed, ensureAdmin } = require('./seed');
 const { markFunded } = require('./services');
 const { HttpError, PROVINCES, CATEGORIES, TYPES } = require('./util');
+const fs = require('fs');
+const { backup } = require('./backup');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -39,7 +41,7 @@ if (process.env.NODE_ENV !== 'test') app.use(morgan(isProd ? 'combined' : 'dev')
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false }));
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: process.env.NODE_ENV === 'test' ? 1000 : 30, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Too many attempts, try again later' } }));
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+app.get('/api/health', (_req, res) => { db.prepare('SELECT 1').get(); res.json({ ok: true, time: new Date().toISOString() }); });
 app.get('/api/meta', (_req, res) => res.json({ provinces: PROVINCES, categories: CATEGORIES, types: TYPES }));
 app.get('/api/stats', (_req, res) => {
   const c = (sql) => db.prepare(sql).get().c;
@@ -65,6 +67,7 @@ app.post('/api/webhooks/paystack', (req, res) => {
   res.sendStatus(200);
 });
 
+app.use('/api', require('./routes/public'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/talent', require('./routes/talent'));
@@ -73,10 +76,16 @@ app.use('/api/contracts', require('./routes/contracts'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Endpoint not found')));
 
+const base = (req) => process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nDisallow: /api/\nDisallow: /app.html\nSitemap: ${base(req)}/sitemap.xml\n`));
+app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/terms.html', '/privacy.html'].map(p => `<url><loc>${base(req)}${p}</loc></url>`).join('')}</urlset>`));
 app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: isProd ? '1h' : 0 }));
+app.use((_req, res) => res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html')));
 
 // eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
+  if (req.file) fs.unlink(req.file.path, () => {}); // drop uploads from failed requests
+  if (err.name === 'MulterError') return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 5 MB)' : 'Upload failed' });
   if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, details: err.details });
   if (err instanceof ZodError) return res.status(400).json({ error: 'Validation failed' });
   if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Malformed JSON body' });
@@ -91,6 +100,12 @@ if (seedDemo && seed()) console.log('Seeded demo data (password for demo account
 
 if (require.main === module) {
   const port = process.env.PORT || 3000;
-  app.listen(port, () => console.log(`SIIRA API listening on http://localhost:${port}`));
+  const srv = app.listen(port, () => console.log(`SIIRA API listening on http://localhost:${port}`));
+  const stop = () => srv.close(() => { db.close(); process.exit(0); });
+  process.on('SIGTERM', stop); process.on('SIGINT', stop);
+  if (isProd && process.env.BACKUP_DAILY !== 'false') { // daily SQLite backup, keeps the last 14
+    const run = () => backup().catch(e => console.error('Backup failed:', e.message));
+    setTimeout(run, 30000).unref(); setInterval(run, 24 * 3600 * 1000).unref();
+  }
 }
 module.exports = app;

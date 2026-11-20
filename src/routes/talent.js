@@ -1,6 +1,8 @@
 const router = require('express').Router();
 const db = require('../db');
 const { HttpError, validate, z, PROVINCES } = require('../util');
+const { notify } = require('../services');
+const { sendMail } = require('../mailer');
 
 const shape = (r) => ({
   id: r.id, name: r.name, headline: r.headline, bio: r.bio, skills: JSON.parse(r.skills || '[]'),
@@ -38,7 +40,9 @@ router.post('/:id/hire-request', validate(z.object({
   if (!db.prepare("SELECT 1 FROM users WHERE id = ? AND role = 'talent'").get(req.params.id)) throw new HttpError(404, 'Professional not found');
   const { from_name, from_email, message } = req.body;
   const id = db.prepare('INSERT INTO hire_requests (talent_id,from_name,from_email,message) VALUES (?,?,?,?)').run(req.params.id, from_name, from_email, message).lastInsertRowid;
-  res.status(201).json({ data: { id } }); // hook an email/WhatsApp notifier in here
+  notify(req.params.id, 'lead', `${from_name} would like to hire you. SIIRA will connect you shortly.`);
+  sendMail(process.env.SUPPORT_EMAIL, 'New hire enquiry', `${from_name} <${from_email}> wants to hire talent #${req.params.id}:\n\n${message}`);
+  res.status(201).json({ data: { id } });
 });
 
 module.exports = router;

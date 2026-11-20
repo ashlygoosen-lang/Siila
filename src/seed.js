@@ -39,6 +39,7 @@ function seed() {
       ['Plumber', 'Geyser installs and repairs across eThekwini.', 'Trades & Repairs', 'Freelance', 'KwaZulu-Natal', 'Durban', 250, 400, 'hour', 'tools', g('#3a1a00', '#c25400', '#ff8a00')],
     ];
     jobs.forEach(j => addJob.run(client, ...j));
+    db.prepare('UPDATE users SET email_verified = 1').run();
   })();
   return true;
 }
@@ -48,7 +49,7 @@ function ensureAdmin() {
   const { ADMIN_EMAIL: email, ADMIN_PASSWORD: pw } = process.env;
   if (!email || !pw || pw.length < 10) return false;
   if (db.prepare("SELECT 1 FROM users WHERE role = 'admin'").get()) return false;
-  db.prepare('INSERT INTO users (name,email,password_hash,role) VALUES (?,?,?,?)').run('SIIRA Admin', email, bcrypt.hashSync(pw, 11), 'admin');
+  db.prepare('INSERT INTO users (name,email,password_hash,role,email_verified) VALUES (?,?,?,?,1)').run('SIIRA Admin', email, bcrypt.hashSync(pw, 11), 'admin');
   return true;
 }
 

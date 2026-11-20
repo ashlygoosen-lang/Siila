@@ -1,7 +1,9 @@
 const router = require('express').Router();
 const db = require('../db');
 const { HttpError, auth, requireRole, validate, z } = require('../util');
-const { notify, audit, setting, markFunded } = require('../services');
+const fs = require('fs');
+const path = require('path');
+const { UPLOAD_DIR, notify, audit, setting, markFunded } = require('../services');
 
 router.use(auth(), requireRole('admin'));
 const n = (sql, ...a) => db.prepare(sql).get(...a).n || 0;
@@ -23,6 +25,7 @@ router.get('/overview', (_req, res) => {
     gmv_cents: n("SELECT SUM(amount_cents) n FROM contracts WHERE status IN ('funded','delivered','released','paid_out','disputed')"),
     revenue_cents: n("SELECT SUM(commission_cents) n FROM contracts WHERE status IN ('released','paid_out')"),
     vat_cents: n("SELECT SUM(vat_cents) n FROM contracts WHERE status IN ('released','paid_out')"),
+    new_messages: n("SELECT COUNT(*) n FROM contact_messages WHERE status='new'"),
     contracts_active: n("SELECT COUNT(*) n FROM contracts WHERE status IN ('accepted','funded','delivered')"),
   });
 });
@@ -53,9 +56,36 @@ router.post('/verifications/:id/decision', validate(z.object({ decision: z.enum(
   db.transaction(() => {
     db.prepare("UPDATE verifications SET status=?, review_note=?, reviewed_at=datetime('now') WHERE id=?").run(req.body.decision, req.body.note, v.id);
     if (req.body.decision === 'approved') db.prepare('UPDATE profiles SET verified = 1 WHERE user_id = ?').run(v.user_id);
+    db.prepare("UPDATE verifications SET doc_path = '' WHERE id = ?").run(v.id);
   })();
+  if (v.doc_path) fs.unlink(path.join(UPLOAD_DIR, path.basename(v.doc_path)), () => {}); // delete the document once reviewed (POPIA)
   notify(v.user_id, 'verification', req.body.decision === 'approved' ? 'You are verified. Your badge now shows on your profile.' : `Verification not approved. ${req.body.note}`);
   audit(req.user.id, `verification.${req.body.decision}`, v.id); res.json({ ok: true });
+});
+
+router.get('/verifications/:id/document', (req, res) => {
+  const v = db.prepare('SELECT doc_path, doc_mime FROM verifications WHERE id = ?').get(req.params.id);
+  if (!v || !v.doc_path) throw new HttpError(404, 'No document on file');
+  audit(req.user.id, 'verification.document_viewed', req.params.id);
+  res.type(v.doc_mime).setHeader('Content-Disposition', 'inline');
+  res.sendFile(path.join(UPLOAD_DIR, path.basename(v.doc_path)));
+});
+
+router.get('/inbox', (_req, res) => res.json({ data: db.prepare('SELECT * FROM contact_messages ORDER BY id DESC LIMIT 200').all() }));
+router.patch('/inbox/:id', validate(z.object({ status: z.enum(['new', 'handled']) })), (req, res) => {
+  db.prepare('UPDATE contact_messages SET status = ? WHERE id = ?').run(req.body.status, req.params.id); res.json({ ok: true });
+});
+
+// Accountant export (CSV). Cells starting with = + - @ are prefixed to stop spreadsheet formula injection.
+router.get('/export/contracts.csv', (_req, res) => {
+  const cell = (v) => { let t = String(v ?? ''); if (/^[=+\-@]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+  const rows = db.prepare(`SELECT c.id, c.created_at, c.updated_at, j.title, cu.name client, tu.name talent, c.amount_cents, c.commission_cents, c.vat_cents, c.payout_cents, c.status, c.payout_ref
+    FROM contracts c JOIN jobs j ON j.id=c.job_id JOIN users cu ON cu.id=c.client_id JOIN users tu ON tu.id=c.talent_id ORDER BY c.id`).all();
+  const head = ['Contract', 'Created', 'Updated', 'Job', 'Client', 'Professional', 'Amount (R)', 'Commission excl VAT (R)', 'VAT (R)', 'Payout (R)', 'Status', 'Payout ref'];
+  const r2 = (c) => (c / 100).toFixed(2);
+  const lines = [head.map(cell).join(',')].concat(rows.map(r => [r.id, r.created_at, r.updated_at, r.title, r.client, r.talent, r2(r.amount_cents), r2(r.commission_cents), r2(r.vat_cents), r2(r.payout_cents), r.status, r.payout_ref].map(cell).join(',')));
+  res.type('text/csv').setHeader('Content-Disposition', 'attachment; filename="siira-contracts.csv"');
+  res.send('\uFEFF' + lines.join('\r\n'));
 });
 
 router.get('/jobs', (req, res) => {

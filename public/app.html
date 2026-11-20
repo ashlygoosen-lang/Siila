@@ -48,16 +48,18 @@ main{margin-left:260px;padding:28px 34px 60px;max-width:1280px}.top{display:flex
 <section id="auth"><div class="auth">
   <img src="/assets/siira-logo.png" alt="SIIRA">
   <div class="tabs"><button id="tl" class="on">Log in</button><button id="tr">Create account</button></div>
-  <form id="fl"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="btn" style="width:100%">Log in</button></form>
+  <form id="fl"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="btn" style="width:100%">Log in</button><p style="text-align:center;margin:14px 0 0"><a href="#" id="tf">Forgot your password?</a></p></form>
   <form id="fr" hidden>
     <div class="roles"><button type="button" data-role="talent" class="on">I want to find work</button><button type="button" data-role="client">I want to hire</button></div>
     <label>Full name<input name="name" required minlength="2"></label><label>Email<input name="email" type="email" required></label>
     <label>Mobile number<input name="phone" type="tel" placeholder="082 000 0000"></label>
     <label>Province<select name="province"></select></label>
     <label>Password<input name="password" type="password" minlength="8" required placeholder="8+ characters, letters and a number"></label>
-    <label class="chk"><input type="checkbox" name="accept_terms" required><span>I accept the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>, and consent to SIIRA processing my personal information (POPIA).</span></label>
+    <label class="chk"><input type="checkbox" name="accept_terms" required><span>I accept the <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>, and consent to SIIRA processing my personal information (POPIA).</span></label>
     <button class="btn" style="width:100%">Create account</button>
   </form>
+  <form id="ff" hidden><p class="mut">Enter your email and we will send you a reset link.</p><label>Email<input name="email" type="email" required></label><button class="btn" style="width:100%">Send reset link</button><p style="text-align:center;margin:14px 0 0"><a href="#" id="tb">Back to log in</a></p></form>
+  <form id="fz" hidden><p class="mut">Choose a new password.</p><label>New password<input name="password" type="password" minlength="8" required placeholder="8+ characters, letters and a number"></label><button class="btn" style="width:100%">Update password</button></form>
   <p id="aerr" style="color:#b42318;font-weight:600;margin:14px 0 0"></p>
 </div></section>
 <div id="app"><nav class="side" id="side"></nav><main id="main"></main></div>
@@ -75,16 +77,18 @@ const badge=s=>`<span class="b ${BC[s]||'x'}">${esc(String(s).replace('_',' '))}
 let token=null,me=null,view='overview';try{token=localStorage.getItem('siira_token')}catch{}
 
 async function api(p,o={}){
-  const r=await fetch('/api'+p,{method:o.method||(o.body?'POST':'GET'),headers:{'content-type':'application/json',...(token&&{authorization:'Bearer '+token})},body:o.body?JSON.stringify(o.body):undefined});
+  const r=await fetch('/api'+p,{method:o.method||((o.body||o.form)?'POST':'GET'),headers:{...(!o.form&&{'content-type':'application/json'}),...(token&&{authorization:'Bearer '+token})},body:o.form||(o.body?JSON.stringify(o.body):undefined)});
   if(r.status===204)return null;
   const j=await r.json().catch(()=>({}));
   if(!r.ok){if(r.status===401&&token&&p!=='/auth/login')logout();const d=j.details?.[0];throw new Error(d?`${d.field}: ${d.message}`:j.error||'Something went wrong')}
   return j}
+async function blob(p){const r=await fetch('/api'+p,{headers:{authorization:'Bearer '+token}});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not load');return r.blob()}
+async function openBlob(p){const w=window.open('','_blank');try{const u=URL.createObjectURL(await blob(p));w?w.location=u:location.href=u}catch(e){w&&w.close();throw e}}
 function toast(m,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3600)}
 function modal(html,onClose){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="sheet">${html}</div>`;
   m.onclick=e=>{if(e.target===m||e.target.closest('[data-close]')){m.remove();onClose&&onClose()}};document.body.append(m);return m}
 function ask(title,fields,ok='Save',intro=''){return new Promise(res=>{
-  const inp=f=>f.type==='textarea'?`<textarea name="${f.name}" rows="3">${esc(f.value)}</textarea>`:f.type==='select'?`<select name="${f.name}">${f.options.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return`<option value="${esc(v)}"${v==f.value?' selected':''}>${esc(l)}</option>`}).join('')}</select>`:`<input name="${f.name}" type="${f.type||'text'}" value="${esc(f.value)}">`;
+  const inp=f=>f.type==='file'?`<input name="${f.name}" type="file" accept=".pdf,.jpg,.jpeg,.png">`:f.type==='textarea'?`<textarea name="${f.name}" rows="3">${esc(f.value)}</textarea>`:f.type==='select'?`<select name="${f.name}">${f.options.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return`<option value="${esc(v)}"${v==f.value?' selected':''}>${esc(l)}</option>`}).join('')}</select>`:`<input name="${f.name}" type="${f.type||'text'}" value="${esc(f.value)}">`;
   const m=modal(`<h3>${esc(title)}</h3>${intro?`<p class="mut">${intro}</p>`:''}<form>${fields.map(f=>`<label>${esc(f.label)}${inp(f)}</label>`).join('')}<div class="row"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn right">${ok}</button></div></form>`,()=>res(null));
   m.querySelector('form').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));m.remove();res(v)}})}
 const info=(t,h)=>modal(`<h3>${esc(t)}</h3>${h}<div class="row" style="margin-top:16px"><button class="btn right" data-close>Done</button></div>`);
@@ -96,8 +100,19 @@ const head=(t,extra='')=>`<div class="top"><h1>${t}</h1><div class="right row">$
 /* ---------- auth ---------- */
 $('#fr [name=province]').innerHTML=PROV.map(p=>`<option>${p}</option>`).join('');
 let role='talent';
-const tab=r=>{$('#fl').hidden=r;$('#fr').hidden=!r;$('#tl').classList.toggle('on',!r);$('#tr').classList.toggle('on',r);$('#aerr').textContent=''};
-$('#tl').onclick=()=>tab(false);$('#tr').onclick=()=>tab(true);if(location.hash==='#register')tab(true);
+const FORMS=['fl','fr','ff','fz'];
+function showForm(id){FORMS.forEach(f=>$('#'+f).hidden=f!==id);$('#aerr').textContent='';$('#aerr').style.color='#b42318'}
+const okMsg=t=>{$('#aerr').style.color='#12714a';$('#aerr').textContent=t};
+const tab=r=>{showForm(r?'fr':'fl');$('#tl').classList.toggle('on',!r);$('#tr').classList.toggle('on',r)};
+$('#tl').onclick=()=>tab(false);$('#tr').onclick=()=>tab(true);
+const h0=location.hash;
+if(h0==='#register')tab(true);
+if(h0.startsWith('#reset='))showForm('fz');
+if(h0==='#verified'&&!token)okMsg('Email verified. Log in to continue.');
+if(h0==='#link-expired')$('#aerr').textContent='That link has expired. Log in and request a new one from your dashboard.';
+$('#tf').onclick=e=>{e.preventDefault();showForm('ff')};$('#tb').onclick=e=>{e.preventDefault();tab(false)};
+$('#ff').onsubmit=async e=>{e.preventDefault();try{await api('/auth/forgot',{body:{email:new FormData(e.target).get('email')}});okMsg('If that email has an account, a reset link is on its way.')}catch(err){$('#aerr').textContent=err.message}};
+$('#fz').onsubmit=async e=>{e.preventDefault();try{await api('/auth/reset',{body:{token:location.hash.slice(7),password:new FormData(e.target).get('password')}});history.replaceState(null,'','/app.html');tab(false);okMsg('Password updated. You can log in now.')}catch(err){$('#aerr').textContent=err.message}};
 document.querySelectorAll('.roles button').forEach(b=>b.onclick=()=>{role=b.dataset.role;document.querySelectorAll('.roles button').forEach(x=>x.classList.toggle('on',x===b))});
 async function authSubmit(e,path,body){e.preventDefault();$('#aerr').textContent='';try{const j=await api(path,{body});token=j.token;try{localStorage.setItem('siira_token',token)}catch{}start()}catch(err){$('#aerr').textContent=err.message}}
 $('#fl').onsubmit=e=>authSubmit(e,'/auth/login',Object.fromEntries(new FormData(e.target)));
@@ -106,47 +121,49 @@ function logout(){token=null;me=null;try{localStorage.removeItem('siira_token')}
 
 /* ---------- shell ---------- */
 const NAV={
- admin:[['overview','Overview'],['verifications','Verifications'],['contracts','Payments & escrow'],['reports','Disputes & reports'],['jobs','Jobs'],['users','Users'],['leads','Leads'],['settings','Fees & settings'],['audit','Audit log']],
+ admin:[['overview','Overview'],['verifications','Verifications'],['contracts','Payments & escrow'],['reports','Disputes & reports'],['jobs','Jobs'],['users','Users'],['leads','Leads'],['inbox','Inbox'],['settings','Fees & settings'],['audit','Audit log']],
  client:[['overview','Overview'],['myjobs','My jobs'],['contracts','Contracts'],['talent','Find talent'],['notifications','Notifications'],['account','Account']],
  talent:[['overview','Overview'],['find','Find work'],['applications','Applications'],['contracts','Contracts'],['profile','Profile & verification'],['notifications','Notifications'],['account','Account']]};
 async function start(){
   try{me=(await api('/auth/me')).user}catch{return logout()}
   $('#auth').style.display='none';$('#app').style.display='block';
-  const h=location.hash.slice(1);view=NAV[me.role].some(n=>n[0]===h)?h:'overview';render();
+  const h=location.hash.slice(1);view=NAV[me.role].some(n=>n[0]===h)?h:'overview';if(h==='verified'){toast('Email verified. Thank you!');history.replaceState(null,'','/app.html')}render();
 }
 async function render(){
   const n=await api('/me/notifications').catch(()=>({unread:0}));
   $('#side').innerHTML=`<img src="/assets/siira-logo.png" alt="SIIRA">${NAV[me.role].map(([k,l])=>`<a data-go="${k}" class="${k===view?'on':''}">${l}${k==='notifications'&&n.unread?`<span class="dot">${n.unread}</span>`:''}</a>`).join('')}<div class="who"><b>${esc(me.name)}</b><span class="mut">${me.role==='admin'?'Administrator':me.role==='client'?'Client':'Professional'}</span><br><a style="padding:6px 0;color:var(--blue)" data-act="logout">Log out</a></div>`;
   const m=$('#main');m.innerHTML='<div class="empty">Loading…</div>';
-  try{m.innerHTML=await (V[me.role][view]||V.shared[view])()}catch(e){m.innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+  try{m.innerHTML=(me.email_verified||me.role==='admin'?'':BANNER)+await (V[me.role][view]||V.shared[view])()}catch(e){m.innerHTML=`<div class="empty">${esc(e.message)}</div>`}
 }
 document.addEventListener('click',async e=>{
   const g=e.target.closest('[data-go]');if(g){view=g.dataset.go;location.hash=view;return render()}
   const b=e.target.closest('[data-act]');if(!b)return;
   try{await A[b.dataset.act](b.dataset.id,b)}catch(err){toast(err.message,true)}});
 
+const BANNER='<div class="card" style="background:#fff1de;margin-bottom:18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><b>Please verify your email</b><span class="mut">You need this to post jobs, apply and make offers. Check your inbox.</span><button class="btn sm right" data-act="resend">Resend email</button></div>';
 /* ---------- views ---------- */
 const V={shared:{},admin:{},client:{},talent:{}};
 V.shared.notifications=async()=>{const j=await api('/me/notifications');return head('Notifications',btn('readall','', 'Mark all read'))+(j.data.length?`<div class="list">${j.data.map(n=>`<div class="item" style="${n.read?'opacity:.6':''}"><div>${esc(n.text)}<br><small class="mut">${D(n.created_at)}</small></div>${n.read?'':'<span class="dot right">new</span>'}</div>`).join('')}</div>`:'<div class="empty">You are all caught up.</div>')};
-V.shared.account=async()=>head('Account')+`<div class="card" style="max-width:640px"><h3>${esc(me.name)}</h3><p class="mut">${esc(me.email)}</p><p>Under POPIA you can download everything SIIRA holds about you, or ask us to delete your account. Financial records are kept for tax purposes but anonymised.</p><div class="row">${btn('export','','Download my data','navy')}${btn('delacc','','Delete my account','red')}</div></div>`;
+V.shared.account=async()=>head('Account')+`<div class="card" style="max-width:640px"><h3>${esc(me.name)}</h3><p class="mut">${esc(me.email)}</p><p>Under POPIA you can download everything SIIRA holds about you, or ask us to delete your account. Financial records are kept for tax purposes but anonymised.</p><div class="row">${btn('chpw','','Change password','ghost')}${btn('export','','Download my data','navy')}${btn('delacc','','Delete my account','red')}</div></div>`;
 V.shared.contracts=async()=>{const j=await api(me.role==='admin'?'/admin/contracts':'/contracts');
-  if(me.role==='admin')return head('Payments & escrow')+table(['#','Contract','Parties','Amount','SIIRA fee + VAT','Status','Payment',''],j.data.map(c=>[c.id,esc(c.job_title),`${esc(c.client_name)} → ${esc(c.talent_name)}`,R(c.amount_cents),`${R(c.commission_cents)} + ${R(c.vat_cents)}`,badge(c.status),c.payment_status?`${badge(c.payment_status)} <small class="mut">${esc(c.provider)}</small>`:'',
-    (c.status==='accepted'&&c.payment_status==='pending'&&c.provider==='manual'?btn('confirmpay',c.id,'Confirm EFT received'):'')+(c.status==='disputed'?btn('resolve',c.id,'Resolve','red'):'')+(['released','refunded'].includes(c.status)?btn('payout',c.id,c.status==='released'?'Record payout':'Record refund'):'')+btn('open',c.id,'View')]));
+  if(me.role==='admin')return head('Payments & escrow',btn('csv','','Export CSV for accountant'))+table(['#','Contract','Parties','Amount','SIIRA fee + VAT','Status','Payment',''],j.data.map(c=>[c.id,esc(c.job_title),`${esc(c.client_name)} → ${esc(c.talent_name)}`,R(c.amount_cents),`${R(c.commission_cents)} + ${R(c.vat_cents)}`,badge(c.status),c.payment_status?`${badge(c.payment_status)} <small class="mut">${esc(c.provider)}</small>`:'',
+    (c.status==='accepted'&&c.payment_status==='pending'&&c.provider==='manual'?btn('confirmpay',c.id,'Confirm EFT received'):'')+(c.status==='disputed'?btn('resolve',c.id,'Resolve','red'):'')+(['released','refunded'].includes(c.status)?btn('payout',c.id,c.status==='released'?'Record payout':'Record refund'):'')+(['released','paid_out'].includes(c.status)?btn('invoice',c.id,'Invoice'):'')+btn('open',c.id,'View')]));
   const cl=me.role==='client';
   return head('Contracts')+(j.data.length?`<div class="list">${j.data.map(c=>{const s=c.status;let a='';
-    if(cl){if(s==='accepted')a+=btn('fund',c.id,'Fund escrow','');if(s==='delivered')a+=btn('release',c.id,'Approve & release','');if(['funded','delivered'].includes(s))a+=btn('dispute',c.id,'Dispute','red');if(['released','paid_out'].includes(s))a+=btn('review',c.id,'Leave review')}
-    else{if(s==='offered')a+=btn('accept',c.id,'Accept','')+btn('decline',c.id,'Decline','red');if(s==='funded')a+=btn('deliver',c.id,'Mark delivered','')+btn('dispute',c.id,'Dispute','red');if(s==='delivered')a+=btn('dispute',c.id,'Dispute','red')}
+    if(cl){if(s==='accepted')a+=btn('fund',c.id,'Fund escrow','');if(s==='delivered')a+=btn('release',c.id,'Approve & release','');if(['funded','delivered'].includes(s))a+=btn('dispute',c.id,'Dispute','red');if(['released','paid_out'].includes(s))a+=btn('review',c.id,'Leave review')+btn('invoice',c.id,'Invoice')}
+    else{if(s==='offered')a+=btn('accept',c.id,'Accept','')+btn('decline',c.id,'Decline','red');if(s==='funded')a+=btn('deliver',c.id,'Mark delivered','')+btn('dispute',c.id,'Dispute','red');if(s==='delivered')a+=btn('dispute',c.id,'Dispute','red');if(['released','paid_out'].includes(s))a+=btn('invoice',c.id,'Invoice')}
     return`<div class="item"><div><h3>${esc(c.job_title)}</h3><span class="mut">${cl?'Professional: '+esc(c.talent_name):'Client: '+esc(c.client_name)} · ${D(c.updated_at)}</span></div><b class="right">${R(cl?c.amount_cents:c.payout_cents)}</b>${badge(s)}<div class="row">${a}${btn('open',c.id,'Open','ghost')}</div></div>`}).join('')}</div>`:'<div class="empty">No contracts yet. They appear here once an offer is made.</div>')};
 
 V.admin.overview=async()=>{const o=await api('/admin/overview');
-  const todo=[['verifications',o.pending_verifications,'ID verifications to review'],['contracts',o.payments_to_confirm,'EFT payments to confirm'],['contracts',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`],['reports',o.open_reports,'open disputes & reports'],['leads',o.new_leads,'new hire enquiries']];
+  const todo=[['verifications',o.pending_verifications,'ID verifications to review'],['contracts',o.payments_to_confirm,'EFT payments to confirm'],['contracts',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`],['reports',o.open_reports,'open disputes & reports'],['leads',o.new_leads,'new hire enquiries'],['inbox',o.new_messages,'new contact messages']];
   return head('Overview')+`<div class="grid">${stat('Gross volume (GMV)',R(o.gmv_cents),'funded and completed work')}${stat('SIIRA revenue',R(o.revenue_cents),'commission, excl. VAT')}${stat('VAT on fees',R(o.vat_cents),'set aside for SARS')}${stat('Held in escrow',R(o.escrow_cents),'client money not yet released')}${stat('Professionals',o.talent,'+'+o.signups_30d+' signups in 30 days')}${stat('Clients',o.clients,'')}${stat('Open jobs',o.jobs_open,'')}${stat('Active contracts',o.contracts_active,'')}</div><div class="card"><h3>Needs your attention</h3><div class="list" style="margin-top:12px">${todo.map(([v,n,t])=>`<a class="item" data-go="${v}" style="cursor:pointer;box-shadow:none;background:#f4f7fc;padding:14px 18px"><b>${n}</b> ${t}<span class="right mut">Open →</span></a>`).join('')}</div></div>`};
-V.admin.verifications=async()=>{const j=await api('/admin/verifications');return head('Verifications')+`<p class="mut">Check the document off-platform (we store only the last 4 characters), then approve or reject.</p>`+table(['Person','Role','Document','Ref (last 4)','Note','Submitted',''],j.data.map(v=>[`${esc(v.name)}<br><small class="mut">${esc(v.email)}</small>`,v.role,esc(v.id_type),esc(v.ref_last4),esc(v.note),D(v.created_at),btn('vapprove',v.id,'Approve','')+btn('vreject',v.id,'Reject','red')]))};
+V.admin.verifications=async()=>{const j=await api('/admin/verifications');return head('Verifications')+`<p class="mut">Check the document off-platform (we store only the last 4 characters), then approve or reject.</p>`+table(['Person','Role','Document','Ref (last 4)','Note','Submitted',''],j.data.map(v=>[`${esc(v.name)}<br><small class="mut">${esc(v.email)}</small>`,v.role,esc(v.id_type),esc(v.ref_last4),esc(v.note),D(v.created_at),(v.doc_path?btn('vdoc',v.id,'View document'):'<small class="mut">no file</small> ')+btn('vapprove',v.id,'Approve','')+btn('vreject',v.id,'Reject','red')]))};
 V.admin.contracts=V.shared.contracts;
 V.admin.reports=async()=>{const j=await api('/admin/reports');return head('Disputes & reports')+table(['#','About','Reporter','Reason','Status','Note',''],j.data.map(r=>[r.id,`${r.target_type} #${r.target_id}`,esc(r.reporter),esc(r.reason),badge(r.status),esc(r.admin_note),(r.target_type==='contract'?btn('open',r.target_id,'Contract'):'')+btn('rstatus',r.id,'Update')]))};
 V.admin.jobs=async()=>{const j=await api('/admin/jobs');return head('Jobs')+table(['Job','Client','Where','Type','Applicants','Status',''],j.data.map(x=>[`${esc(x.title)}${x.featured?' ⭐':''}`,esc(x.client_name),esc(x.city),x.type,x.applicants,badge(x.status),btn('feature',x.id,x.featured?'Unfeature':'Feature')+btn('jstatus',x.id,x.status==='open'?'Close':'Reopen',x.status==='open'?'red':'ghost')]))};
 V.admin.users=async()=>{const j=await api('/admin/users');return head('Users')+table(['Name','Email','Role','Verified','Joined','Status',''],j.data.map(u=>[esc(u.name),esc(u.email),u.role,u.verified?'✓':'',D(u.created_at),badge(u.status),u.role==='admin'?'':btn('ustatus',u.id+':'+u.status,u.status==='active'?'Suspend':'Reactivate',u.status==='active'?'red':'ghost')]))};
 V.admin.leads=async()=>{const j=await api('/admin/leads');return head('Hire enquiries')+`<p class="mut">People who asked to hire a professional from the public site. Contact them and help close the job.</p>`+table(['From','Wants','Message','Status','Received',''],j.data.map(l=>[`${esc(l.from_name)}<br><small class="mut">${esc(l.from_email)}</small>`,esc(l.talent_name),esc(l.message),badge(l.status),D(l.created_at),btn('lead',l.id,'Update')]))};
+V.admin.inbox=async()=>{const j=await api('/admin/inbox');return head('Inbox')+`<p class="mut">Messages from the contact form on the public site.</p>`+table(['From','Topic','Message','Status','Received',''],j.data.map(m=>[`${esc(m.name)}<br><small class="mut">${esc(m.email)}</small>`,esc(m.topic),esc(m.message),badge(m.status),D(m.created_at),m.status==='new'?btn('inboxdone',m.id,'Mark handled'):'']))};
 V.admin.settings=async()=>{const s=await api('/admin/settings');return head('Fees & settings')+`<div class="card" style="max-width:560px"><p class="mut">Commission is deducted from the professional's payout. VAT is charged on the commission. New values apply to new contracts only. Confirm your VAT registration status with your accountant.</p><form id="sf"><label>Commission %<input name="commission_pct" type="number" step="0.5" min="0" max="40" value="${s.commission_pct}"></label><label>VAT %<input name="vat_pct" type="number" step="0.5" min="0" max="25" value="${s.vat_pct}"></label><button class="btn">Save settings</button></form></div>`};
 V.admin.audit=async()=>{const j=await api('/admin/audit');return head('Audit log')+table(['When','Who','Action','Target'],j.data.map(a=>[D(a.created_at),esc(a.actor||'system'),esc(a.action),esc(a.target)]))};
 
@@ -164,7 +181,12 @@ V.talent.profile=async()=>{const[p,o]=await Promise.all([api('/talent/'+me.id),a
 
 /* ---------- actions ---------- */
 const A={
- logout,readall:async()=>{await api('/me/notifications/read',{method:'POST'});render()},
+ logout,async resend(){await api('/auth/resend-verification',{method:'POST'});toast('Verification email sent')},
+ async chpw(){const v=await ask('Change password',[{label:'Current password',name:'current',type:'password'},{label:'New password',name:'password',type:'password'}],'Update');if(!v)return;await api('/me/password',{body:v});toast('Password updated')},
+ invoice:id=>openBlob(`/contracts/${id}/invoice`),vdoc:id=>openBlob(`/admin/verifications/${id}/document`),
+ async csv(){const u=URL.createObjectURL(await blob('/admin/export/contracts.csv'));Object.assign(document.createElement('a'),{href:u,download:'siira-contracts.csv'}).click()},
+ async inboxdone(id){await api('/admin/inbox/'+id,{method:'PATCH',body:{status:'handled'}});render()},
+ readall:async()=>{await api('/me/notifications/read',{method:'POST'});render()},
  async export(){const r=await fetch('/api/me/export',{headers:{authorization:'Bearer '+token}});const u=URL.createObjectURL(await r.blob());Object.assign(document.createElement('a'),{href:u,download:'siira-my-data.json'}).click()},
  async delacc(){const v=await ask('Delete your account',[{label:'Confirm your password',name:'password',type:'password'}],'Delete forever','This cannot be undone. Active contracts must be finished first.');if(!v)return;await api('/me/delete',{body:v});toast('Account deleted');logout()},
  async open(id){const j=await api('/contracts/'+id),c=j.data,tal=me.id===c.talent_id;
@@ -190,7 +212,7 @@ const A={
   await api('/contracts',{body:{job_id:+v.job,talent_id:+t,amount:+v.amount,description:v.description}});toast('Offer sent');view='contracts';render()},
  async apply(id){const v=await ask('Apply for this job',[{label:'Message to the client',name:'message',type:'textarea'}],'Send application');if(!v)return;await api(`/jobs/${id}/apply`,{body:v});toast('Application sent')},
  async save(id,b){const on=b.textContent.includes('♥');await api(`/jobs/${id}/save`,{method:on?'DELETE':'POST'});b.textContent=on?'Save ♡':'Saved ♥'},
- async verify(){const v=await ask('Request verification',[{label:'Document type',name:'id_type',type:'select',options:['SA ID','Passport','Trade certificate','Company (CIPC)']},{label:'Document number',name:'reference',type:'text'},{label:'Anything we should know?',name:'note',type:'textarea'}],'Submit','SIIRA stores only the last 4 characters of the number. We contact you to see the document.');if(!v)return;await api('/me/verification',{body:v});toast('Submitted for review');render()},
+ async verify(){const v=await ask('Request verification',[{label:'Document type',name:'id_type',type:'select',options:['SA ID','Passport','Trade certificate','Company (CIPC)']},{label:'Document number',name:'reference'},{label:'Upload a clear photo or PDF (max 5 MB)',name:'document',type:'file'},{label:'Anything we should know?',name:'note',type:'textarea'}],'Submit','SIIRA keeps only the last 4 characters of the number and deletes your file once it has been reviewed.');if(!v)return;const fd=new FormData();for(const[k,x]of Object.entries(v)){if(x instanceof File){if(x.size)fd.append(k,x)}else fd.append(k,x)}await api('/me/verification',{form:fd});toast('Submitted for review');render()},
  async vapprove(id){await api(`/admin/verifications/${id}/decision`,{body:{decision:'approved'}});render()},
  async vreject(id){const v=await ask('Reject verification',[{label:'Reason (shown to the user)',name:'note'}],'Reject');if(!v)return;await api(`/admin/verifications/${id}/decision`,{body:{decision:'rejected',note:v.note}});render()},
  async confirmpay(id){if(!confirm('Confirm the EFT has arrived in the SIIRA account?'))return;await api(`/admin/contracts/${id}/mark-funded`,{method:'POST'});render()},

@@ -3,7 +3,23 @@ const db = require('../db');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { HttpError, auth, requireRole, validate, z, PROVINCES } = require('../util');
-const { notify } = require('../services');
+const fs = require('fs');
+const multer = require('multer');
+const { UPLOAD_DIR } = require('../services');
+
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const EXT = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png' };
+const MAGIC = { 'application/pdf': '25504446', 'image/jpeg': 'ffd8ff', 'image/png': '89504e47' };
+const upload = multer({
+  storage: multer.diskStorage({ destination: UPLOAD_DIR, filename: (_q, f, cb) => cb(null, crypto.randomBytes(16).toString('hex') + (EXT[f.mimetype] || '')) }),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (_q, f, cb) => EXT[f.mimetype] ? cb(null, true) : cb(new HttpError(400, 'Upload a PDF, JPG or PNG file')),
+});
+function realType(file) { // check the file's first bytes match what it claims to be
+  const b = Buffer.alloc(4), fd = fs.openSync(file.path, 'r');
+  fs.readSync(fd, b, 0, 4, 0); fs.closeSync(fd);
+  return b.toString('hex').startsWith(MAGIC[file.mimetype]);
+}
 const { shape } = require('./jobs');
 
 router.use(auth());
@@ -73,19 +89,27 @@ router.get('/notifications', (req, res) => {
 });
 router.post('/notifications/read', (req, res) => { db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ?').run(req.user.id); res.status(204).end(); });
 
-router.post('/verification', requireRole('talent', 'client'), validate(z.object({
+router.post('/verification', requireRole('talent', 'client'), upload.single('document'), validate(z.object({
   id_type: z.enum(['SA ID', 'Passport', 'Trade certificate', 'Company (CIPC)']),
   reference: z.string().trim().min(4).max(40), note: z.string().trim().max(500).default(''),
 })), (req, res) => {
   if (db.prepare("SELECT 1 FROM verifications WHERE user_id = ? AND status = 'pending'").get(req.user.id)) throw new HttpError(409, 'You already have a request under review');
-  // POPIA data minimisation: only the last 4 characters of the document number are stored.
-  db.prepare('INSERT INTO verifications (user_id,id_type,ref_last4,note) VALUES (?,?,?,?)').run(req.user.id, req.body.id_type, req.body.reference.slice(-4), req.body.note);
+  if (req.file && !realType(req.file)) { fs.unlink(req.file.path, () => {}); throw new HttpError(400, 'That file does not look like a valid PDF, JPG or PNG'); }
+  // POPIA data minimisation: only the last 4 characters of the number are stored; the file is deleted after review.
+  db.prepare('INSERT INTO verifications (user_id,id_type,ref_last4,note,doc_path,doc_mime) VALUES (?,?,?,?,?,?)').run(req.user.id, req.body.id_type, req.body.reference.slice(-4), req.body.note, req.file?.filename || '', req.file?.mimetype || '');
   res.status(201).json({ ok: true });
 });
 
 router.post('/report', validate(z.object({ target_type: z.enum(['job', 'user', 'contract']), target_id: z.number().int(), reason: z.string().trim().min(10).max(1000) })), (req, res) => {
   db.prepare('INSERT INTO reports (reporter_id,target_type,target_id,reason) VALUES (?,?,?,?)').run(req.user.id, req.body.target_type, req.body.target_id, req.body.reason);
   res.status(201).json({ ok: true });
+});
+
+router.post('/password', validate(z.object({ current: z.string().min(1), password: z.string().min(8).max(100).refine(p => /[A-Za-z]/.test(p) && /\d/.test(p), 'Use letters and at least one number') })), (req, res) => {
+  const u = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!bcrypt.compareSync(req.body.current, u.password_hash)) throw new HttpError(401, 'Your current password is incorrect');
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(req.body.password, 11), u.id);
+  res.json({ ok: true });
 });
 
 // POPIA: right of access

@@ -1,8 +1,8 @@
 const router = require('express').Router();
 const crypto = require('crypto');
 const db = require('../db');
-const { HttpError, auth, requireRole, validate, z } = require('../util');
-const { notify, calcFees, paymentsMode, markFunded } = require('../services');
+const { requireEmailVerified, HttpError, auth, requireRole, validate, z } = require('../util');
+const { company, notify, calcFees, paymentsMode, markFunded } = require('../services');
 
 router.use(auth());
 
@@ -27,7 +27,7 @@ router.get('/', (req, res) => {
   res.json({ data: db.prepare(`${SELECT} WHERE c.${col} = ? ORDER BY c.updated_at DESC`).all(req.user.id) });
 });
 
-router.post('/', requireRole('client'), validate(z.object({
+router.post('/', requireRole('client'), requireEmailVerified, validate(z.object({
   job_id: z.number().int(), talent_id: z.number().int(),
   amount: z.number().int().min(50).max(1000000), description: z.string().trim().min(5).max(2000),
 })), (req, res) => {
@@ -41,6 +41,26 @@ router.post('/', requireRole('client'), validate(z.object({
   db.prepare("UPDATE applications SET status = 'hired' WHERE job_id = ? AND user_id = ?").run(job_id, talent_id);
   notify(talent_id, 'contract', `New offer for "${job.title}": R${amount.toLocaleString('en-ZA')}. Review it in your contracts.`);
   res.status(201).json({ data: db.prepare(`${SELECT} WHERE c.id = ?`).get(id) });
+});
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const rand = (cents) => 'R ' + (cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Printable invoice for SIIRA's service fee plus a statement of the contract. Not legal/tax advice: check format with your accountant.
+router.get('/:id/invoice', (req, res) => {
+  const c = load(req, req.params.id); need(c, 'released', 'paid_out');
+  const co = company(), rate = c.commission_cents ? Math.round((c.vat_cents / c.commission_cents) * 100) : 0;
+  const no = 'SIIRA-INV-' + String(c.id).padStart(6, '0');
+  res.type('html').send(`<!doctype html><meta charset="utf-8"><title>${no}</title><style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1d2b4a}h1{font-size:26px;margin:0}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{padding:10px 8px;border-bottom:1px solid #e3e8f2;text-align:left}td:last-child,th:last-child{text-align:right}.m{color:#667592;font-size:13px}.t td{font-weight:700;border-bottom:0}@media print{button{display:none}}</style>
+<button id="p" style="float:right;padding:8px 16px">Print</button><script>document.getElementById("p").onclick=function(){print()}</script>
+<h1>${co.vat ? 'Tax invoice' : 'Invoice'} ${no}</h1><p class="m">Date: ${new Date().toLocaleDateString('en-ZA')} · Contract #${c.id}</p>
+<p><b>${esc(co.name || 'SIIRA')}</b><br>${esc(co.address)}${co.reg ? '<br>Reg no: ' + esc(co.reg) : ''}${co.vat ? '<br>VAT no: ' + esc(co.vat) : ''}</p>
+<p><b>Billed to:</b> ${esc(c.talent_name)}<br><span class="m">For: ${esc(c.job_title)} (client: ${esc(c.client_name)})</span></p>
+<table><tr><th>Description</th><th>Amount</th></tr>
+<tr><td>Platform service fee</td><td>${rand(c.commission_cents)}</td></tr><tr><td>VAT @ ${rate}%</td><td>${rand(c.vat_cents)}</td></tr>
+<tr class="t"><td>Total fee</td><td>${rand(c.commission_cents + c.vat_cents)}</td></tr></table>
+<h3>Payment statement</h3><table><tr><td>Contract price paid by client</td><td>${rand(c.amount_cents)}</td></tr><tr><td>Less: SIIRA fee incl. VAT</td><td>−${rand(c.commission_cents + c.vat_cents)}</td></tr><tr class="t"><td>Paid to professional</td><td>${rand(c.payout_cents)}</td></tr></table>
+<p class="m">${c.payout_ref ? 'Payout reference: ' + esc(c.payout_ref) : 'Payout pending.'}</p>`);
 });
 
 router.get('/:id', (req, res) => {

@@ -4,12 +4,15 @@
   "description": "SIIRA backend: jobs, talent and hiring API (Node.js, Express, SQLite)",
   "main": "src/server.js",
   "type": "commonjs",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/seed.js",
-    "test": "node test/smoke.js"
+    "test": "node test/smoke.js",
+    "backup": "node src/backup.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.0",
@@ -22,6 +25,8 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "multer": "^2.5.0",
+    "nodemailer": "^10.6.0",
     "zod": "^4.0.0"
   }
 }

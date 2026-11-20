@@ -2,6 +2,7 @@ process.env.NODE_ENV = 'test';
 process.env.DB_PATH = ':memory:';
 const assert = require('node:assert/strict');
 const app = require('../src/server');
+const { outbox } = require('../src/mailer');
 
 (async () => {
   const server = app.listen(0);
@@ -10,6 +11,7 @@ const app = require('../src/server');
     const r = await fetch(base + url, { method, headers: { 'content-type': 'application/json', ...(token && { authorization: 'Bearer ' + token }) }, body: body && JSON.stringify(body) });
     return { status: r.status, body: r.status === 204 ? null : await r.json() };
   };
+  const raw = async (url, token) => { const r = await fetch(base + url, { headers: { authorization: 'Bearer ' + token } }); return { status: r.status, type: r.headers.get('content-type') || '', text: await r.text() }; };
   const step = async (name, fn) => { await fn(); console.log('  ok  ' + name); };
 
   await step('health + meta', async () => {
@@ -34,6 +36,10 @@ const app = require('../src/server');
     assert.equal((await call('POST', '/auth/register', { name: 'No Consent', email: 'nc@siira.test', password: 'Passw0rdOK', role: 'talent' })).status, 400); // POPIA consent required
     const r = await call('POST', '/auth/register', { name: 'Test Talent', email: 'new@siira.test', password: 'Passw0rdOK', role: 'talent', province: 'Gauteng', accept_terms: true });
     assert.equal(r.status, 201); talentTok = r.body.token;
+    assert.equal((await call('POST', '/jobs/1/apply', {}, talentTok)).status, 403); // email not verified yet
+    const mail = outbox.filter(m => m.to === 'new@siira.test').pop();
+    const vt = mail.text.match(/token=([a-f0-9]+)/)[1];
+    assert.equal((await fetch(base + '/auth/verify-email?token=' + vt, { redirect: 'manual' })).status, 302);
     assert.equal((await call('POST', '/auth/register', { name: 'Test Talent', email: 'NEW@siira.test', password: 'Passw0rdOK', role: 'talent', accept_terms: true })).status, 409);
   });
   await step('login (good and bad)', async () => {
@@ -91,6 +97,11 @@ const app = require('../src/server');
     assert.equal((await call('POST', `/admin/contracts/${c.id}/payout`, { payout_ref: 'EFT-1' }, adminTok)).status, 200);
     const ov = (await call('GET', '/admin/overview', null, adminTok)).body;
     assert.equal(ov.gmv_cents, 800000); assert.equal(ov.revenue_cents, 80000); assert.equal(ov.vat_cents, 12000);
+    const inv = await raw(`/contracts/${c.id}/invoice`, clientTok);
+    assert.equal(inv.status, 200); assert.match(inv.text, /SIIRA-INV-0000/); assert.match(inv.text, /7[ \u00a0]080,00/);
+    assert.equal((await raw(`/contracts/${c.id}/invoice`, talentTok)).status, 403);
+    const csv = await raw('/admin/export/contracts.csv', adminTok);
+    assert.match(csv.type, /csv/); assert.match(csv.text, /Commission excl VAT/); assert.equal((await raw('/admin/export/contracts.csv', clientTok)).status, 403);
     const me = (await call('GET', '/me/overview', null, t2)).body;
     assert.equal(me.earned_cents, 708000);
   });
@@ -116,6 +127,35 @@ const app = require('../src/server');
     assert.equal((await call('GET', '/me/export', null, clientTok)).body.account.email, 'client@siira.test');
     assert.equal((await call('POST', '/me/delete', { password: 'Siira#2026' }, t3)).status, 204);
     assert.equal((await call('POST', '/auth/login', { email: 'talent2@siira.test', password: 'Siira#2026' })).status, 401);
+  });
+  await step('password reset, contact inbox, config', async () => {
+    assert.equal((await call('GET', '/config')).body.draft, true);
+    assert.equal((await call('POST', '/auth/forgot', { email: 'nobody@siira.test' })).status, 200); // no enumeration
+    await call('POST', '/auth/forgot', { email: 'talent6@siira.test' });
+    const tok = outbox.filter(m => m.to === 'talent6@siira.test').pop().text.match(/reset=([a-f0-9]+)/)[1];
+    assert.equal((await call('POST', '/auth/reset', { token: tok, password: 'weak' })).status, 400);
+    assert.equal((await call('POST', '/auth/reset', { token: tok, password: 'NewPass2026x' })).status, 200);
+    assert.equal((await call('POST', '/auth/reset', { token: tok, password: 'NewPass2026y' })).status, 400); // single use
+    assert.equal((await call('POST', '/auth/login', { email: 'talent6@siira.test', password: 'NewPass2026x' })).status, 200);
+    assert.equal((await call('POST', '/auth/login', { email: 'talent6@siira.test', password: 'Siira#2026' })).status, 401);
+    assert.equal((await call('POST', '/contact', { name: 'Visitor', email: 'v@example.com', topic: 'Hiring', message: 'How do I hire a plumber?' })).status, 201);
+    assert.equal((await call('POST', '/contact', { name: 'Bot', email: 'b@example.com', message: 'spam spam spam spam', website: 'http://x' })).status, 201); // honeypot: silently dropped
+    const adminTok = (await call('POST', '/auth/login', { email: 'admin@siira.test', password: 'Siira#2026' })).body.token;
+    assert.equal((await call('GET', '/admin/inbox', null, adminTok)).body.data.length, 1);
+  });
+  await step('verification document upload, review and deletion', async () => {
+    const adminTok = (await call('POST', '/auth/login', { email: 'admin@siira.test', password: 'Siira#2026' })).body.token;
+    const t = (await call('POST', '/auth/login', { email: 'talent3@siira.test', password: 'Siira#2026' })).body.token;
+    const send = (blob, name) => { const fd = new FormData(); fd.append('id_type', 'SA ID'); fd.append('reference', '9001015009087'); fd.append('document', blob, name); return fetch(base + '/me/verification', { method: 'POST', headers: { authorization: 'Bearer ' + t }, body: fd }); };
+    assert.equal((await send(new Blob(['not really a pdf'], { type: 'application/pdf' }), 'id.pdf')).status, 400); // fake PDF rejected
+    assert.equal((await send(new Blob(['x'], { type: 'text/html' }), 'a.html')).status, 400);
+    assert.equal((await send(new Blob(['%PDF-1.4 sample'], { type: 'application/pdf' }), 'id.pdf')).status, 201);
+    const v = (await call('GET', '/admin/verifications', null, adminTok)).body.data.find(x => x.email === 'talent3@siira.test');
+    const doc = await raw(`/admin/verifications/${v.id}/document`, adminTok);
+    assert.equal(doc.status, 200); assert.match(doc.type, /pdf/);
+    assert.equal((await raw(`/admin/verifications/${v.id}/document`, t)).status, 403);
+    assert.equal((await call('POST', `/admin/verifications/${v.id}/decision`, { decision: 'approved' }, adminTok)).status, 200);
+    assert.equal((await raw(`/admin/verifications/${v.id}/document`, adminTok)).status, 404); // file deleted after review
   });
   await step('unknown API route returns JSON 404', async () => {
     assert.equal((await call('GET', '/nope')).status, 404);

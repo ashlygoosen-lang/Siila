@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const { HttpError, auth, requireRole, validate, payLabel, z, PROVINCES, CATEGORIES, TYPES } = require('../util');
+const { requireEmailVerified, HttpError, auth, requireRole, validate, payLabel, z, PROVINCES, CATEGORIES, TYPES } = require('../util');
 
 const shape = (j, saved = false) => ({
   id: j.id, title: j.title, description: j.description, category: j.category, type: j.type,
@@ -52,7 +52,7 @@ const jobBody = z.object({
   icon: z.string().max(20).default('brief'),
 }).refine(j => j.pay_max >= j.pay_min, { message: 'pay_max must be at least pay_min', path: ['pay_max'] });
 
-router.post('/', auth(), requireRole('client', 'admin'), validate(jobBody), (req, res) => {
+router.post('/', auth(), requireRole('client', 'admin'), requireEmailVerified, validate(jobBody), (req, res) => {
   const j = req.body;
   const id = db.prepare(`INSERT INTO jobs (client_id,title,description,category,type,province,city,pay_min,pay_max,pay_unit,icon)
     VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(req.user.id, j.title, j.description, j.category, j.type, j.province, j.city, j.pay_min, j.pay_max, j.pay_unit, j.icon).lastInsertRowid;
@@ -78,7 +78,7 @@ router.delete('/:id', auth(), (req, res) => {
   res.status(204).end();
 });
 
-router.post('/:id/apply', auth(), requireRole('talent'), validate(z.object({ message: z.string().trim().max(2000).default('') })), (req, res) => {
+router.post('/:id/apply', auth(), requireRole('talent'), requireEmailVerified, validate(z.object({ message: z.string().trim().max(2000).default('') })), (req, res) => {
   const j = db.prepare("SELECT id FROM jobs WHERE id = ? AND status = 'open'").get(req.params.id);
   if (!j) throw new HttpError(404, 'This job is not open');
   try {
