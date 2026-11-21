@@ -247,6 +247,9 @@ const { outbox } = require('../src/mailer');
     const meta = (await call('GET', '/meta')).body;
     assert.equal(meta.brand.name, 'TalentBridge'); assert.equal(meta.categories.length, 6); assert.ok(meta.categories[0].open_jobs >= 0);
     assert.ok('jobs_completed' in (await call('GET', '/stats')).body);
+    assert.equal((await call('GET', '/provinces')).body.data.length, 9);
+    const rv = (await call('GET', '/reviews')).body.data;
+    assert.ok(Array.isArray(rv)); rv.forEach(r => { assert.ok(r.rating >= 4); assert.ok(!r.client_name.includes('Client') || r.client_name.endsWith('.')); });
   });
   await step('unknown API route returns JSON 404', async () => {
     assert.equal((await call('GET', '/nope')).status, 404);

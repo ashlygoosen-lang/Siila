@@ -4,202 +4,120 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TalentBridge – Hire trusted South African talent, or find your next job</title>
-<meta name="description" content="Post a job, compare bids from verified South African professionals and pay safely through escrow. Or find work near you and get paid when the job is done.">
+<meta name="description" content="Post a job for free, compare bids from verified South African professionals, chat in one inbox and pay safely through escrow. Or find work near you and get paid when the job is done.">
 <meta name="theme-color" content="#6a4bd8">
 <meta property="og:title" content="TalentBridge – Hire trusted South African talent">
 <meta property="og:description" content="Post a job, compare bids, pay through escrow. Find work across all nine provinces.">
 <meta property="og:type" content="website"><meta property="og:image" content="/assets/icon-512.png">
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/tb-mark.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/young-serif.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/tb.css">
-<style>
-/* header */
-.hd{position:sticky;top:0;z-index:40;background:rgba(238,242,240,.86);backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid transparent;transition:border-color .2s}
-.hd.stuck{border-color:var(--line)}
-.hd .wrap{display:flex;align-items:center;gap:28px;height:72px}
-.hd nav{display:flex;gap:4px;margin-right:auto}
-.hd nav a{padding:8px 12px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;color:var(--ink2)}
-.hd nav a:hover{background:var(--paper);color:var(--ink)}
-.hd .acts{display:flex;gap:8px;align-items:center}
-.menu{display:none;background:none;border:0;padding:8px}
-@media (max-width:880px){.hd nav{display:none;position:absolute;top:72px;left:0;right:0;flex-direction:column;background:var(--mist);padding:12px 24px 20px;border-bottom:1px solid var(--line)}.hd nav.open{display:flex}.menu{display:block;margin-left:auto}.hd .acts .ghost{display:none}}
-
-/* hero */
-.hero{padding:56px 0 40px}
-.hero .wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:56px;align-items:start}
-.hero h1{font-size:clamp(42px,5.6vw,72px);line-height:1.02;letter-spacing:-.02em;margin:0 0 22px;max-width:12ch}
-.hero .lede{font-size:19px;color:var(--ink2);max-width:46ch;margin-bottom:30px}
-.mode{display:inline-flex;background:var(--paper);border-radius:999px;padding:4px;box-shadow:var(--shadow);margin-bottom:14px}
-.mode button{border:0;background:none;border-radius:999px;padding:8px 18px;font-weight:650;color:var(--ink2)}
-.mode button[aria-pressed=true]{background:var(--ink);color:#fff}
-.search{display:grid;grid-template-columns:1.4fr 1fr auto;gap:8px;background:var(--paper);padding:8px;border-radius:24px;box-shadow:var(--shadow)}
-.search input,.search select{border:0;background:var(--mist);border-radius:16px;padding:14px 16px}
-.search .btn{border-radius:16px;padding:14px 26px}
-.popular{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px;color:var(--mut)}
-@media (max-width:960px){.hero .wrap{grid-template-columns:1fr;gap:36px}.search{grid-template-columns:1fr}}
-
-/* live pulse */
-.pulse{background:var(--ink);color:#e8efeb;border-radius:var(--r-lg);padding:24px 22px 12px;position:relative;overflow:hidden}
-.pulse::before{content:"";position:absolute;left:-40px;right:-40px;top:-120px;height:220px;border-radius:50%;border:2px solid rgba(245,185,53,.35);border-bottom-color:transparent;border-left-color:transparent;border-right-color:transparent}
-.pulse h2{font-size:22px;color:#fff;display:flex;align-items:center;gap:10px;position:relative}
-.pulse h2 .dot{width:9px;height:9px;border-radius:50%;background:#2fbf71;box-shadow:0 0 0 0 rgba(47,191,113,.6);animation:ping 2s infinite}
-@keyframes ping{70%{box-shadow:0 0 0 10px rgba(47,191,113,0)}100%{box-shadow:0 0 0 0 rgba(47,191,113,0)}}
-.pulse p.sub{color:#9fb1a9;font-size:14px;margin:4px 0 14px;position:relative}
-.feed{list-style:none;margin:0;padding:0;position:relative}
-.feed li{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid rgba(255,255,255,.08);font-size:15px}
-.feed li.new{animation:slide .5s ease-out}
-@keyframes slide{from{opacity:0;transform:translateY(-8px)}}
-.feed .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;font-size:11px;font-weight:800;line-height:1;letter-spacing:.04em}
-.feed .ico.job{background:var(--sun);color:var(--ink)}
-.feed a{color:#fff;text-decoration:none;font-weight:650}
-.feed a:hover{text-decoration:underline}
-.feed small{display:block;color:#9fb1a9;font-size:13px}
-
-/* stats strip */
-.facts{display:flex;flex-wrap:wrap;gap:12px 40px;padding:26px 0 8px;border-top:1px solid var(--line);margin-top:44px}
-.facts div{font-size:15px;color:var(--ink2)}
-.facts b{display:block;font:400 34px/1.1 var(--serif);color:var(--ink)}
-
-/* sections */
-section.blk{padding:72px 0}
-.blk-hd{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:28px;flex-wrap:wrap}
-.blk-hd h2{font-size:clamp(32px,3.6vw,46px);max-width:18ch}
-.blk-hd p{color:var(--ink2);max-width:52ch;margin:10px 0 0}
-
-/* categories */
-.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.cat{background:var(--paper);border:0;border-radius:var(--r-md);padding:20px;text-align:left;display:flex;flex-direction:column;gap:18px;min-height:150px;transition:transform .15s,box-shadow .15s;box-shadow:var(--shadow)}
-.cat:hover{transform:translateY(-2px);box-shadow:0 14px 30px -16px rgba(23,36,31,.35)}
-.cat svg{width:30px;height:30px;stroke:var(--jac);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.cat b{font-size:17px;display:block}
-.cat span{color:var(--mut);font-size:14px}
-
-/* jobs */
-.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
-.jobs{display:grid;gap:10px}
-.job{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 24px;background:var(--paper);border-radius:var(--r-md);padding:20px 22px;box-shadow:var(--shadow);cursor:pointer;border:1.5px solid transparent;transition:border-color .15s}
-.job:hover{border-color:var(--jac)}
-.job h3{font-size:21px}
-.job .meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--mut);font-size:14px;margin-top:6px}
-.job .desc{grid-column:1/-1;color:var(--ink2);margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.job .pay{text-align:right}
-.job .pay b{font-size:18px;display:block}
-.job .pay span{font-size:14px;color:var(--mut)}
-.job .feat{color:#8a5a00;background:var(--sun-s);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;margin-left:8px;vertical-align:middle}
-.more{display:flex;justify-content:center;margin-top:20px}
-@media (max-width:640px){.job{grid-template-columns:1fr}.job .pay{text-align:left}}
-
-/* steps */
-.paths{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.path{background:var(--paper);border-radius:var(--r-lg);padding:30px;box-shadow:var(--shadow)}
-.path.dark{background:var(--ink);color:#e8efeb}
-.path.dark h3,.path.dark b{color:#fff}
-.path h3{font-size:28px;margin-bottom:18px}
-.path ol{list-style:none;margin:0 0 24px;padding:0;counter-reset:s}
-.path li{counter-increment:s;display:grid;grid-template-columns:36px 1fr;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
-.path.dark li{border-color:rgba(255,255,255,.1)}
-.path li::before{content:counter(s);width:32px;height:32px;border-radius:50%;background:var(--jac-s);color:var(--jac-d);display:grid;place-items:center;font-weight:800;font-size:14px}
-.path.dark li::before{background:rgba(245,185,53,.18);color:var(--sun)}
-.path li span{display:block;color:var(--mut);font-size:15px}
-.path.dark li span{color:#9fb1a9}
-@media (max-width:860px){.paths{grid-template-columns:1fr}}
-
-/* talent */
-.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.person{background:var(--paper);border-radius:var(--r-md);padding:20px;box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;gap:12px;border:1.5px solid transparent;text-align:left}
-.person:hover{border-color:var(--jac)}
-.person .top{display:flex;gap:12px;align-items:center}
-.person h3{font-size:19px}
-.person .skills{display:flex;flex-wrap:wrap;gap:6px}
-.person .foot{display:flex;justify-content:space-between;font-size:14px;color:var(--ink2);margin-top:auto}
-
-/* escrow */
-.escrow{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
-.escrow ul{padding-left:20px;color:var(--ink2)}
-.escrow li{margin-bottom:10px}
-.calc{background:var(--paper);border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow)}
-.calc label{margin-bottom:18px}
-.calc dl{display:grid;grid-template-columns:1fr auto;gap:10px 16px;margin:0}
-.calc dt{color:var(--ink2)}.calc dd{margin:0;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
-.calc .tot{border-top:1.5px solid var(--line);padding-top:12px;font-size:18px}
-@media (max-width:860px){.escrow{grid-template-columns:1fr}}
-
-/* faq */
-.faq{max-width:820px}
-.faq details{background:var(--paper);border-radius:var(--r-md);margin-bottom:10px;box-shadow:var(--shadow)}
-.faq summary{cursor:pointer;list-style:none;padding:20px 22px;font-weight:700;font-size:17px;display:flex;justify-content:space-between;gap:16px}
-.faq summary::after{content:"+";font-size:22px;line-height:1;color:var(--jac)}
-.faq details[open] summary::after{content:"–"}
-.faq details p{padding:0 22px 20px;margin:0;color:var(--ink2)}
-
-/* contact & footer */
-.contact{display:grid;grid-template-columns:.8fr 1.2fr;gap:40px}
-@media (max-width:860px){.contact{grid-template-columns:1fr}}
-footer{background:var(--ink);color:#c7d3cd;padding:56px 0 30px;margin-top:40px}
-footer .cols{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px}
-footer h4{font:700 15px var(--sans);color:#fff;margin-bottom:12px}
-footer a{display:block;text-decoration:none;color:#c7d3cd;padding:3px 0;font-size:15px}
-footer a:hover{color:#fff}
-footer .legalline{border-top:1px solid rgba(255,255,255,.12);margin-top:36px;padding-top:20px;font-size:14px;color:#9fb1a9}
-@media (max-width:760px){footer .cols{grid-template-columns:1fr 1fr}}
-
-/* drawer content */
-.dr-close{float:right;background:var(--mist);border:0;width:38px;height:38px;border-radius:50%;font-size:20px}
-.dr h2{font-size:32px;margin:6px 0 10px}
-.dr .kv{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:20px 0}
-.dr .kv div{background:var(--mist);border-radius:var(--r-sm);padding:12px 14px;font-size:14px;color:var(--mut)}
-.dr .kv b{display:block;color:var(--ink);font-size:16px}
-.dr .body{white-space:pre-line;color:var(--ink2)}
-.review{border-top:1px solid var(--line);padding:14px 0}
-.err-box{background:var(--rose-s);color:var(--rose);border-radius:var(--r-md);padding:18px 20px;display:flex;justify-content:space-between;gap:16px;align-items:center;font-weight:600}
-</style>
+<link rel="stylesheet" href="/assets/home.css">
 </head>
 <body>
 <header class="hd" id="hd"><div class="wrap">
   <a class="brand" href="/" aria-label="TalentBridge home"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#6a4bd8"/><path d="M10 40c7-12 14-17 22-17s15 5 22 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M20 30v17M44 30v17" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M9 47h46" stroke="#f5b935" stroke-width="5" stroke-linecap="round"/></svg>TalentBridge</a>
   <button class="menu" id="menu" aria-label="Open menu" aria-expanded="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-  <nav id="nav"><a href="#jobs">Find work</a><a href="#talent">Hire talent</a><a href="#how">How it works</a><a href="#fees">Fees</a><a href="#faq">Questions</a></nav>
+  <nav id="nav"><a href="#jobs">Find work</a><a href="#talent">Hire talent</a><a href="#features">Why TalentBridge</a><a href="#business">For business</a><a href="#fees">Fees</a><a href="#faq">Questions</a></nav>
   <div class="acts" id="acts"><a class="btn ghost sm" href="/app.html">Log in</a><a class="btn sm" href="/app.html#register">Join free</a></div>
 </div></header>
 
 <main>
 <section class="hero"><div class="wrap">
-  <div>
-    <h1>Post a job. Compare bids. Pay when it’s done.</h1>
-    <p class="lede">TalentBridge connects South African clients with verified electricians, designers, cleaners, developers and more. Your money stays in escrow until you approve the work.</p>
-    <div class="mode" role="group" aria-label="What are you looking for?"><button type="button" data-mode="jobs" aria-pressed="true">Find work</button><button type="button" data-mode="talent" aria-pressed="false">Find talent</button></div>
-    <form class="search" id="search" role="search">
-      <label class="sr" for="q">Search</label><input id="q" name="q" placeholder="Try “plumber” or “React”" autocomplete="off">
-      <label class="sr" for="sprov">Province</label><select id="sprov" name="province"><option value="">All provinces</option></select>
-      <button class="btn">Search</button>
-    </form>
-    <div class="popular" id="popular"></div>
+  <div class="grid">
+    <div>
+      <h1>Post a job. Compare bids. Pay when it’s done.</h1>
+      <p class="lede">TalentBridge connects South African homes and businesses with verified electricians, designers, cleaners, developers, drivers and bookkeepers. Your money stays in escrow until you approve the work.</p>
+      <div class="mode" role="group" aria-label="What are you looking for?"><button type="button" data-mode="jobs" aria-pressed="true">Find work</button><button type="button" data-mode="talent" aria-pressed="false">Find talent</button></div>
+      <form class="search" id="search" role="search">
+        <label class="sr" for="q">Search</label><input id="q" name="q" placeholder="Try “plumber” or “React”" autocomplete="off">
+        <label class="sr" for="sprov">Province</label><select id="sprov" name="province"><option value="">All provinces</option></select>
+        <button class="btn">Search</button>
+      </form>
+      <div class="popular" id="popular"></div>
+      <div class="assure">
+        <div><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>Escrow on every job</div>
+        <div><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>ID-verified pros</div>
+        <div><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>Live chat and files</div>
+        <div><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>POPIA compliant</div>
+      </div>
+    </div>
+    <aside class="pulse" aria-live="polite">
+      <h2><span class="dot" aria-hidden="true"></span>Happening now</h2>
+      <p class="sub">New jobs and bids as they come in.</p>
+      <ul class="feed" id="pulse"><li><div class="skel" style="width:100%;height:40px"></div></li><li><div class="skel" style="width:100%;height:40px"></div></li><li><div class="skel" style="width:100%;height:40px"></div></li></ul>
+    </aside>
   </div>
-  <aside class="pulse" aria-live="polite">
-    <h2><span class="dot" aria-hidden="true"></span>Happening now</h2>
-    <p class="sub">New jobs and bids as they come in.</p>
-    <ul class="feed" id="pulse"><li><div class="skel" style="width:100%;height:40px"></div></li><li><div class="skel" style="width:100%;height:40px"></div></li><li><div class="skel" style="width:100%;height:40px"></div></li></ul>
-  </aside>
-</div>
-<div class="wrap"><div class="facts" id="facts" aria-label="TalentBridge in numbers"></div></div>
-</section>
+  <div class="facts" id="facts" aria-label="TalentBridge in numbers"></div>
+</div></section>
 
-<section class="blk" id="cats-sec" style="padding-top:24px"><div class="wrap">
-  <div class="blk-hd"><div><h2>Work in every trade</h2><p>Browse by category. Counts update as clients post new jobs.</p></div></div>
+<section class="blk" id="features"><div class="wrap">
+  <div class="blk-hd"><div><h2>Everything you need to hire well, in one place</h2><p>No more chasing quotes on WhatsApp or paying deposits to strangers. TalentBridge handles the whole job, from the first bid to the final payment.</p></div></div>
+
+  <div class="feature">
+    <div class="copy"><h3>Bids you can actually compare</h3><p>Post a job for free and professionals send you a price, a timeline and a proposal. See their rating, past jobs and verification next to every bid.</p>
+      <ul><li>Sort by lowest price, top rating or fastest delivery</li><li>Shortlist favourites and decline the rest in one tap</li><li>Matching professionals are alerted the moment you post</li></ul></div>
+    <div class="stage" aria-hidden="true"><span class="note">Illustration</span>
+      <div class="mock"><div class="row"><span class="av" style="--c:#6a4bd8">NK</span><div class="grow"><b>Nomsa K.</b> <span class="verified">✓ Verified</span><small>Electrician · ★ 4.9 · 180 jobs</small></div><div class="price">R4 800<small>in 3 days</small></div></div></div>
+      <div class="mock"><div class="row"><span class="av" style="--c:#2e7d5b">PV</span><div class="grow"><b>Pieter V.</b> <span class="verified">✓ Verified</span><small>Electrician · ★ 4.8 · 96 jobs</small></div><div class="price">R5 200<small>in 2 days</small></div></div></div>
+      <div class="mock dim"><div class="row"><span class="av" style="--c:#b4562e">LM</span><div class="grow"><b>Lwazi M.</b><small>Electrician · New</small></div><div class="price">R3 900<small>in 6 days</small></div></div></div>
+    </div>
+  </div>
+
+  <div class="feature flip">
+    <div class="copy"><h3>One inbox for every conversation</h3><p>Ask questions before you hire, share photos and plans, and keep every agreement in writing. Messages arrive instantly, on your phone or computer.</p>
+      <ul><li>Send PDFs, photos, Word documents and ZIP files</li><li>See when your message was read and when they’re typing</li><li>Offers, payments and milestones appear right in the chat</li></ul></div>
+    <div class="stage" aria-hidden="true"><span class="note">Illustration</span>
+      <div class="bubble them">Hi! Could you send a photo of the distribution board?</div>
+      <div class="bubble me">Sure, here it is. The breaker keeps tripping.<div class="file-chip">📎 db-board.jpg</div></div>
+      <div class="pill-ev">Offer sent: R4 800</div>
+      <div class="pill-ev">Offer accepted · Escrow funded</div>
+      <div class="typing-dots">Nomsa is typing…</div>
+    </div>
+  </div>
+
+  <div class="feature">
+    <div class="copy"><h3>Escrow and milestones protect both sides</h3><p>Clients fund the contract up front and the money is held safely. Professionals know it’s there before they start, and it’s released only when the work is approved.</p>
+      <ul><li>Split bigger projects into milestones you approve one by one</li><li>Disputes are reviewed by our team, with funds held until it’s settled</li><li>An invoice and payment statement on every completed job</li></ul></div>
+    <div class="stage" aria-hidden="true"><span class="note">Illustration</span>
+      <div class="escrow-bal"><div><small>Held in escrow</small><b>R28 000</b></div><span class="st" style="background:rgba(47,191,113,.2);color:#7fe0ab">Funded</span></div>
+      <div class="mock">
+        <div class="ms-line"><span class="ms-dot done">✓</span><div class="grow"><b>Design and quote approval</b><small>R6 000 · Approved</small></div></div>
+        <div class="ms-line"><span class="ms-dot now"></span><div class="grow"><b>Install panels and inverter</b><small>R16 000 · Completed, waiting for approval</small></div></div>
+        <div class="ms-line"><span class="ms-dot todo"></span><div class="grow"><b>COC and handover</b><small>R6 000 · Not started</small></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature flip">
+    <div class="copy"><h3>Professionals you can trust</h3><p>Every profile shows ratings from clients who paid through TalentBridge, past work, languages and rates. A verified badge means we’ve checked their ID or trade certificate.</p>
+      <ul><li>Reviews only come from completed, paid contracts</li><li>Portfolios with links to real projects</li><li>Message anyone directly, or invite them to your job</li></ul></div>
+    <div class="stage" aria-hidden="true"><span class="note">Illustration</span>
+      <div class="mock"><div class="row"><span class="av lg" style="--c:#3b6fb6">AD</span><div class="grow"><b style="font:400 22px var(--serif)">Anele D.</b><small>Web developer · Gqeberha</small><span class="verified">✓ ID verified</span></div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0"><span class="tag">React</span><span class="tag">WordPress</span><span class="tag">PayFast</span><span class="tag">SEO</span></div>
+        <div class="row" style="justify-content:space-between;font-size:14px"><span class="stars">★ 4.9 · 64 jobs</span><b>R320/hr</b></div></div>
+      <div class="mock"><div class="row" style="justify-content:space-between"><b>Past work</b><small>3 projects</small></div><div class="ms-line" style="border-top:0"><span class="ms-dot todo">↗</span><div class="grow"><b>Booking site for a guesthouse</b><small>React, PayFast integration</small></div></div></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="blk paper" id="cats-sec"><div class="wrap">
+  <div class="blk-hd"><div><h2>Get almost anything done</h2><p>From a leaking geyser to a new brand identity. Tap a task to see open jobs, or post your own.</p></div><a class="btn soft" href="/app.html#register">Post a job for free</a></div>
   <div class="cats" id="cats"></div>
 </div></section>
 
-<section class="blk" id="jobs" style="background:var(--paper)"><div class="wrap">
-  <div class="blk-hd"><div><h2>Open jobs</h2><p id="jobs-sub">Place a bid with your price and timeline. Clients compare bids, chat, then hire.</p></div><a class="btn soft" href="/app.html#register">Post a job</a></div>
+<section class="blk" id="jobs"><div class="wrap">
+  <div class="blk-hd"><div><h2>Open jobs</h2><p id="jobs-sub">Place a bid with your price and timeline. Clients compare bids, chat, then hire.</p></div></div>
   <div class="filters" id="types" role="group" aria-label="Job type"></div>
   <div class="jobs" id="joblist"></div>
   <div class="more"><button class="btn ghost" id="jobmore" hidden>Show more jobs</button></div>
 </div></section>
 
-<section class="blk" id="how"><div class="wrap">
+<section class="blk paper" id="how"><div class="wrap">
   <div class="blk-hd"><div><h2>How TalentBridge works</h2><p>The same simple flow for a one-day job or a three-month project.</p></div></div>
   <div class="paths">
-    <div class="path"><h3>Hiring</h3><ol>
+    <div class="path" style="background:var(--mist);box-shadow:none"><h3>Hiring</h3><ol>
       <li><div><b>Post a job for free</b><span>Describe the work, your budget and where it is.</span></div></li>
       <li><div><b>Compare bids</b><span>Professionals send their price, timeline and proposal. Sort by price, rating or speed.</span></div></li>
       <li><div><b>Chat and award</b><span>Ask questions in your inbox, then send an offer, split into milestones if you like.</span></div></li>
@@ -207,27 +125,48 @@ footer .legalline{border-top:1px solid rgba(255,255,255,.12);margin-top:36px;pad
     </ol><a class="btn" href="/app.html#register">Post your first job</a></div>
     <div class="path dark"><h3>Working</h3><ol>
       <li><div><b>Create your profile</b><span>Add skills, rates, languages and past work. Get verified with your ID.</span></div></li>
-      <li><div><b>Get matched</b><span>We alert you when a job matching your skills is posted near you.</span></div></li>
+      <li><div><b>Get matched</b><span>We alert you when a job matching your skills is posted.</span></div></li>
       <li><div><b>Bid and win</b><span>Send your price and timeline. You’ll know the moment an offer arrives.</span></div></li>
       <li><div><b>Deliver and get paid</b><span>The money is already in escrow before you start, so you know it’s there.</span></div></li>
     </ol><a class="btn" style="background:var(--sun);color:var(--ink)" href="/app.html#register">Start earning</a></div>
   </div>
 </div></section>
 
-<section class="blk" id="talent" style="background:var(--paper)"><div class="wrap">
+<section class="blk" id="talent"><div class="wrap">
   <div class="blk-hd"><div><h2>Top-rated professionals</h2><p>Ratings come from clients who paid through TalentBridge.</p></div>
     <div class="filters" id="tsort" role="group" aria-label="Sort professionals" style="margin:0"></div></div>
   <div class="people" id="people"></div>
 </div></section>
 
-<section class="blk" id="fees"><div class="wrap escrow">
+<section class="blk paper" id="reviews" hidden><div class="wrap">
+  <div class="blk-hd"><div><h2>What clients say</h2><p>Recent reviews from completed, paid contracts.</p></div></div>
+  <div class="quotes" id="quotes"></div>
+</div></section>
+
+<section class="blk" id="areas"><div class="wrap">
+  <div class="blk-hd"><div><h2>Across all nine provinces</h2><p>Hire locally or remotely. Choose a province to see what’s open near you.</p></div></div>
+  <div class="provs" id="provs"></div>
+</div></section>
+
+<section class="blk" id="business" style="padding-top:0"><div class="wrap"><div class="biz">
+  <div style="position:relative;z-index:1"><h2>TalentBridge for business</h2><p>Facilities managers, agencies, property companies and growing SMEs can find reliable help fast, without adding people to the payroll.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:26px"><a class="btn" style="background:var(--sun);color:var(--ink)" href="/app.html#register">Create a business account</a><a class="btn ghost" style="color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35)" href="#contact">Talk to us</a></div></div>
+  <dl>
+    <div><dt><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Run many jobs at once</dt><dd>Post as many jobs as you need and manage every bid, chat and contract from one dashboard.</dd></div>
+    <div><dt><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>Paperwork done for you</dt><dd>An invoice and payment statement on every completed job, and a full history for your accountant.</dd></div>
+    <div><dt><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Lower risk</dt><dd>Escrow, milestones, verified profiles and a dispute process on every contract.</dd></div>
+    <div><dt><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Local people, nationwide</dt><dd>Find professionals in the town where the work is, in any of the nine provinces.</dd></div>
+  </dl>
+</div></div></section>
+
+<section class="blk paper" id="fees"><div class="wrap escrow">
   <div>
-    <div class="blk-hd" style="margin-bottom:14px"><div><h2>Escrow protects both sides</h2></div></div>
+    <div class="blk-hd" style="margin-bottom:14px"><div><h2>Simple, fair fees</h2></div></div>
     <ul>
-      <li>Clients fund a contract before work starts. The money is held, not paid out.</li>
-      <li>Professionals can see the job is funded before they lift a tool.</li>
+      <li>Posting jobs, bidding, messaging and verification are free.</li>
+      <li>Clients pay the agreed price into escrow, with nothing added on top.</li>
+      <li>A single service fee comes out of the professional’s payout, only when they get paid.</li>
       <li>Payment is released when the client approves the work. If something goes wrong, either side can open a dispute and our team decides.</li>
-      <li>Posting jobs, bidding and messaging are free. A single service fee comes out of the professional’s payout.</li>
     </ul>
   </div>
   <div class="calc">
@@ -236,20 +175,46 @@ footer .legalline{border-top:1px solid rgba(255,255,255,.12);margin-top:36px;pad
   </div>
 </div></section>
 
-<section class="blk" id="faq" style="padding-top:0"><div class="wrap">
+<section class="blk" id="compare"><div class="wrap">
+  <div class="blk-hd"><div><h2>Why not just ask around?</h2><p>Word of mouth and WhatsApp groups are how most people hire. Here’s what changes with TalentBridge.</p></div></div>
+  <div class="tw"><table class="compare">
+    <thead><tr><th scope="col"></th><th scope="col">Asking around</th><th scope="col" class="us">TalentBridge</th></tr></thead>
+    <tbody>
+      <tr><td>Getting quotes</td><td>Phone calls and waiting</td><td class="us">Bids arrive in your dashboard, side by side</td></tr>
+      <tr><td>Knowing who you’re hiring</td><td>A friend’s recommendation</td><td class="us">Verified ID, ratings and past work</td></tr>
+      <tr><td>Paying a deposit</td><td><span class="n">✕</span>Cash or EFT to someone you don’t know</td><td class="us"><span class="y">✓</span>Held in escrow until you approve</td></tr>
+      <tr><td>If it goes wrong</td><td><span class="n">✕</span>You’re on your own</td><td class="us"><span class="y">✓</span>Dispute process with funds held</td></tr>
+      <tr><td>Records</td><td>Scattered chats and notes</td><td class="us">Contract, chat history and invoice in one place</td></tr>
+      <tr><td>For professionals</td><td>Chasing clients for payment</td><td class="us">Money is in escrow before you start</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section class="blk paper" id="faq"><div class="wrap">
   <div class="blk-hd"><div><h2>Questions, answered</h2></div></div>
   <div class="faq">
     <details><summary>Is it free to join?</summary><p>Yes. Creating a profile, posting jobs, bidding and messaging are free. The only charge is a service fee taken from the professional’s payout when a contract is paid.</p></details>
     <details><summary>How do bids work?</summary><p>Professionals send a price, how many days they need and a short proposal. Clients can sort bids, shortlist, chat with bidders and award the job to the best fit.</p></details>
+    <details><summary>How does escrow work?</summary><p>When an offer is accepted, the client pays the full price into escrow. TalentBridge holds it while the work is done and releases it to the professional when the client approves.</p></details>
     <details><summary>How do I get a verified badge?</summary><p>Upload a South African ID, passport, trade certificate or CIPC document from your dashboard. Our team checks it, keeps only the last four characters of the number and deletes the file after review.</p></details>
     <details><summary>Can I split a project into milestones?</summary><p>Yes. When you send an offer you can add up to ten milestones. The professional marks each one complete and you approve it, so progress is clear on both sides.</p></details>
     <details><summary>What if the work isn’t right?</summary><p>Funds stay in escrow while a dispute is open. Our team reviews the conversation and contract, then releases the payment or refunds the client.</p></details>
+    <details><summary>Can I message a professional before hiring?</summary><p>Yes. Clients can message any professional from their profile or chat with anyone who bid on their job, and share photos and documents in the chat.</p></details>
+    <details><summary>Do I get an invoice?</summary><p>Every completed contract comes with an invoice for the service fee and a payment statement, which you can download from your dashboard.</p></details>
     <details><summary>Which areas do you cover?</summary><p>All nine provinces. Filter jobs and professionals by province, or search by skill.</p></details>
+    <details><summary>How is my information protected?</summary><p>TalentBridge is built around POPIA. You can download all your data or delete your account at any time from your dashboard.</p></details>
   </div>
 </div></section>
 
-<section class="blk" id="contact" style="background:var(--paper)"><div class="wrap contact">
-  <div><div class="blk-hd" style="margin-bottom:12px"><div><h2>Talk to us</h2><p>Questions about hiring, payments or verification? Send a message and we’ll reply by email.</p></div></div></div>
+<section class="blk" style="padding-bottom:48px"><div class="wrap cta2">
+  <a class="hire" href="/app.html#register"><h3>Need something done?</h3><p>Post a job in two minutes and start receiving bids from verified professionals.</p><span class="go">Post a job for free</span></a>
+  <a class="work" href="/app.html#register"><h3>Looking for work?</h3><p>Create a free profile, get alerts for jobs that match your skills, and get paid through escrow.</p><span class="go">Create your profile</span></a>
+</div></section>
+
+<section class="blk paper" id="contact"><div class="wrap contact">
+  <div><div class="blk-hd" style="margin-bottom:12px"><div><h2>Talk to us</h2><p>Questions about hiring, payments, verification or a business account? Send a message and we’ll reply by email.</p></div></div>
+    <div class="ways"><div><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg><span>We reply by email, usually within one business day.</span></div>
+    <div><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Choose “Privacy request” for POPIA questions about your data.</span></div></div></div>
   <form id="cform" class="panel" style="box-shadow:none;background:var(--mist)">
     <div class="field-row"><label>Your name<input name="name" required minlength="2" maxlength="80" autocomplete="name"></label><label>Email<input name="email" type="email" required autocomplete="email"></label></div>
     <label>Topic<select name="topic"><option>General</option><option>Hiring</option><option>Finding work</option><option>Payments</option><option>Verification</option><option>Privacy request</option></select></label>
@@ -263,166 +228,14 @@ footer .legalline{border-top:1px solid rgba(255,255,255,.12);margin-top:36px;pad
 <footer><div class="wrap">
   <div class="cols">
     <div><a class="brand light" href="/" style="display:inline-flex"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#6a4bd8"/><path d="M10 40c7-12 14-17 22-17s15 5 22 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M20 30v17M44 30v17" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M9 47h46" stroke="#f5b935" stroke-width="5" stroke-linecap="round"/></svg>TalentBridge</a><p style="margin-top:14px;max-width:34ch">Hire trusted South African talent, or find your next job, with payments held safely until the work is done.</p></div>
-    <div><h4>Find work</h4><a href="#jobs">Browse jobs</a><a href="/app.html#register">Create a profile</a><a href="#how">How bidding works</a></div>
-    <div><h4>Hire</h4><a href="/app.html#register">Post a job</a><a href="#talent">Browse professionals</a><a href="#fees">Fees and escrow</a></div>
-    <div><h4>Company</h4><a href="#contact">Contact us</a><a href="/terms.html">Terms of Use</a><a href="/privacy.html">Privacy Policy</a></div>
+    <div><h4>Find work</h4><a href="#jobs">Browse jobs</a><a href="/app.html#register">Create a profile</a><a href="#how">How bidding works</a><a href="#areas">Jobs by province</a></div>
+    <div><h4>Hire</h4><a href="/app.html#register">Post a job</a><a href="#talent">Browse professionals</a><a href="#business">For business</a><a href="#fees">Fees and escrow</a></div>
+    <div><h4>Company</h4><a href="#contact">Contact us</a><a href="#faq">Questions</a><a href="/terms.html">Terms of Use</a><a href="/privacy.html">Privacy Policy</a></div>
   </div>
   <div class="legalline">© <span id="yr">2026</span> TalentBridge. All rights reserved. TalentBridge is a division of VINK Group (Pty) Ltd, registration number 2018/079316/07.</div>
 </div></footer>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
-
-<script>
-const $=(s,r=document)=>r.querySelector(s);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const rand=n=>'R'+Math.round(n||0).toLocaleString('en-ZA');
-const num=n=>Number(n||0).toLocaleString('en-ZA');
-const initials=n=>String(n||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
-const ago=s=>{if(!s)return'';const d=(Date.now()-new Date(s.replace(' ','T')+'Z'))/1000;if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+' min ago';if(d<86400)return Math.floor(d/3600)+' h ago';if(d<86400*30)return Math.floor(d/86400)+' d ago';return new Date(s.replace(' ','T')+'Z').toLocaleDateString('en-ZA',{day:'numeric',month:'short'})};
-const unit=u=>({hour:'per hour',day:'per day',month:'per month',project:'fixed price'})[u]||'';
-$('#yr').textContent=new Date().getFullYear();
-async function get(p){const r=await fetch('/api'+p);if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not load');return r.json()}
-function toast(m,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.innerHTML=`<span>${esc(m)}</span><button class="x" aria-label="Dismiss">×</button>`;t.querySelector('.x').onclick=()=>t.remove();$('#toasts').append(t);setTimeout(()=>t.remove(),5000)}
-const failBox=(msg,retry)=>{const d=document.createElement('div');d.className='err-box';d.innerHTML=`<span>${esc(msg)}</span><button class="btn sm ghost">Try again</button>`;d.querySelector('button').onclick=retry;return d};
-
-/* header */
-addEventListener('scroll',()=>$('#hd').classList.toggle('stuck',scrollY>8),{passive:true});
-$('#menu').onclick=()=>{const o=$('#nav').classList.toggle('open');$('#menu').setAttribute('aria-expanded',o)};
-$('#nav').onclick=e=>{if(e.target.closest('a'))$('#nav').classList.remove('open')};
-let signedIn=false;try{signedIn=!!localStorage.getItem('tb_token')||!!localStorage.getItem('siira_token')}catch{}
-if(signedIn)$('#acts').innerHTML='<a class="btn sm" href="/app.html">Open dashboard</a>';
-
-/* state */
-const S={meta:null,mode:'jobs',q:'',province:'',category:'',type:'',page:1,tsort:'rating'};
-
-/* icons per category (by keyword so new categories still get one) */
-const ICONS={trade:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',constr:'<path d="M2 20h20M5 20V9l7-5 7 5v11M9 20v-6h6v6"/>',clean:'<path d="M3 21h18M6 21l1-9h10l1 9M9 12V4a3 3 0 0 1 6 0v8"/>',creat:'<path d="M12 19l7-7 3 3-7 7zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18zM2 2l7.6 7.6"/><circle cx="11" cy="11" r="2"/>',trans:'<path d="M1 3h15v13H1zM16 8h4l3 3v5h-7"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',busin:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>'};
-const icon=name=>{const k=Object.keys(ICONS).find(k=>name.toLowerCase().includes(k));return`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]||ICONS.busin}</svg>`};
-
-/* meta drives every list on the page */
-async function loadMeta(){
-  S.meta=await get('/meta');
-  $('#sprov').innerHTML='<option value="">All provinces</option>'+S.meta.provinces.map(p=>`<option>${esc(p)}</option>`).join('');
-  $('#cats').innerHTML=S.meta.categories.map(c=>`<button class="cat" data-cat="${esc(c.name)}">${icon(c.name)}<div><b>${esc(c.name)}</b><span>${c.open_jobs?`${c.open_jobs} open job${c.open_jobs>1?'s':''}`:'No open jobs yet'}</span></div></button>`).join('');
-  $('#popular').innerHTML='Popular:'+S.meta.categories.slice().sort((a,b)=>b.open_jobs-a.open_jobs).slice(0,4).map(c=>`<button class="chip" data-cat="${esc(c.name)}">${esc(c.name)}</button>`).join('');
-  $('#types').innerHTML=[['','All jobs'],...S.meta.types.map(t=>[t,t])].map(([v,l])=>`<button class="chip" data-type="${esc(v)}" aria-pressed="${v===S.type}">${esc(l)}</button>`).join('');
-  $('#tsort').innerHTML=[['rating','Top rated'],['jobs','Most jobs'],['rate_low','Lowest rate']].map(([v,l])=>`<button class="chip" data-tsort="${v}" aria-pressed="${v===S.tsort}">${l}</button>`).join('');
-  calc();
-}
-
-/* live pulse */
-let seen=new Set(),firstPulse=true;
-async function loadPulse(){
-  try{const {data}=await get('/pulse');
-    if(!data.length){$('#pulse').innerHTML='<li><span>No activity yet. <a href="/app.html#register">Post the first job</a>.</span></li>';return}
-    $('#pulse').innerHTML=data.map(p=>{const key=p.kind+(p.id||p.job_id)+p.at,isNew=!firstPulse&&!seen.has(key);seen.add(key);
-      return p.kind==='job'
-        ?`<li class="${isNew?'new':''}"><span class="ico job" aria-hidden="true">JOB</span><div><a href="#job-${p.id}" data-job="${p.id}">${esc(p.title)}</a> posted in ${esc(p.city)}<small>${p.bids?`${p.bids} bid${p.bids>1?'s':''}${p.avg_bid?`, avg bid ${rand(p.avg_bid)}`:''}`:'Be the first to bid'} · ${ago(p.at)}</small></div></li>`
-        :`<li class="${isNew?'new':''}"><span class="av sm" style="--c:${esc(p.avatar_color||'#6a4bd8')}" aria-hidden="true">${initials(p.name)}</span><div>${esc(p.name)} bid on <a href="#job-${p.job_id}" data-job="${p.job_id}">${esc(p.title)}</a><small>${esc(p.city)} · ${ago(p.at)}</small></div></li>`}).join('');
-    firstPulse=false;
-  }catch{ if(firstPulse)$('#pulse').innerHTML='<li><span>Live activity is unavailable right now.</span></li>'}
-}
-
-async function loadFacts(){
-  try{const s=await get('/stats');
-    const f=[[num(s.professionals),'professionals'],[num(s.open_jobs),'open jobs'],[s.avg_rating?s.avg_rating.toFixed(1)+' / 5':'New','average rating'],[num(s.jobs_completed),'jobs completed'],[num(s.bids_this_week),'bids this week']];
-    $('#facts').innerHTML=f.map(([v,l])=>`<div><b>${v}</b>${l}</div>`).join('');
-  }catch{$('#facts').hidden=true}
-}
-
-/* jobs */
-const jobCard=j=>`<article class="job" data-job="${j.id}" tabindex="0" aria-label="${esc(j.title)}">
-  <div><h3>${esc(j.title)}${j.featured?'<span class="feat">Featured</span>':''}</h3><div class="meta"><span>${esc(j.location)}</span><span>${esc(j.type)}</span><span>${esc(j.category)}</span><span>${ago(j.created_at)}</span></div></div>
-  <div class="pay"><b>${esc(j.pay_label)}</b><span>${j.bids?`${j.bids} bid${j.bids>1?'s':''}${j.avg_bid?` · avg bid ${rand(j.avg_bid)}`:''}`:'No bids yet'}</span></div>
-  <p class="desc">${esc(j.description)}</p></article>`;
-async function loadJobs(append){
-  const list=$('#joblist');
-  if(!append){S.page=1;list.innerHTML=Array(3).fill('<div class="skel" style="height:118px;border-radius:18px"></div>').join('')}
-  const p=new URLSearchParams({page:S.page,limit:8});for(const k of['q','province','category','type'])if(S[k])p.set(k,S[k]);
-  try{const j=await get('/jobs?'+p);
-    const html=j.data.map(jobCard).join('');
-    if(append)list.insertAdjacentHTML('beforeend',html);else list.innerHTML=html||`<div class="empty panel"><h3>No open jobs match</h3><p>Try another search, or <a href="/app.html#register">post this job yourself</a>.</p></div>`;
-    $('#jobmore').hidden=j.meta.page>=j.meta.pages;
-    const bits=[S.q&&`“${S.q}”`,S.category,S.type,S.province].filter(Boolean);
-    $('#jobs-sub').textContent=bits.length?`${j.meta.total} job${j.meta.total===1?'':'s'} for ${bits.join(', ')}.`:'Place a bid with your price and timeline. Clients compare bids, chat, then hire.';
-  }catch(e){list.innerHTML='';list.append(failBox(e.message,()=>loadJobs()))}
-}
-$('#jobmore').onclick=()=>{S.page++;loadJobs(true)};
-
-/* talent */
-const personCard=t=>`<button class="person" data-talent="${t.id}">
-  <div class="top"><span class="av" style="--c:${esc(t.avatar_color||'#6a4bd8')}">${initials(t.name)}</span><div><h3>${esc(t.name)}</h3><span class="mut">${esc(t.headline||'Professional')}</span></div></div>
-  <div class="skills">${t.skills.slice(0,4).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}</div>
-  <div class="foot"><span><span class="stars">★ ${t.rating?t.rating.toFixed(1):'New'}</span> · ${t.jobs_done} jobs</span><span>${t.hourly_rate?`<b>R${num(t.hourly_rate)}</b>/hr`:''}</span></div>
-  ${t.verified?'<span class="verified">✓ ID verified</span>':''}</button>`;
-async function loadTalent(){
-  const box=$('#people');box.innerHTML=Array(4).fill('<div class="skel" style="height:190px;border-radius:18px"></div>').join('');
-  const p=new URLSearchParams({limit:8,sort:S.tsort});if(S.mode==='talent'&&S.q)p.set('q',S.q);if(S.province)p.set('province',S.province);
-  try{const j=await get('/talent?'+p);box.innerHTML=j.data.map(personCard).join('')||'<div class="empty panel"><h3>No professionals match yet</h3><p>Try a broader search.</p></div>'}
-  catch(e){box.innerHTML='';box.append(failBox(e.message,loadTalent))}
-}
-
-/* drawers */
-function drawer(html){const d=document.createElement('div');d.className='drawer';d.innerHTML=`<div class="in dr" role="dialog" aria-modal="true"><button class="dr-close" aria-label="Close">×</button>${html}</div>`;
-  const close=()=>{d.remove();document.removeEventListener('keydown',k)};const k=e=>{if(e.key==='Escape')close()};
-  d.onclick=e=>{if(e.target===d||e.target.closest('.dr-close'))close()};document.addEventListener('keydown',k);document.body.append(d);d.querySelector('.dr-close').focus();return d}
-async function openJob(id){
-  const d=drawer('<div class="skel" style="height:300px"></div>');
-  try{const {data:j}=await get('/jobs/'+id);const c=j.client||{};
-    d.querySelector('.in').innerHTML=`<button class="dr-close" aria-label="Close">×</button><span class="st ${j.status==='open'?'ok':''}">${j.status==='open'?'Open for bids':'Closed'}</span><h2>${esc(j.title)}</h2>
-    <p class="mut">${esc(j.location)} · ${esc(j.type)} · ${esc(j.category)} · posted ${ago(j.created_at)}</p>
-    <div class="kv"><div>Budget<b>${esc(j.pay_label)}</b></div><div>Bids<b>${j.bids}${j.avg_bid?` · avg ${rand(j.avg_bid)}`:''}</b></div><div>Client<b>${esc(c.name||'Client')}</b></div><div>Client history<b>${c.jobs_posted||0} posted · ${c.hires||0} paid</b></div></div>
-    <p class="body">${esc(j.description)}</p>
-    ${j.status==='open'?`<a class="btn wide" href="/app.html#job/${j.id}">Place a bid</a><p class="hint" style="text-align:center;margin-top:10px">Free to bid. You’ll need a TalentBridge account.</p>`:''}`;
-  }catch(e){d.querySelector('.in').innerHTML='<button class="dr-close" aria-label="Close">×</button>';d.querySelector('.in').append(failBox(e.message,()=>{d.remove();openJob(id)}))}
-}
-async function openTalent(id){
-  const d=drawer('<div class="skel" style="height:300px"></div>');
-  try{const {data:t}=await get('/talent/'+id);
-    d.querySelector('.in').innerHTML=`<button class="dr-close" aria-label="Close">×</button><div style="display:flex;gap:16px;align-items:center;margin-top:8px"><span class="av lg" style="--c:${esc(t.avatar_color||'#6a4bd8')}">${initials(t.name)}</span><div><h2 style="margin:0">${esc(t.name)}</h2><span class="mut">${esc(t.headline||'')}</span>${t.verified?'<br><span class="verified">✓ ID verified</span>':''}</div></div>
-    <div class="kv"><div>Rating<b class="stars">★ ${t.rating?t.rating.toFixed(1):'New'}</b></div><div>Jobs done<b>${t.jobs_done}</b></div><div>Rate<b>${t.hourly_rate?'R'+num(t.hourly_rate)+' per hour':'Ask for a quote'}</b></div><div>Location<b>${esc([t.city,t.province].filter(Boolean).join(', ')||'South Africa')}</b></div></div>
-    ${t.bio?`<p class="body">${esc(t.bio)}</p>`:''}
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 20px">${t.skills.map(s=>`<span class="tag">${esc(s)}</span>`).join('')}</div>
-    ${t.languages?`<p><b>Languages:</b> ${esc(t.languages)}</p>`:''}
-    ${t.portfolio.length?`<h3 style="font-size:22px;margin:22px 0 8px">Past work</h3>${t.portfolio.map(p=>`<div class="review"><b>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener nofollow">${esc(p.title)}</a>`:esc(p.title)}</b><br><span class="mut">${esc(p.description)}</span></div>`).join('')}`:''}
-    <h3 style="font-size:22px;margin:22px 0 8px">Reviews</h3>${t.reviews.length?t.reviews.map(r=>`<div class="review"><span class="stars">${'★'.repeat(r.rating)}</span> <b>${esc(r.job_title)}</b><p style="margin:4px 0">${esc(r.comment||'No comment left.')}</p><small class="mut">${esc(r.client_name)} · ${ago(r.created_at)}</small></div>`).join(''):'<p class="mut">No reviews yet.</p>'}
-    <a class="btn wide" style="margin-top:20px" href="/app.html#talent/${t.id}">Message or hire ${esc(t.name.split(' ')[0])}</a>
-    <details style="margin-top:16px"><summary class="link" style="cursor:pointer">No account? Send an enquiry instead</summary>
-      <form id="hire" style="margin-top:14px"><label>Your name<input name="from_name" required minlength="2"></label><label>Email<input name="from_email" type="email" required></label><label>What do you need done?<textarea name="message" required minlength="10"></textarea></label><button class="btn soft">Send enquiry</button></form></details>`;
-    d.querySelector('#hire').onsubmit=async e=>{e.preventDefault();const r=await fetch(`/api/talent/${t.id}/hire-request`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});
-      if(r.ok){toast('Enquiry sent. We’ll put you in touch.');d.remove()}else toast((await r.json()).error||'Could not send',true)};
-  }catch(e){d.querySelector('.in').innerHTML='<button class="dr-close" aria-label="Close">×</button>';d.querySelector('.in').append(failBox(e.message,()=>{d.remove();openTalent(id)}))}
-}
-
-/* fee calculator uses live commission and VAT */
-function calc(){if(!S.meta)return;const a=Math.max(0,+$('#calc-amt').value||0),fee=a*S.meta.commission_pct/100,vat=fee*S.meta.vat_pct/100;
-  $('#calc-out').innerHTML=`<dt>Client pays into escrow</dt><dd>${rand(a)}</dd><dt>Service fee (${S.meta.commission_pct}%)</dt><dd>−${rand(fee)}</dd><dt>VAT on the fee (${S.meta.vat_pct}%)</dt><dd>−${rand(vat)}</dd><dt class="tot">Professional receives</dt><dd class="tot" style="color:var(--moss)">${rand(a-fee-vat)}</dd>`}
-$('#calc-amt').oninput=calc;
-
-/* interactions */
-document.addEventListener('click',e=>{
-  const j=e.target.closest('[data-job]');if(j){e.preventDefault();return openJob(j.dataset.job)}
-  const t=e.target.closest('[data-talent]');if(t)return openTalent(t.dataset.talent);
-  const c=e.target.closest('[data-cat]');if(c){S.category=S.category===c.dataset.cat?'':c.dataset.cat;S.mode='jobs';loadJobs();$('#jobs').scrollIntoView({behavior:'smooth'});return}
-  const ty=e.target.closest('[data-type]');if(ty){S.type=ty.dataset.type;document.querySelectorAll('[data-type]').forEach(b=>b.setAttribute('aria-pressed',b===ty));return loadJobs()}
-  const ts=e.target.closest('[data-tsort]');if(ts){S.tsort=ts.dataset.tsort;document.querySelectorAll('[data-tsort]').forEach(b=>b.setAttribute('aria-pressed',b===ts));return loadTalent()}
-  const m=e.target.closest('[data-mode]');if(m){S.mode=m.dataset.mode;document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b===m));$('#q').placeholder=S.mode==='jobs'?'Try “plumber” or “React”':'Try “electrician” or “bookkeeper”'}
-});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('.job'))openJob(e.target.dataset.job)});
-$('#search').onsubmit=e=>{e.preventDefault();S.q=$('#q').value.trim();S.province=$('#sprov').value;
-  if(S.mode==='jobs'){loadJobs();$('#jobs').scrollIntoView({behavior:'smooth'})}else{loadTalent();$('#talent').scrollIntoView({behavior:'smooth'})}};
-$('#cform').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;
-  try{const r=await fetch('/api/contact',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});const j=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error(j.details?.[0]?.message||j.error||'Could not send');e.target.reset();$('#cmsg').textContent='Thanks. We’ll reply by email.'}
-  catch(err){toast(err.message,true)}finally{b.disabled=false}};
-
-/* deep links like /#job-12 */
-const deep=()=>{const m=location.hash.match(/^#(job|talent)-(\d+)$/);if(m)(m[1]==='job'?openJob:openTalent)(m[2])};
-addEventListener('hashchange',deep);
-
-loadMeta().catch(()=>{$('#cats').innerHTML='';$('#cats').append(failBox('Could not load categories.',loadMeta))});
-loadPulse();loadFacts();loadJobs();loadTalent();deep();
-setInterval(()=>{if(!document.hidden)loadPulse()},20000);
-</script>
+<script src="/assets/home.js"></script>
 </body>
 </html>

@@ -18,6 +18,25 @@ router.post('/contact', limiter, validate(z.object({
   sendMail(process.env.SUPPORT_EMAIL, `TalentBridge enquiry: ${topic}`, `From: ${name} <${email}>\n\n${message}`);
   res.status(201).json({ ok: true });
 });
+// Real client reviews for the homepage (only written ones, 4 stars and up).
+router.get('/reviews', (_req, res) => {
+  const rows = db.prepare(`SELECT rv.rating, rv.comment, rv.created_at, cu.name AS client_name, tu.name AS talent_name, tu.id AS talent_id,
+      p.headline, p.avatar_color, j.title AS job_title, j.city
+    FROM reviews rv JOIN users cu ON cu.id = rv.reviewer_id JOIN users tu ON tu.id = rv.talent_id LEFT JOIN profiles p ON p.user_id = tu.id
+    JOIN contracts c ON c.id = rv.contract_id JOIN jobs j ON j.id = c.job_id
+    WHERE rv.rating >= 4 AND LENGTH(TRIM(rv.comment)) >= 15 AND cu.status = 'active' AND tu.status = 'active' ORDER BY rv.id DESC LIMIT 6`).all();
+  const short = (n) => n.split(' ')[0] + (n.split(' ')[1] ? ' ' + n.split(' ')[1][0] + '.' : '');
+  res.json({ data: rows.map(r => ({ ...r, client_name: short(r.client_name) })) });
+});
+
+// Open jobs and professionals per province.
+router.get('/provinces', (_req, res) => {
+  const { PROVINCES } = require('../util');
+  const jobs = Object.fromEntries(db.prepare("SELECT province, COUNT(*) n FROM jobs WHERE status = 'open' GROUP BY province").all().map(r => [r.province, r.n]));
+  const pros = Object.fromEntries(db.prepare("SELECT p.province, COUNT(*) n FROM profiles p JOIN users u ON u.id = p.user_id WHERE u.status = 'active' GROUP BY p.province").all().map(r => [r.province, r.n]));
+  res.json({ data: PROVINCES.map(name => ({ name, open_jobs: jobs[name] || 0, professionals: pros[name] || 0 })) });
+});
+
 // Public live activity for the homepage: newest jobs and bids (first names only, no amounts per person).
 router.get('/pulse', (_req, res) => {
   const jobs = db.prepare(`SELECT j.id, j.title, j.city, j.province, j.category, j.created_at AS at,
