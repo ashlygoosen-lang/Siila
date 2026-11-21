@@ -11,7 +11,7 @@ const { ZodError } = require('zod');
 const db = require('./db');
 const crypto = require('crypto');
 const { seed, ensureAdmin } = require('./seed');
-const { markFunded } = require('./services');
+const { markFunded, setting } = require('./services');
 const { HttpError, PROVINCES, CATEGORIES, TYPES } = require('./util');
 const fs = require('fs');
 const { backup } = require('./backup');
@@ -34,15 +34,22 @@ app.use(helmet({
 }));
 const origins = (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({ origin: origins.length ? origins : !isProd }));
-app.use(compression());
+// The live stream must not be buffered by compression.
+app.use(compression({ filter: (req, res) => req.path === '/api/me/stream' ? false : compression.filter(req, res) }));
 app.use(express.json({ limit: '50kb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 if (process.env.NODE_ENV !== 'test') app.use(morgan(isProd ? 'combined' : 'dev'));
 
-app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false }));
+app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 1500, skip: (req) => req.path === '/me/stream' || /\/typing$/.test(req.path), standardHeaders: 'draft-7', legacyHeaders: false }));
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: process.env.NODE_ENV === 'test' ? 1000 : 30, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Too many attempts, try again later' } }));
 
 app.get('/api/health', (_req, res) => { db.prepare('SELECT 1').get(); res.json({ ok: true, time: new Date().toISOString() }); });
-app.get('/api/meta', (_req, res) => res.json({ provinces: PROVINCES, categories: CATEGORIES, types: TYPES }));
+app.get('/api/meta', (_req, res) => res.json({
+  brand: { name: 'TalentBridge', tagline: 'Hire trusted South African talent' },
+  provinces: PROVINCES, types: TYPES, pay_units: ['hour', 'day', 'month', 'project'],
+  categories: CATEGORIES.map(name => ({ name, open_jobs: db.prepare("SELECT COUNT(*) c FROM jobs WHERE status='open' AND category = ?").get(name).c,
+    professionals: db.prepare("SELECT COUNT(DISTINCT a.user_id) c FROM applications a JOIN jobs j ON j.id = a.job_id WHERE j.category = ?").get(name).c })),
+  commission_pct: setting('commission_pct', 10), vat_pct: setting('vat_pct', 15),
+}));
 app.get('/api/stats', (_req, res) => {
   const c = (sql) => db.prepare(sql).get().c;
   res.json({
@@ -51,6 +58,11 @@ app.get('/api/stats', (_req, res) => {
     open_jobs: c("SELECT COUNT(*) c FROM jobs WHERE status='open'"),
     provinces: c("SELECT COUNT(DISTINCT province) c FROM jobs"),
     avg_rating: Number((db.prepare('SELECT AVG(rating) a FROM profiles WHERE rating > 0').get().a || 0).toFixed(1)),
+    clients: c("SELECT COUNT(*) c FROM users WHERE role='client'"),
+    jobs_completed: c("SELECT COUNT(*) c FROM contracts WHERE status IN ('released','paid_out')") + (db.prepare('SELECT SUM(jobs_done) c FROM profiles').get().c || 0),
+    paid_out_cents: db.prepare("SELECT IFNULL(SUM(payout_cents),0) c FROM contracts WHERE status IN ('released','paid_out')").get().c,
+    bids_this_week: c("SELECT COUNT(*) c FROM applications WHERE created_at > datetime('now','-7 days')"),
+    reviews: c('SELECT COUNT(*) c FROM reviews'),
   });
 });
 
@@ -73,6 +85,7 @@ app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/talent', require('./routes/talent'));
 app.use('/api/me', require('./routes/me'));
 app.use('/api/contracts', require('./routes/contracts'));
+app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Endpoint not found')));
 
@@ -96,11 +109,11 @@ app.use((err, req, res, _next) => {
 // Demo accounts share a public password, so they are only seeded outside production unless SEED_DEMO=true
 const seedDemo = process.env.SEED_DEMO ? process.env.SEED_DEMO === 'true' : !isProd;
 if (ensureAdmin()) console.log('Created admin account from ADMIN_EMAIL');
-if (seedDemo && seed()) console.log('Seeded demo data (password for demo accounts: Siira#2026)');
+if (seedDemo && seed()) console.log('Seeded demo data (password for demo accounts: TalentBridge#2026)');
 
 if (require.main === module) {
   const port = process.env.PORT || 3000;
-  const srv = app.listen(port, () => console.log(`SIIRA API listening on http://localhost:${port}`));
+  const srv = app.listen(port, () => console.log(`TalentBridge API listening on http://localhost:${port}`));
   const stop = () => srv.close(() => { db.close(); process.exit(0); });
   process.on('SIGTERM', stop); process.on('SIGINT', stop);
   if (isProd && process.env.BACKUP_DAILY !== 'false') { // daily SQLite backup, keeps the last 14

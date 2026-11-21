@@ -1,234 +1,745 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-ZA">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SIIRA Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TalentBridge</title>
+<meta name="theme-color" content="#6a4bd8">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/tb-mark.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/tb.css">
 <style>
-:root{--navy:#17356f;--blue:#2a5bb5;--or:#ff9526;--ink:#1d2b4a;--mut:#667592;--bg:#f4f7fc;--card:#fff;--line:#e8edf6;--sh:0 16px 50px -26px rgba(30,60,120,.3)}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Figtree,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-h1,h2,h3{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-weight:700;letter-spacing:-.015em;margin:0}
-button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}
-:focus-visible{outline:3px solid rgba(255,149,38,.6);outline-offset:2px;border-radius:10px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border-radius:999px;font-weight:600;color:#1a1000;background:linear-gradient(135deg,#ffb552,#ff9526);box-shadow:0 12px 26px -16px rgba(255,140,30,.9);transition:transform .25s}
-.btn:hover{transform:translateY(-2px)}.btn.sm{padding:7px 15px;font-size:13.5px}.btn.ghost{background:#eef3fb;color:var(--navy);box-shadow:none}.btn.navy{background:var(--navy);color:#fff;box-shadow:none}.btn.red{background:#fde8e6;color:#b42318;box-shadow:none}
-.mut{color:var(--mut)}.right{margin-left:auto}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-input,select,textarea{width:100%;padding:12px 16px;border:1.5px solid transparent;border-radius:16px;background:#eef3fb;margin-top:6px}
-input:focus,select:focus,textarea:focus{background:#fff;border-color:var(--blue);outline:0}
-label{display:block;font-weight:600;font-size:13.5px;margin-bottom:14px;color:var(--navy)}
 /* auth */
-#auth{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(1000px 500px at 80% -10%,#dfe9fb,transparent),radial-gradient(800px 500px at -10% 100%,#ffe9d2,transparent),var(--bg)}
-.auth{width:min(480px,100%);background:var(--card);border-radius:36px;padding:34px;box-shadow:var(--sh)}
-.auth img{height:60px;display:block;margin:0 auto 18px}.tabs{display:flex;background:#eef3fb;border-radius:999px;padding:4px;margin-bottom:22px}
-.tabs button{flex:1;padding:10px;border-radius:999px;font-weight:600;color:var(--mut)}.tabs .on{background:#fff;color:var(--navy);box-shadow:0 4px 14px -6px rgba(30,60,120,.3)}
-.roles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.roles button{padding:14px;border-radius:18px;background:#eef3fb;font-weight:600;text-align:left;border:1.5px solid transparent}.roles .on{background:#fff;border-color:var(--or)}
-.chk{display:flex;gap:10px;font-weight:400;font-size:13px;color:var(--mut)}.chk input{width:auto;margin:3px 0 0}
+#auth{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.auth-side{background:var(--ink);color:#dfe8e3;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.auth-side::after{content:"";position:absolute;left:-10%;right:-10%;bottom:-55%;height:90%;border-radius:50%;border:2px solid rgba(245,185,53,.35);border-bottom-color:transparent}
+.auth-side h1{font-size:clamp(34px,4vw,54px);color:#fff;max-width:13ch;margin:40px 0 18px}
+.auth-side p{max-width:40ch;color:#a9bab2;font-size:17px}
+.auth-side ul{list-style:none;padding:0;margin:24px 0 0;display:grid;gap:12px;position:relative;z-index:1}
+.auth-side li{display:flex;gap:10px;align-items:flex-start}
+.auth-side li::before{content:"✓";color:var(--sun);font-weight:800}
+.auth-main{display:grid;place-items:center;padding:32px 24px}
+.auth-box{width:min(440px,100%)}
+.auth-box h2{font-size:32px;margin-bottom:6px}
+.seg{display:flex;background:var(--paper);border-radius:999px;padding:4px;margin:22px 0;box-shadow:var(--shadow)}
+.seg button{flex:1;border:0;background:none;padding:10px;border-radius:999px;font-weight:650;color:var(--ink2)}
+.seg button.on{background:var(--ink);color:#fff}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.roles button{text-align:left;padding:14px 16px;border-radius:var(--r-md);border:1.5px solid var(--line);background:var(--paper);font-weight:700}
+.roles button span{display:block;font-weight:500;color:var(--mut);font-size:13px;margin-top:2px}
+.roles button.on{border-color:var(--jac);box-shadow:0 0 0 4px var(--jac-s)}
+#aerr{font-weight:600;margin:14px 0 0;min-height:1.5em}
+@media (max-width:860px){#auth{grid-template-columns:1fr}.auth-side{display:none}}
+
 /* shell */
-#app{display:none;min-height:100vh}.side{position:fixed;inset:0 auto 0 0;width:260px;background:#fff;padding:22px 16px;display:flex;flex-direction:column;gap:4px;box-shadow:var(--sh);z-index:5}
-.side img{height:50px;margin:0 0 18px 8px;align-self:flex-start}.side a{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-radius:16px;color:var(--mut);font-weight:600;cursor:pointer}
-.side a:hover{background:#f1f5fb;color:var(--navy)}.side a.on{background:#e9f0fd;color:var(--navy)}.dot{background:var(--or);color:#1a1000;border-radius:99px;font-size:11px;padding:1px 8px}
-.who{margin-top:auto;padding:14px;border-radius:20px;background:#f4f7fc;font-size:13px}.who b{display:block;font-size:14px}
-main{margin-left:260px;padding:28px 34px 60px;max-width:1280px}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px;flex-wrap:wrap}.top h1{font-size:30px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-bottom:22px}
-.card{background:var(--card);border-radius:28px;padding:22px;box-shadow:var(--sh)}.stat small{color:var(--mut);font-weight:600;font-size:13px}.stat b{display:block;font:700 30px 'Bricolage Grotesque';margin-top:4px}.stat span{font-size:13px;color:var(--mut)}
-.bar{height:8px;border-radius:9px;background:#e8eef9;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--or));border-radius:9px}
-.tw{overflow-x:auto;border-radius:28px;background:#fff;box-shadow:var(--sh)}table{width:100%;border-collapse:collapse;min-width:640px}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);padding:16px 18px}td{padding:14px 18px;border-top:1px solid var(--line);vertical-align:middle}
-.b{display:inline-block;padding:3px 12px;border-radius:99px;font-size:12.5px;font-weight:700;text-transform:capitalize;white-space:nowrap}.b.o{background:#fff1de;color:#a8580a}.b.bl{background:#e4edff;color:#2349a0}.b.g{background:#e0f6ea;color:#12714a}.b.r{background:#fde8e6;color:#b42318}.b.x{background:#eef1f6;color:#5a6782}
-.list{display:grid;gap:14px}.item{background:#fff;border-radius:26px;padding:20px 22px;box-shadow:var(--sh);display:flex;gap:16px;align-items:center;flex-wrap:wrap}.item h3{font-size:18px}
-.empty{text-align:center;padding:50px 20px;color:var(--mut);background:#fff;border-radius:28px}
-.modal{position:fixed;inset:0;background:rgba(15,30,70,.4);backdrop-filter:blur(4px);display:grid;place-items:center;padding:18px;z-index:50;overflow:auto}.sheet{background:#fff;border-radius:32px;padding:28px;width:min(560px,100%);max-height:92vh;overflow:auto;box-shadow:0 40px 90px -30px rgba(10,20,60,.6)}.sheet h3{margin-bottom:14px;font-size:22px}
-.msgs{max-height:220px;overflow:auto;display:grid;gap:8px;margin:12px 0}.msg{background:#eef3fb;border-radius:16px;padding:9px 14px;font-size:14px}.msg.me{background:#fff1de}
-.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 22px;border-radius:99px;z-index:99;box-shadow:0 20px 40px -20px #000}.toast.err{background:#b42318}
-.fee{display:grid;grid-template-columns:1fr auto;gap:4px 18px;background:#f4f7fc;border-radius:18px;padding:14px 18px;font-size:14px;margin:12px 0}
-@media(max-width:860px){.side{position:static;width:auto;flex-direction:row;overflow-x:auto;padding:10px;gap:2px}.side img,.who{display:none}.side a{white-space:nowrap;padding:9px 14px}main{margin:0;padding:18px 16px 50px}}
+#app{display:none;min-height:100vh}
+.side{position:fixed;inset:0 auto 0 0;width:248px;background:var(--paper);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:2px;z-index:30}
+.side .brand{margin:0 8px 22px}
+.side a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;text-decoration:none;color:var(--ink2);font-weight:600;font-size:15px}
+.side a svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.side a:hover{background:var(--mist);color:var(--ink)}
+.side a.on{background:var(--jac-s);color:var(--jac-d)}
+.side a .n{margin-left:auto;background:var(--jac);color:#fff;border-radius:999px;font-size:12px;font-weight:750;padding:1px 8px;min-width:22px;text-align:center}
+.side .grp{font-size:12px;font-weight:700;color:var(--mut);padding:14px 12px 6px}
+.me-card{margin-top:auto;display:flex;gap:10px;align-items:center;padding:12px;border-radius:var(--r-md);background:var(--mist)}
+.me-card b{display:block;font-size:14px;line-height:1.3}
+.me-card span{font-size:13px;color:var(--mut)}.me-card .av{color:#fff;font-size:15px}
+.me-card button{margin-left:auto;background:none;border:0;color:var(--mut);padding:6px;border-radius:8px}
+.me-card button:hover{color:var(--rose);background:var(--paper)}
+.main{margin-left:248px;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:20;height:64px;display:flex;align-items:center;gap:12px;padding:0 32px;background:rgba(238,242,240,.88);backdrop-filter:blur(10px)}
+.topbar .live{font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.topbar .live i{width:8px;height:8px;border-radius:50%;background:#aab6b0}
+.topbar .live.on i{background:#2fbf71}
+.bell{margin-left:auto;position:relative;width:42px;height:42px;border-radius:50%;border:0;background:var(--paper);display:grid;place-items:center;box-shadow:var(--shadow)}
+.bell svg{width:20px;height:20px;stroke:var(--ink);fill:none;stroke-width:1.8}
+.bell .n{position:absolute;top:-3px;right:-3px;background:var(--rose);color:#fff;border-radius:999px;font-size:11px;font-weight:800;padding:1px 6px;border:2px solid var(--mist)}
+.notes-pop{position:absolute;right:32px;top:60px;width:min(400px,calc(100vw - 32px));background:var(--paper);border-radius:var(--r-md);box-shadow:0 24px 60px -20px rgba(23,36,31,.35);max-height:70vh;overflow:auto;z-index:40}
+.notes-pop header{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper)}
+.menu-btn{display:none;border:0;background:none;padding:6px}
+.view{padding:8px 32px 64px;max-width:1240px}
+.ph{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:8px 0 24px}
+.ph h1{font-size:clamp(28px,3vw,38px)}
+.ph p{margin:6px 0 0;color:var(--ink2)}
+.ph .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.back{display:inline-flex;gap:6px;align-items:center;color:var(--ink2);text-decoration:none;font-weight:600;font-size:14px;margin-bottom:4px}
+.back:hover{color:var(--ink)}
+@media (max-width:900px){
+  .side{transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 60px rgba(0,0,0,.2)}
+  .side.open{transform:none}
+  .main{margin-left:0}
+  .menu-btn{display:block}
+  .topbar,.view{padding-left:16px;padding-right:16px}
+}
+
+/* layout bits */
+.cols{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:1080px){.cols{grid-template-columns:1fr}}
+.stack{display:grid;gap:20px}
+.panel h2{font-size:22px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.panel h2 .link{margin-left:auto;font-family:var(--sans);font-size:14px}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));background:var(--paper);border-radius:var(--r-md);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+.figs>div{padding:18px 22px;border-right:1px solid var(--line2)}
+.figs>div:last-child{border-right:0}
+.figs small{display:block;color:var(--mut);font-weight:600;font-size:13px}
+.figs b{font:400 28px/1.2 var(--serif);display:block;margin-top:2px;font-variant-numeric:tabular-nums}
+.figs span{font-size:13px;color:var(--mut)}
+.bar{height:6px;border-radius:6px;background:var(--line2);margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--jac);border-radius:6px}
+
+/* feed ("posts") */
+.post{display:flex;gap:12px;padding:14px 0;border-top:1px solid var(--line2);align-items:flex-start}
+.post:first-of-type{border-top:0;padding-top:4px}
+.post .txt{flex:1;min-width:0}
+.post .txt p{margin:0}
+.post small{color:var(--mut);font-size:13px}
+.post.unread .txt p{font-weight:650}
+.post.fresh{animation:pin .6s ease-out}
+@keyframes pin{from{background:var(--jac-s)}}
+.ico{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ico svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ico.offer,.ico.accepted{background:var(--jac-s);color:var(--jac-d)}
+.ico.funded,.ico.payment{background:var(--moss-s);color:var(--moss)}
+.ico.bid,.ico.job_match,.ico.shortlisted{background:var(--sun-s);color:#8a5a00}
+.ico.declined,.ico.dispute,.ico.bid_rejected{background:var(--rose-s);color:var(--rose)}
+.ico.other{background:var(--line2);color:var(--ink2)}
+.todo{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:var(--r-sm);background:var(--mist);margin-bottom:8px;text-decoration:none}
+.todo:hover{background:var(--jac-s)}
+.todo b{font-weight:650}
+.todo .go{margin-left:auto;color:var(--jac-d);font-weight:700;font-size:14px;white-space:nowrap}
+
+/* rows / lists */
+.rows{display:grid;gap:10px}
+.row{background:var(--paper);border-radius:var(--r-md);box-shadow:var(--shadow);padding:18px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;text-decoration:none}
+a.row:hover{box-shadow:inset 0 0 0 1.5px var(--jac),var(--shadow)}
+.row h3{font-size:19px}
+.row .grow{flex:1;min-width:220px}
+.row .meta{color:var(--mut);font-size:14px;display:flex;gap:4px 14px;flex-wrap:wrap;margin-top:4px}
+.row .amt{text-align:right;font-weight:750;font-size:17px}
+.row .amt span{display:block;font-weight:500;font-size:13px;color:var(--mut)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.toolbar input,.toolbar select{width:auto;min-width:160px;flex:1;max-width:320px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+
+/* bids */
+.bid{background:var(--paper);border-radius:var(--r-md);box-shadow:var(--shadow);padding:20px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 16px}
+.bid .who b{font-size:17px}
+.bid .price{text-align:right}
+.bid .price b{font:400 26px/1.1 var(--serif);display:block}
+.bid .price span{color:var(--mut);font-size:14px}
+.bid .prop{grid-column:2/-1;color:var(--ink2);margin:6px 0 0;white-space:pre-line}
+.bid .acts{grid-column:2/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.bid.rejected{opacity:.6}
+@media (max-width:640px){.bid{grid-template-columns:auto 1fr}.bid .price{grid-column:2;text-align:left}}
+
+/* inbox */
+.inbox{display:grid;grid-template-columns:340px minmax(0,1fr);height:calc(100vh - 64px - 24px);background:var(--paper);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden;margin:0 0 24px}
+.conv-list{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.conv-list .s{padding:14px;border-bottom:1px solid var(--line)}
+.conv-list ul{list-style:none;margin:0;padding:6px;overflow:auto;flex:1}
+.conv{display:flex;gap:12px;padding:12px;border-radius:12px;text-decoration:none;align-items:flex-start}
+.conv:hover{background:var(--mist)}
+.conv.on{background:var(--jac-s)}
+.conv .t{flex:1;min-width:0}
+.conv .t b{display:flex;justify-content:space-between;gap:8px;font-size:15px}
+.conv .t b small{font-weight:500;color:var(--mut);font-size:12px;white-space:nowrap}
+.conv .t .j{font-size:13px;color:var(--jac-d);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv .t p{margin:2px 0 0;font-size:14px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv.unread .t p{color:var(--ink);font-weight:650}
+.conv .u{background:var(--jac);color:#fff;border-radius:999px;font-size:12px;font-weight:800;padding:1px 7px;align-self:center}
+.thread{display:flex;flex-direction:column;min-height:0;min-width:0}
+.thread .th{display:flex;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.thread .th h2{font-size:20px}
+.thread .th .sub{font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msgs{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:6px;background:linear-gradient(var(--paper),var(--mist))}
+.msg{max-width:min(560px,78%);padding:10px 14px;border-radius:18px;background:var(--mist);align-self:flex-start;white-space:pre-wrap;word-wrap:break-word;font-size:15px;line-height:1.45}
+.msg.me{align-self:flex-end;background:var(--jac);color:#fff;border-bottom-right-radius:6px}
+.msg:not(.me){border-bottom-left-radius:6px;background:var(--paper);box-shadow:0 1px 2px rgba(23,36,31,.08)}
+.msg time{display:block;font-size:11px;opacity:.7;margin-top:4px;text-align:right}
+.msg.fresh{animation:tin .25s ease-out}
+.msg .file{display:flex;gap:10px;align-items:center;margin-top:6px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.18);text-decoration:none;color:inherit;font-weight:600;font-size:14px;border:0;cursor:pointer;width:100%;text-align:left}
+.msg:not(.me) .file{background:var(--mist)}
+.msg img.pic{max-width:100%;max-height:260px;border-radius:12px;margin-top:6px;cursor:pointer}
+.ev{align-self:center;background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:5px 14px;font-size:13px;font-weight:650;color:var(--ink2);margin:8px 0;text-decoration:none;text-align:center;max-width:90%}
+a.ev:hover{border-color:var(--jac);color:var(--jac-d)}
+.day{align-self:center;font-size:12px;color:var(--mut);font-weight:700;margin:10px 0 4px}
+.seen{align-self:flex-end;font-size:12px;color:var(--mut);margin:-2px 4px 0}
+.typing{font-size:13px;color:var(--mut);padding:0 18px 6px;height:20px}
+.composer{display:flex;gap:8px;align-items:flex-end;padding:12px;border-top:1px solid var(--line);background:var(--paper)}
+.composer textarea{min-height:44px;max-height:160px;resize:none;border-radius:22px;padding:11px 16px}
+.composer .att{width:44px;height:44px;border-radius:50%;border:0;background:var(--mist);display:grid;place-items:center;flex:none}
+.composer .att svg{width:20px;height:20px;stroke:var(--ink2);fill:none;stroke-width:1.8}
+.composer .btn{height:44px}
+.pending-file{display:flex;gap:8px;align-items:center;padding:8px 14px;font-size:14px;background:var(--jac-s);border-top:1px solid var(--line)}
+.inbox-empty{display:grid;place-items:center;text-align:center;padding:40px;color:var(--mut)}
+@media (max-width:900px){.thread .th{flex-wrap:nowrap}.thread .th h2{font-size:18px}.thread .th .btn{display:none}.inbox{grid-template-columns:1fr;height:calc(100vh - 64px - 16px)}.inbox.has-thread .conv-list{display:none}.inbox:not(.has-thread) .thread{display:none}}
+
+/* contract */
+.steps{display:flex;gap:0;margin:8px 0 22px;overflow-x:auto}
+.steps li{list-style:none;flex:1;min-width:110px;position:relative;padding-top:26px;font-size:13px;font-weight:650;color:var(--mut);text-align:center}
+.steps li::before{content:"";position:absolute;top:6px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--line);z-index:1}
+.steps li::after{content:"";position:absolute;top:12px;left:-50%;width:100%;height:2px;background:var(--line)}
+.steps li:first-child::after{display:none}
+.steps li.done{color:var(--ink)}.steps li.done::before,.steps li.done::after{background:var(--jac)}
+.steps li.now::before{background:var(--paper);box-shadow:inset 0 0 0 4px var(--jac)}
+.money{display:grid;grid-template-columns:1fr auto;gap:8px 16px;margin:0}
+.money dt{color:var(--ink2)}.money dd{margin:0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.money .tot{border-top:1.5px solid var(--line);padding-top:10px}
+.ms{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line2)}
+.ms:first-child{border-top:0}
+.ms .grow{flex:1}
+.ms-row{display:grid;grid-template-columns:1fr 130px 36px;gap:8px;margin-bottom:8px}
+.ms-row button{border:0;background:var(--mist);border-radius:10px}
+
+/* tables (admin) */
+.tw{overflow-x:auto;background:var(--paper);border-radius:var(--r-md);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;min-width:680px;font-size:14px}
+th{text-align:left;font-size:13px;color:var(--mut);font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line)}
+td{padding:12px 16px;border-top:1px solid var(--line2);vertical-align:top}
+td .btn{margin:2px 4px 2px 0}
+.banner{background:var(--sun-s);border-radius:var(--r-md);padding:14px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+.port-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border-radius:var(--r-sm);background:var(--mist);margin-bottom:8px}
+.port-row textarea{grid-column:1/-1;min-height:60px}
 </style>
 </head>
 <body>
-<section id="auth"><div class="auth">
-  <img src="/assets/siira-logo.png" alt="SIIRA">
-  <div class="tabs"><button id="tl" class="on">Log in</button><button id="tr">Create account</button></div>
-  <form id="fl"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="btn" style="width:100%">Log in</button><p style="text-align:center;margin:14px 0 0"><a href="#" id="tf">Forgot your password?</a></p></form>
-  <form id="fr" hidden>
-    <div class="roles"><button type="button" data-role="talent" class="on">I want to find work</button><button type="button" data-role="client">I want to hire</button></div>
-    <label>Full name<input name="name" required minlength="2"></label><label>Email<input name="email" type="email" required></label>
-    <label>Mobile number<input name="phone" type="tel" placeholder="082 000 0000"></label>
-    <label>Province<select name="province"></select></label>
-    <label>Password<input name="password" type="password" minlength="8" required placeholder="8+ characters, letters and a number"></label>
-    <label class="chk"><input type="checkbox" name="accept_terms" required><span>I accept the <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>, and consent to SIIRA processing my personal information (POPIA).</span></label>
-    <button class="btn" style="width:100%">Create account</button>
-  </form>
-  <form id="ff" hidden><p class="mut">Enter your email and we will send you a reset link.</p><label>Email<input name="email" type="email" required></label><button class="btn" style="width:100%">Send reset link</button><p style="text-align:center;margin:14px 0 0"><a href="#" id="tb">Back to log in</a></p></form>
-  <form id="fz" hidden><p class="mut">Choose a new password.</p><label>New password<input name="password" type="password" minlength="8" required placeholder="8+ characters, letters and a number"></label><button class="btn" style="width:100%">Update password</button></form>
-  <p id="aerr" style="color:#b42318;font-weight:600;margin:14px 0 0"></p>
-</div></section>
-<div id="app"><nav class="side" id="side"></nav><main id="main"></main></div>
+<section id="auth">
+  <div class="auth-side">
+    <a class="brand light" href="/"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#6a4bd8"/><path d="M10 40c7-12 14-17 22-17s15 5 22 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M20 30v17M44 30v17" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M9 47h46" stroke="#f5b935" stroke-width="5" stroke-linecap="round"/></svg>TalentBridge</a>
+    <div><h1>Good work, paid safely.</h1><p>One place to post jobs, compare bids, chat and pay through escrow.</p>
+    <ul><li>Bids with a price and timeline you can compare</li><li>Live inbox with file sharing</li><li>Money held until the work is approved</li></ul></div>
+    <small style="color:#7d8f87;position:relative;z-index:1">TalentBridge is a division of VINK Group (Pty) Ltd, registration number 2018/079316/07.</small>
+  </div>
+  <div class="auth-main"><div class="auth-box">
+    <h2 id="atitle">Welcome back</h2><p class="mut" id="asub">Log in to your TalentBridge account.</p>
+    <div class="seg" role="tablist"><button id="tl" class="on" role="tab">Log in</button><button id="tr" role="tab">Create account</button></div>
+    <form id="fl"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="btn wide">Log in</button><p style="text-align:center;margin:14px 0 0"><button type="button" class="link" id="tf">Forgot your password?</button></p></form>
+    <form id="fr" hidden>
+      <div class="roles"><button type="button" data-role="client">I want to hire<span>Post jobs, compare bids</span></button><button type="button" data-role="talent" class="on">I want to work<span>Find jobs, send bids</span></button></div>
+      <label>Full name<input name="name" required minlength="2" autocomplete="name"></label>
+      <label>Email<input name="email" type="email" required autocomplete="email"></label>
+      <div class="field-row"><label>Mobile (optional)<input name="phone" type="tel" placeholder="082 000 0000" autocomplete="tel"></label><label>Province<select name="province"></select></label></div>
+      <label>Password<input name="password" type="password" minlength="8" required autocomplete="new-password"><span class="hint">8 or more characters, with letters and a number.</span></label>
+      <label class="check"><input type="checkbox" name="accept_terms" required><span>I accept the <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>, and consent to TalentBridge processing my personal information (POPIA).</span></label>
+      <button class="btn wide">Create account</button>
+    </form>
+    <form id="ff" hidden><label>Email<input name="email" type="email" required></label><button class="btn wide">Send reset link</button><p style="text-align:center;margin:14px 0 0"><button type="button" class="link" id="tb">Back to log in</button></p></form>
+    <form id="fz" hidden><label>New password<input name="password" type="password" minlength="8" required autocomplete="new-password"><span class="hint">8 or more characters, with letters and a number.</span></label><button class="btn wide">Update password</button></form>
+    <p id="aerr" role="alert"></p>
+  </div></div>
+</section>
+
+<div id="app">
+  <nav class="side" id="side" aria-label="Dashboard"></nav>
+  <div class="main">
+    <div class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <span class="live" id="live" title="Live updates"><i></i><span>Connecting…</span></span>
+      <button class="bell" id="bell" aria-label="Notifications" aria-expanded="false"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="n" id="bellN" hidden></span></button>
+    </div>
+    <div id="notesPop" class="notes-pop" hidden></div>
+    <main class="view" id="view"></main>
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script>
-const $=(s,r=document)=>r.querySelector(s);
+/* ===== helpers ===== */
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const R=c=>'R'+Math.round((c||0)/100).toLocaleString('en-ZA');
-const D=s=>s?new Date(s.replace(' ','T')+'Z').toLocaleDateString('en-ZA',{day:'numeric',month:'short'}):'';
-const PROV=['Eastern Cape','Free State','Gauteng','KwaZulu-Natal','Limpopo','Mpumalanga','North West','Northern Cape','Western Cape'];
-const CATS=['Trades & Repairs','Construction','Cleaning & Care','Creative & Digital','Transport & Delivery','Business Support'];
-const TYPES=['Full-Time','Part-Time','Freelance','Short-Term'];
-const BC={open:'o',pending:'o',new:'o',offered:'o',accepted:'o',funded:'bl',delivered:'bl',reviewing:'bl',contacted:'bl',submitted:'bl',released:'g',paid_out:'g',approved:'g',resolved:'g',active:'g',shortlisted:'g',hired:'g',paid:'g',disputed:'r',rejected:'r',suspended:'r'};
-const badge=s=>`<span class="b ${BC[s]||'x'}">${esc(String(s).replace('_',' '))}</span>`;
-let token=null,me=null,view='overview';try{token=localStorage.getItem('siira_token')}catch{}
+const R=c=>'R'+((c||0)/100).toLocaleString('en-ZA',{maximumFractionDigits:0});
+const RR=n=>'R'+Math.round(n||0).toLocaleString('en-ZA');
+const dt=s=>s?new Date(s.replace(' ','T')+(s.includes('Z')?'':'Z')):null;
+const ago=s=>{const d=(Date.now()-dt(s))/1000;if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+' min ago';if(d<86400)return Math.floor(d/3600)+' h ago';if(d<604800)return Math.floor(d/86400)+' d ago';return dt(s).toLocaleDateString('en-ZA',{day:'numeric',month:'short'})};
+const hm=s=>dt(s).toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+const dayLabel=s=>{const d=dt(s),t=new Date();const y=new Date(t-864e5);if(d.toDateString()===t.toDateString())return'Today';if(d.toDateString()===y.toDateString())return'Yesterday';return d.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'})};
+const initials=n=>String(n||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const av=(name,color,cls='',online)=>`<span class="av ${cls}" style="--c:${esc(color||'#6a4bd8')}" aria-hidden="true">${initials(name)}${online?'<i class="on"></i>':''}</span>`;
+const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
+const SVG={home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',users:'<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 9M22 21a7 7 0 0 0-4-6.3"/>',chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/>',file:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',coin:'<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2.2 0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2-1.4 0-2.6-.6-3-1.6M12 6v2M12 16v2"/>',flag:'<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>',inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',clip:'<path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',send:'<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',check:'<path d="M20 6 9 17l-5-5"/>',star:'<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>'};
+const ic=(k,size=20)=>`<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SVG[k]||''}</svg>`;
 
+/* contract status, in plain words for each side */
+const CSTEP=['offered','accepted','funded','delivered','released'];
+const CS={offered:['wait','Offer sent','Offer received'],accepted:['go','Awaiting escrow','Awaiting escrow'],funded:['go','In progress','In progress'],delivered:['wait','Delivered, review it','Delivered'],released:['ok','Paid','Paid, payout pending'],paid_out:['ok','Completed','Paid out'],disputed:['bad','In dispute','In dispute'],cancelled:['bad','Cancelled','Cancelled'],refunded:['bad','Refunded','Refunded']};
+const cst=s=>{const v=CS[s]||['',s,s];return`<span class="st ${v[0]}">${esc(me?.role==='talent'?v[2]:v[1])}</span>`};
+const AST={submitted:['','Submitted'],shortlisted:['go','Shortlisted'],rejected:['bad','Not selected'],hired:['ok','Hired']};
+const ast=s=>{const v=AST[s]||['',s];return`<span class="st ${v[0]}">${v[1]}</span>`};
+const gst=s=>{const m={open:'ok',pending:'wait',new:'wait',reviewing:'go',contacted:'go',approved:'ok',resolved:'ok',active:'ok',handled:'ok',closed:'',rejected:'bad',dismissed:'',suspended:'bad',deleted:'bad',paid:'ok',payout_due:'wait',refund_due:'wait',void:''};return`<span class="st ${m[s]??''}">${esc(String(s).replace(/_/g,' '))}</span>`};
+
+/* ===== api ===== */
+let token=null,me=null,META=null,COUNTS={notifications:0,inbox:0};
+try{token=localStorage.getItem('tb_token')||localStorage.getItem('siira_token');localStorage.removeItem('siira_token');if(token)localStorage.setItem('tb_token',token)}catch{}
 async function api(p,o={}){
   const r=await fetch('/api'+p,{method:o.method||((o.body||o.form)?'POST':'GET'),headers:{...(!o.form&&{'content-type':'application/json'}),...(token&&{authorization:'Bearer '+token})},body:o.form||(o.body?JSON.stringify(o.body):undefined)});
   if(r.status===204)return null;
   const j=await r.json().catch(()=>({}));
-  if(!r.ok){if(r.status===401&&token&&p!=='/auth/login')logout();const d=j.details?.[0];throw new Error(d?`${d.field}: ${d.message}`:j.error||'Something went wrong')}
+  if(!r.ok){if(r.status===401&&token&&!p.startsWith('/auth/login'))logout();const d=j.details?.[0];throw new Error(d?d.message:j.error||'Something went wrong. Please try again.')}
   return j}
-async function blob(p){const r=await fetch('/api'+p,{headers:{authorization:'Bearer '+token}});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not load');return r.blob()}
+async function blob(p){const r=await fetch('/api'+p,{headers:{authorization:'Bearer '+token}});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not load the file');return r.blob()}
 async function openBlob(p){const w=window.open('','_blank');try{const u=URL.createObjectURL(await blob(p));w?w.location=u:location.href=u}catch(e){w&&w.close();throw e}}
-function toast(m,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3600)}
-function modal(html,onClose){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="sheet">${html}</div>`;
-  m.onclick=e=>{if(e.target===m||e.target.closest('[data-close]')){m.remove();onClose&&onClose()}};document.body.append(m);return m}
-function ask(title,fields,ok='Save',intro=''){return new Promise(res=>{
-  const inp=f=>f.type==='file'?`<input name="${f.name}" type="file" accept=".pdf,.jpg,.jpeg,.png">`:f.type==='textarea'?`<textarea name="${f.name}" rows="3">${esc(f.value)}</textarea>`:f.type==='select'?`<select name="${f.name}">${f.options.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return`<option value="${esc(v)}"${v==f.value?' selected':''}>${esc(l)}</option>`}).join('')}</select>`:`<input name="${f.name}" type="${f.type||'text'}" value="${esc(f.value)}">`;
-  const m=modal(`<h3>${esc(title)}</h3>${intro?`<p class="mut">${intro}</p>`:''}<form>${fields.map(f=>`<label>${esc(f.label)}${inp(f)}</label>`).join('')}<div class="row"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn right">${ok}</button></div></form>`,()=>res(null));
-  m.querySelector('form').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));m.remove();res(v)}})}
-const info=(t,h)=>modal(`<h3>${esc(t)}</h3>${h}<div class="row" style="margin-top:16px"><button class="btn right" data-close>Done</button></div>`);
-const stat=(l,v,s='')=>`<div class="card stat"><small>${l}</small><b>${v}</b><span>${s}</span></div>`;
-const table=(h,rows)=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nothing here yet.</div>';
-const btn=(a,id,l,c='ghost')=>`<button class="btn sm ${c}" data-act="${a}" data-id="${id}">${l}</button>`;
-const head=(t,extra='')=>`<div class="top"><h1>${t}</h1><div class="right row">${extra}</div></div>`;
+async function download(p,name){const u=URL.createObjectURL(await blob(p));Object.assign(document.createElement('a'),{href:u,download:name}).click();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 
-/* ---------- auth ---------- */
-$('#fr [name=province]').innerHTML=PROV.map(p=>`<option>${p}</option>`).join('');
-let role='talent';
-const FORMS=['fl','fr','ff','fz'];
-function showForm(id){FORMS.forEach(f=>$('#'+f).hidden=f!==id);$('#aerr').textContent='';$('#aerr').style.color='#b42318'}
-const okMsg=t=>{$('#aerr').style.color='#12714a';$('#aerr').textContent=t};
-const tab=r=>{showForm(r?'fr':'fl');$('#tl').classList.toggle('on',!r);$('#tr').classList.toggle('on',r)};
-$('#tl').onclick=()=>tab(false);$('#tr').onclick=()=>tab(true);
-const h0=location.hash;
-if(h0==='#register')tab(true);
-if(h0.startsWith('#reset='))showForm('fz');
-if(h0==='#verified'&&!token)okMsg('Email verified. Log in to continue.');
-if(h0==='#link-expired')$('#aerr').textContent='That link has expired. Log in and request a new one from your dashboard.';
-$('#tf').onclick=e=>{e.preventDefault();showForm('ff')};$('#tb').onclick=e=>{e.preventDefault();tab(false)};
+/* ===== ui primitives ===== */
+function toast(msg,o={}){const t=document.createElement('div');t.className='toast'+(o.err?' err':'');
+  t.innerHTML=`${o.icon?`<span class="ico ${esc(o.icon)}" style="width:32px;height:32px">${ic(o.iconKey||'bell',16)}</span>`:''}<div style="flex:1">${esc(msg)}${o.link?`<br><a href="${esc(o.link)}" style="font-weight:700">View</a>`:''}</div><button class="x" aria-label="Dismiss">×</button>`;
+  t.querySelector('.x').onclick=()=>t.remove();t.querySelector('a')?.addEventListener('click',()=>t.remove());$('#toasts').append(t);const all=$$('#toasts .toast');if(all.length>3)all.slice(0,all.length-3).forEach(x=>x.remove());setTimeout(()=>t.remove(),o.link?7000:4200)}
+const fail=e=>toast(e.message||String(e),{err:true});
+function modal(html,{wide}={}){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" style="${wide?'width:min(720px,100%)':''}">${html}</div>`;
+  const close=()=>{m.remove();document.removeEventListener('keydown',k)};const k=e=>{if(e.key==='Escape')close()};
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))close()});document.addEventListener('keydown',k);document.body.append(m);
+  setTimeout(()=>m.querySelector('input,textarea,select,button.btn')?.focus(),30);m.close=close;return m}
+const field=f=>{const v=f.value??'';
+  if(f.type==='textarea')return`<label>${esc(f.label)}<textarea name="${f.name}" rows="${f.rows||4}" ${f.req?'required':''} ${f.min?`minlength="${f.min}"`:''} placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>${f.hint?`<span class="hint">${esc(f.hint)}</span>`:''}</label>`;
+  if(f.type==='select')return`<label>${esc(f.label)}<select name="${f.name}">${f.options.map(o=>{const[val,l]=Array.isArray(o)?o:[o,o];return`<option value="${esc(val)}"${String(val)===String(v)?' selected':''}>${esc(l)}</option>`}).join('')}</select></label>`;
+  if(f.type==='file')return`<label>${esc(f.label)}<input name="${f.name}" type="file" accept="${f.accept||'.pdf,.jpg,.jpeg,.png'}"></label>`;
+  return`<label>${esc(f.label)}<input name="${f.name}" type="${f.type||'text'}" value="${esc(v)}" ${f.req?'required':''} ${f.min!=null?`min="${f.min}"`:''} ${f.max!=null?`max="${f.max}"`:''} placeholder="${esc(f.ph||'')}" ${f.type==='number'?'inputmode="numeric"':''}>${f.hint?`<span class="hint">${esc(f.hint)}</span>`:''}</label>`};
+function ask(title,fields,ok='Save',intro=''){return new Promise(res=>{
+  const m=modal(`<h3>${esc(title)}</h3>${intro?`<p class="mut">${intro}</p>`:''}<form>${fields.map(f=>Array.isArray(f)?`<div class="field-row">${f.map(field).join('')}</div>`:field(f)).join('')}<div class="actions"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn">${esc(ok)}</button></div></form>`);
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))res(null)});
+  m.querySelector('form').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));m.close();res(v)}})}
+function confirmBox(title,text,ok='Confirm',danger){return new Promise(res=>{const m=modal(`<h3>${esc(title)}</h3><p class="mut">${text}</p><div class="actions"><button class="btn ghost" data-close>Cancel</button><button class="btn ${danger?'danger':''}" id="cy">${esc(ok)}</button></div>`);
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))res(false)});m.querySelector('#cy').onclick=()=>{m.close();res(true)}})}
+const empty=(title,text,cta='')=>`<div class="panel empty"><h3>${esc(title)}</h3><p>${text}</p>${cta}</div>`;
+const skel=(n=3,h=88)=>Array(n).fill(`<div class="skel" style="height:${h}px;border-radius:18px;margin-bottom:10px"></div>`).join('');
+const ph=(title,sub='',acts='',back='')=>`${back?`<a class="back" href="${back[0]}">← ${esc(back[1])}</a>`:''}<div class="ph"><div><h1>${esc(title)}</h1>${sub?`<p>${sub}</p>`:''}</div>${acts?`<div class="acts">${acts}</div>`:''}</div>`;
+const B=(act,id,label,cls='ghost')=>`<button class="btn sm ${cls}" data-act="${act}" data-id="${esc(id)}">${label}</button>`;
+
+/* ===== auth ===== */
+let role='talent';const FORMS=['fl','fr','ff','fz'];
+function showForm(id){FORMS.forEach(f=>$('#'+f).hidden=f!==id);$('#aerr').textContent='';$('#aerr').style.color='var(--rose)';
+  const t={fl:['Welcome back','Log in to your TalentBridge account.'],fr:['Create your account','Free for clients and professionals.'],ff:['Reset your password','We’ll email you a link to choose a new one.'],fz:['Choose a new password','']}[id];$('#atitle').textContent=t[0];$('#asub').textContent=t[1];
+  $('.seg').hidden=id==='ff'||id==='fz'}
+const okMsg=t=>{$('#aerr').style.color='var(--moss)';$('#aerr').textContent=t};
+const tab=reg=>{showForm(reg?'fr':'fl');$('#tl').classList.toggle('on',!reg);$('#tr').classList.toggle('on',reg)};
+$('#tl').onclick=()=>tab(false);$('#tr').onclick=()=>tab(true);$('#tf').onclick=()=>showForm('ff');$('#tb').onclick=()=>tab(false);
+$$('.roles button').forEach(b=>b.onclick=()=>{role=b.dataset.role;$$('.roles button').forEach(x=>x.classList.toggle('on',x===b))});
+let after=null;const h0=location.hash;
+if(h0==='#register')tab(true);else if(h0.startsWith('#reset='))showForm('fz');
+else if(h0==='#verified'&&!token)okMsg('Email verified. Log in to continue.');
+else if(h0==='#link-expired')$('#aerr').textContent='That link has expired. Log in and request a new one from your dashboard.';
+else if(/^#(job|talent|inbox|contracts)\//.test(h0)){after=h0;if(!token)okMsg(h0.startsWith('#job')?'Log in or create a free account to bid on this job.':'Log in to continue.')}
 $('#ff').onsubmit=async e=>{e.preventDefault();try{await api('/auth/forgot',{body:{email:new FormData(e.target).get('email')}});okMsg('If that email has an account, a reset link is on its way.')}catch(err){$('#aerr').textContent=err.message}};
 $('#fz').onsubmit=async e=>{e.preventDefault();try{await api('/auth/reset',{body:{token:location.hash.slice(7),password:new FormData(e.target).get('password')}});history.replaceState(null,'','/app.html');tab(false);okMsg('Password updated. You can log in now.')}catch(err){$('#aerr').textContent=err.message}};
-document.querySelectorAll('.roles button').forEach(b=>b.onclick=()=>{role=b.dataset.role;document.querySelectorAll('.roles button').forEach(x=>x.classList.toggle('on',x===b))});
-async function authSubmit(e,path,body){e.preventDefault();$('#aerr').textContent='';try{const j=await api(path,{body});token=j.token;try{localStorage.setItem('siira_token',token)}catch{}start()}catch(err){$('#aerr').textContent=err.message}}
+async function authSubmit(e,path,body){e.preventDefault();const b=e.target.querySelector('.btn');b.disabled=true;$('#aerr').textContent='';
+  try{const j=await api(path,{body});token=j.token;try{localStorage.setItem('tb_token',token)}catch{}if(!after||h0==='#register')after=null;start()}catch(err){$('#aerr').textContent=err.message}finally{b.disabled=false}}
 $('#fl').onsubmit=e=>authSubmit(e,'/auth/login',Object.fromEntries(new FormData(e.target)));
-$('#fr').onsubmit=e=>{const f=Object.fromEntries(new FormData(e.target));authSubmit(e,'/auth/register',{...f,role,accept_terms:f.accept_terms==='on'})};
-function logout(){token=null;me=null;try{localStorage.removeItem('siira_token')}catch{}$('#app').style.display='none';$('#auth').style.display='grid'}
+$('#fr').onsubmit=e=>{const f=Object.fromEntries(new FormData(e.target));if(!f.phone)delete f.phone;authSubmit(e,'/auth/register',{...f,role,accept_terms:f.accept_terms==='on'})};
+function logout(){stopStream();token=null;me=null;try{localStorage.removeItem('tb_token')}catch{}$('#app').style.display='none';$('#auth').style.display='grid';tab(false);history.replaceState(null,'','/app.html')}
 
-/* ---------- shell ---------- */
+/* ===== shell ===== */
 const NAV={
- admin:[['overview','Overview'],['verifications','Verifications'],['contracts','Payments & escrow'],['reports','Disputes & reports'],['jobs','Jobs'],['users','Users'],['leads','Leads'],['inbox','Inbox'],['settings','Fees & settings'],['audit','Audit log']],
- client:[['overview','Overview'],['myjobs','My jobs'],['contracts','Contracts'],['talent','Find talent'],['notifications','Notifications'],['account','Account']],
- talent:[['overview','Overview'],['find','Find work'],['applications','Applications'],['contracts','Contracts'],['profile','Profile & verification'],['notifications','Notifications'],['account','Account']]};
+ client:[['home','Home','home'],['myjobs','My jobs','brief'],['talent','Find talent','users'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['notifications','Notifications','bell','notifications'],['account','Account','gear']],
+ talent:[['home','Home','home'],['find','Find work','search'],['bids','My bids','list'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['profile','Profile','user'],['notifications','Notifications','bell','notifications'],['account','Account','gear']],
+ admin:[['admin','Overview','home'],['admin/verifications','Verifications','shield'],['admin/payments','Payments & escrow','coin'],['admin/reports','Disputes & reports','flag'],['admin/jobs','Jobs','brief'],['admin/users','Members','users'],['admin/leads','Hire enquiries','inbox'],['admin/enquiries','Contact messages','chat'],['admin/settings','Fees','gear'],['admin/audit','Audit log','list'],['notifications','Notifications','bell','notifications'],['account','Account','user']]};
+const ROLE_LABEL={client:'Hiring',talent:'Professional',admin:'Administrator'};
+function drawSide(){const cur=location.hash.slice(1).split('/')[0]||'home';const full=location.hash.slice(1);
+  $('#side').innerHTML=`<a class="brand" href="/" style="padding:0;background:none"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#6a4bd8"/><path d="M10 40c7-12 14-17 22-17s15 5 22 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M20 30v17M44 30v17" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M9 47h46" stroke="#f5b935" stroke-width="5" stroke-linecap="round"/></svg>TalentBridge</a>`+
+  NAV[me.role].map(([k,l,i,c])=>{const on=me.role==='admin'&&k.startsWith('admin')?(full===k||(k==='admin'&&full==='admin')):k===cur||(k==='myjobs'&&cur==='job'&&me.role==='client')||(k==='find'&&cur==='job')||(k==='contracts'&&cur==='contracts');
+    const n=c?COUNTS[c]:0;return`<a href="#${k}" class="${on?'on':''}">${ic(i)}<span>${l}</span>${n?`<span class="n" data-count="${c}">${n>99?'99+':n}</span>`:''}</a>`}).join('')+
+  `<div class="me-card">${av(me.name,me.avatar_color)}<div style="min-width:0"><b>${esc(me.name)}</b><span>${ROLE_LABEL[me.role]}</span></div><button data-act="logout" aria-label="Log out" title="Log out">${ic('out')}</button></div>`}
+function setCounts(c){if(!c)return;COUNTS=c;drawSide();const b=$('#bellN');b.hidden=!c.notifications;b.textContent=c.notifications>99?'99+':c.notifications;
+  const total=c.notifications+c.inbox;document.title=(total?`(${total}) `:'')+'TalentBridge'}
+$('#menuBtn').onclick=()=>$('#side').classList.toggle('open');
+$('#side').addEventListener('click',e=>{if(e.target.closest('a'))$('#side').classList.remove('open')});
+
 async function start(){
   try{me=(await api('/auth/me')).user}catch{return logout()}
+  META=await api('/meta').catch(()=>({provinces:[],types:[],categories:[],pay_units:['hour','day','month','project']}));
   $('#auth').style.display='none';$('#app').style.display='block';
-  const h=location.hash.slice(1);view=NAV[me.role].some(n=>n[0]===h)?h:'overview';if(h==='verified'){toast('Email verified. Thank you!');history.replaceState(null,'','/app.html')}render();
+  if(me.role==='talent'){try{me.avatar_color=(await api('/talent/'+me.id)).data.avatar_color}catch{}}
+  const h=location.hash;
+  if(h==='#verified'){toast('Email verified. Thank you!');location.hash=''}
+  if(after){const a=after;after=null;location.hash=a}else if(['#register','#verified','#link-expired',''].includes(h)||h.startsWith('#reset='))history.replaceState(null,'',`/app.html#${me.role==='admin'?'admin':'home'}`);
+  setCounts(await api('/me/counts').catch(()=>COUNTS));
+  connectStream();route();
 }
-async function render(){
-  const n=await api('/me/notifications').catch(()=>({unread:0}));
-  $('#side').innerHTML=`<img src="/assets/siira-logo.png" alt="SIIRA">${NAV[me.role].map(([k,l])=>`<a data-go="${k}" class="${k===view?'on':''}">${l}${k==='notifications'&&n.unread?`<span class="dot">${n.unread}</span>`:''}</a>`).join('')}<div class="who"><b>${esc(me.name)}</b><span class="mut">${me.role==='admin'?'Administrator':me.role==='client'?'Client':'Professional'}</span><br><a style="padding:6px 0;color:var(--blue)" data-act="logout">Log out</a></div>`;
-  const m=$('#main');m.innerHTML='<div class="empty">Loading…</div>';
-  try{m.innerHTML=(me.email_verified||me.role==='admin'?'':BANNER)+await (V[me.role][view]||V.shared[view])()}catch(e){m.innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+
+/* ===== live stream (Server-Sent Events over fetch, so the token stays in a header) ===== */
+let streamCtl=null,retry=0,pollTimer=null;
+function setLive(on,text){$('#live').classList.toggle('on',on);$('#live span').textContent=text}
+async function connectStream(){
+  stopStream();const ctl=new AbortController();streamCtl=ctl;
+  try{
+    const r=await fetch('/api/me/stream',{headers:{authorization:'Bearer '+token,accept:'text/event-stream'},signal:ctl.signal,cache:'no-store'});
+    if(!r.ok||!r.body)throw new Error('stream '+r.status);
+    setLive(true,'Live');retry=0;clearInterval(pollTimer);
+    const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
+    for(;;){const {value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
+      let i;while((i=buf.indexOf('\n\n'))>=0){const chunk=buf.slice(0,i);buf=buf.slice(i+2);
+        let ev='message',data='';for(const line of chunk.split('\n')){if(line.startsWith('event: '))ev=line.slice(7);else if(line.startsWith('data: '))data+=line.slice(6)}
+        try{onEvent(ev,JSON.parse(data||'{}'))}catch(err){console.warn(err)}}}
+    throw new Error('closed');
+  }catch(e){if(ctl.signal.aborted||!token)return;
+    setLive(false,'Reconnecting…');retry=Math.min(retry+1,6);setTimeout(()=>{if(streamCtl===ctl&&token)connectStream()},1000*2**retry);
+    clearInterval(pollTimer);pollTimer=setInterval(async()=>setCounts(await api('/me/counts').catch(()=>COUNTS)),30000)}
 }
-document.addEventListener('click',async e=>{
-  const g=e.target.closest('[data-go]');if(g){view=g.dataset.go;location.hash=view;return render()}
-  const b=e.target.closest('[data-act]');if(!b)return;
-  try{await A[b.dataset.act](b.dataset.id,b)}catch(err){toast(err.message,true)}});
+function stopStream(){streamCtl?.abort();streamCtl=null;clearInterval(pollTimer)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&token&&!streamCtl)connectStream()});
 
-const BANNER='<div class="card" style="background:#fff1de;margin-bottom:18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><b>Please verify your email</b><span class="mut">You need this to post jobs, apply and make offers. Check your inbox.</span><button class="btn sm right" data-act="resend">Resend email</button></div>';
-/* ---------- views ---------- */
-const V={shared:{},admin:{},client:{},talent:{}};
-V.shared.notifications=async()=>{const j=await api('/me/notifications');return head('Notifications',btn('readall','', 'Mark all read'))+(j.data.length?`<div class="list">${j.data.map(n=>`<div class="item" style="${n.read?'opacity:.6':''}"><div>${esc(n.text)}<br><small class="mut">${D(n.created_at)}</small></div>${n.read?'':'<span class="dot right">new</span>'}</div>`).join('')}</div>`:'<div class="empty">You are all caught up.</div>')};
-V.shared.account=async()=>head('Account')+`<div class="card" style="max-width:640px"><h3>${esc(me.name)}</h3><p class="mut">${esc(me.email)}</p><p>Under POPIA you can download everything SIIRA holds about you, or ask us to delete your account. Financial records are kept for tax purposes but anonymised.</p><div class="row">${btn('chpw','','Change password','ghost')}${btn('export','','Download my data','navy')}${btn('delacc','','Delete my account','red')}</div></div>`;
-V.shared.contracts=async()=>{const j=await api(me.role==='admin'?'/admin/contracts':'/contracts');
-  if(me.role==='admin')return head('Payments & escrow',btn('csv','','Export CSV for accountant'))+table(['#','Contract','Parties','Amount','SIIRA fee + VAT','Status','Payment',''],j.data.map(c=>[c.id,esc(c.job_title),`${esc(c.client_name)} → ${esc(c.talent_name)}`,R(c.amount_cents),`${R(c.commission_cents)} + ${R(c.vat_cents)}`,badge(c.status),c.payment_status?`${badge(c.payment_status)} <small class="mut">${esc(c.provider)}</small>`:'',
-    (c.status==='accepted'&&c.payment_status==='pending'&&c.provider==='manual'?btn('confirmpay',c.id,'Confirm EFT received'):'')+(c.status==='disputed'?btn('resolve',c.id,'Resolve','red'):'')+(['released','refunded'].includes(c.status)?btn('payout',c.id,c.status==='released'?'Record payout':'Record refund'):'')+(['released','paid_out'].includes(c.status)?btn('invoice',c.id,'Invoice'):'')+btn('open',c.id,'View')]));
-  const cl=me.role==='client';
-  return head('Contracts')+(j.data.length?`<div class="list">${j.data.map(c=>{const s=c.status;let a='';
-    if(cl){if(s==='accepted')a+=btn('fund',c.id,'Fund escrow','');if(s==='delivered')a+=btn('release',c.id,'Approve & release','');if(['funded','delivered'].includes(s))a+=btn('dispute',c.id,'Dispute','red');if(['released','paid_out'].includes(s))a+=btn('review',c.id,'Leave review')+btn('invoice',c.id,'Invoice')}
-    else{if(s==='offered')a+=btn('accept',c.id,'Accept','')+btn('decline',c.id,'Decline','red');if(s==='funded')a+=btn('deliver',c.id,'Mark delivered','')+btn('dispute',c.id,'Dispute','red');if(s==='delivered')a+=btn('dispute',c.id,'Dispute','red');if(['released','paid_out'].includes(s))a+=btn('invoice',c.id,'Invoice')}
-    return`<div class="item"><div><h3>${esc(c.job_title)}</h3><span class="mut">${cl?'Professional: '+esc(c.talent_name):'Client: '+esc(c.client_name)} · ${D(c.updated_at)}</span></div><b class="right">${R(cl?c.amount_cents:c.payout_cents)}</b>${badge(s)}<div class="row">${a}${btn('open',c.id,'Open','ghost')}</div></div>`}).join('')}</div>`:'<div class="empty">No contracts yet. They appear here once an offer is made.</div>')};
+const NOTE_ICON={offer:'file',accepted:'check',funded:'coin',payment:'coin',bid:'list',job_match:'search',shortlisted:'star',declined:'x',bid_rejected:'x',dispute:'flag',delivered:'send',milestone:'check',review:'star',message:'chat',verification:'shield'};
+const noteIco=t=>{const cls=['offer','accepted','funded','payment','bid','job_match','shortlisted','declined','dispute','bid_rejected'].includes(t)?t:(t==='delivered'||t==='milestone'?'accepted':t==='review'?'shortlisted':'other');return`<span class="ico ${cls}">${ic(NOTE_ICON[t]||'bell')}</span>`};
+let refreshTimer=null;const softRefresh=()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>route(true),250)};
+function onEvent(ev,d){
+  if(ev==='ready')return setCounts(d.counts);
+  if(ev==='counts')return setCounts(d);
+  if(ev==='notification'){
+    const [r]=location.hash.slice(1).split('/');
+    const inThread=d.type==='message'&&location.hash===d.link;
+    if(!inThread&&!(d.type==='message'&&r==='inbox'))toast(d.text,{link:d.link&&d.link!==location.hash?d.link:'',icon:noteIco(d.type).match(/ico (\w+)/)[1],iconKey:NOTE_ICON[d.type]});
+    if($('#notesPop').hidden===false)loadNotesPop();
+    if(['home','notifications','contracts','bids','myjobs'].includes(r)||(r==='job'&&d.type!=='message'))softRefresh();
+    return}
+  if(ev==='message')return Inbox.onMessage(d);
+  if(ev==='read')return Inbox.onRead(d);
+  if(ev==='typing')return Inbox.onTyping(d);
+  if(ev==='bids'&&location.hash.startsWith(`#job/${d.job_id}`))softRefresh();
+}
 
-V.admin.overview=async()=>{const o=await api('/admin/overview');
-  const todo=[['verifications',o.pending_verifications,'ID verifications to review'],['contracts',o.payments_to_confirm,'EFT payments to confirm'],['contracts',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`],['reports',o.open_reports,'open disputes & reports'],['leads',o.new_leads,'new hire enquiries'],['inbox',o.new_messages,'new contact messages']];
-  return head('Overview')+`<div class="grid">${stat('Gross volume (GMV)',R(o.gmv_cents),'funded and completed work')}${stat('SIIRA revenue',R(o.revenue_cents),'commission, excl. VAT')}${stat('VAT on fees',R(o.vat_cents),'set aside for SARS')}${stat('Held in escrow',R(o.escrow_cents),'client money not yet released')}${stat('Professionals',o.talent,'+'+o.signups_30d+' signups in 30 days')}${stat('Clients',o.clients,'')}${stat('Open jobs',o.jobs_open,'')}${stat('Active contracts',o.contracts_active,'')}</div><div class="card"><h3>Needs your attention</h3><div class="list" style="margin-top:12px">${todo.map(([v,n,t])=>`<a class="item" data-go="${v}" style="cursor:pointer;box-shadow:none;background:#f4f7fc;padding:14px 18px"><b>${n}</b> ${t}<span class="right mut">Open →</span></a>`).join('')}</div></div>`};
-V.admin.verifications=async()=>{const j=await api('/admin/verifications');return head('Verifications')+`<p class="mut">Check the document off-platform (we store only the last 4 characters), then approve or reject.</p>`+table(['Person','Role','Document','Ref (last 4)','Note','Submitted',''],j.data.map(v=>[`${esc(v.name)}<br><small class="mut">${esc(v.email)}</small>`,v.role,esc(v.id_type),esc(v.ref_last4),esc(v.note),D(v.created_at),(v.doc_path?btn('vdoc',v.id,'View document'):'<small class="mut">no file</small> ')+btn('vapprove',v.id,'Approve','')+btn('vreject',v.id,'Reject','red')]))};
-V.admin.contracts=V.shared.contracts;
-V.admin.reports=async()=>{const j=await api('/admin/reports');return head('Disputes & reports')+table(['#','About','Reporter','Reason','Status','Note',''],j.data.map(r=>[r.id,`${r.target_type} #${r.target_id}`,esc(r.reporter),esc(r.reason),badge(r.status),esc(r.admin_note),(r.target_type==='contract'?btn('open',r.target_id,'Contract'):'')+btn('rstatus',r.id,'Update')]))};
-V.admin.jobs=async()=>{const j=await api('/admin/jobs');return head('Jobs')+table(['Job','Client','Where','Type','Applicants','Status',''],j.data.map(x=>[`${esc(x.title)}${x.featured?' ⭐':''}`,esc(x.client_name),esc(x.city),x.type,x.applicants,badge(x.status),btn('feature',x.id,x.featured?'Unfeature':'Feature')+btn('jstatus',x.id,x.status==='open'?'Close':'Reopen',x.status==='open'?'red':'ghost')]))};
-V.admin.users=async()=>{const j=await api('/admin/users');return head('Users')+table(['Name','Email','Role','Verified','Joined','Status',''],j.data.map(u=>[esc(u.name),esc(u.email),u.role,u.verified?'✓':'',D(u.created_at),badge(u.status),u.role==='admin'?'':btn('ustatus',u.id+':'+u.status,u.status==='active'?'Suspend':'Reactivate',u.status==='active'?'red':'ghost')]))};
-V.admin.leads=async()=>{const j=await api('/admin/leads');return head('Hire enquiries')+`<p class="mut">People who asked to hire a professional from the public site. Contact them and help close the job.</p>`+table(['From','Wants','Message','Status','Received',''],j.data.map(l=>[`${esc(l.from_name)}<br><small class="mut">${esc(l.from_email)}</small>`,esc(l.talent_name),esc(l.message),badge(l.status),D(l.created_at),btn('lead',l.id,'Update')]))};
-V.admin.inbox=async()=>{const j=await api('/admin/inbox');return head('Inbox')+`<p class="mut">Messages from the contact form on the public site.</p>`+table(['From','Topic','Message','Status','Received',''],j.data.map(m=>[`${esc(m.name)}<br><small class="mut">${esc(m.email)}</small>`,esc(m.topic),esc(m.message),badge(m.status),D(m.created_at),m.status==='new'?btn('inboxdone',m.id,'Mark handled'):'']))};
-V.admin.settings=async()=>{const s=await api('/admin/settings');return head('Fees & settings')+`<div class="card" style="max-width:560px"><p class="mut">Commission is deducted from the professional's payout. VAT is charged on the commission. New values apply to new contracts only. Confirm your VAT registration status with your accountant.</p><form id="sf"><label>Commission %<input name="commission_pct" type="number" step="0.5" min="0" max="40" value="${s.commission_pct}"></label><label>VAT %<input name="vat_pct" type="number" step="0.5" min="0" max="25" value="${s.vat_pct}"></label><button class="btn">Save settings</button></form></div>`};
-V.admin.audit=async()=>{const j=await api('/admin/audit');return head('Audit log')+table(['When','Who','Action','Target'],j.data.map(a=>[D(a.created_at),esc(a.actor||'system'),esc(a.action),esc(a.target)]))};
+/* notifications popover */
+const noteRow=n=>`<a class="post ${n.read?'':'unread'}" href="${esc(n.link||'#notifications')}" data-note="${n.id}" style="text-decoration:none;padding:12px 18px;border-top:1px solid var(--line2)">${n.actor_name&&n.type!=='payment'?av(n.actor_name,n.actor_color):noteIco(n.type)}<div class="txt"><p>${esc(n.text)}</p><small>${ago(n.created_at)}</small></div></a>`;
+async function loadNotesPop(){const p=$('#notesPop');try{const j=await api('/me/notifications?limit=12');
+  p.innerHTML=`<header><b>Notifications</b>${j.unread?'<button class="link" data-act="readall">Mark all read</button>':''}</header>${j.data.length?j.data.map(noteRow).join(''):'<div class="empty">You’re all caught up.</div>'}<a href="#notifications" style="display:block;text-align:center;padding:12px;font-weight:650;color:var(--jac-d);text-decoration:none;border-top:1px solid var(--line)">See all</a>`}catch(e){p.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+$('#bell').onclick=e=>{e.stopPropagation();const p=$('#notesPop');p.hidden=!p.hidden;$('#bell').setAttribute('aria-expanded',!p.hidden);if(!p.hidden){p.innerHTML=skel(3,50);loadNotesPop()}};
+document.addEventListener('click',e=>{if(!e.target.closest('#notesPop,#bell'))$('#notesPop').hidden=true;const n=e.target.closest('[data-note]');if(n){api(`/me/notifications/${n.dataset.note}/read`,{method:'POST'}).catch(()=>{});$('#notesPop').hidden=true}});
 
-V.client.overview=async()=>{const o=await api('/me/overview');return head('Welcome back, '+esc(me.name.split(' ')[0]),btn('postjob','','Post a job'))+`<div class="grid">${stat('Open jobs',o.open_jobs)}${stat('Applicants',o.applicants,'across your jobs')}${stat('Active contracts',o.active_contracts)}${stat('Needs your action',o.needs_action,'fund or approve work')}${stat('Total spent',R(o.spent_cents))}</div><div class="card"><h3>How it works</h3><p class="mut">1. Post a job. 2. Review applicants and make an offer. 3. Fund the contract, your money is held safely. 4. Approve the work to release payment.</p></div>`};
-V.client.myjobs=async()=>{const j=await api('/me/jobs');return head('My jobs',btn('postjob','','Post a job'))+(j.data.length?`<div class="list">${j.data.map(x=>`<div class="item"><div><h3>${esc(x.title)}</h3><span class="mut">${esc(x.location)} · ${x.type} · ${esc(x.pay_label)}</span></div>${badge(x.status)}<b class="right">${x.applicants} applicants</b><div class="row">${btn('applicants',x.id,'Applicants','')}${btn('jclose',x.id+':'+x.status,x.status==='open'?'Close':'Reopen')}</div></div>`).join('')}</div>`:'<div class="empty">Post your first job to start receiving applications.</div>')};
-V.client.contracts=V.shared.contracts;
-V.client.talent=async()=>{const j=await api('/talent');return head('Find talent')+`<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(290px,1fr))">${j.data.map(t=>`<div class="card"><h3>${esc(t.name)} ${t.verified?'✓':''}</h3><span class="mut">${esc(t.headline)} · ${esc(t.city)}</span><p>★ ${t.rating.toFixed(1)} · ${t.jobs_done} jobs · <b>R${t.hourly_rate}/hr</b></p><p class="mut">${t.skills.map(esc).join(' · ')}</p>${btn('offer',t.id,'Make an offer','')}</div>`).join('')}</div>`};
+/* ===== router ===== */
+const V={};let lastKey='';
+async function route(soft){
+  if(!me)return;
+  const parts=location.hash.slice(1).split('/');let [r,id,sub]=parts;
+  if(!r)r=me.role==='admin'?'admin':'home';
+  const key=location.hash;const first=key!==lastKey;lastKey=key;
+  drawSide();$('#notesPop').hidden=true;
+  if(r!=='inbox')Inbox.leave();
+  const view=$('#view');
+  let fn;
+  if(r==='admin')fn=()=>A_V[id||'overview']?.();
+  else fn=V[r];
+  if(!fn||(r==='admin'&&me.role!=='admin')){view.innerHTML=empty('Page not found','That page doesn’t exist.',`<a class="btn" href="#">Go home</a>`);return}
+  if(first&&!soft&&r!=='inbox'){view.innerHTML=skel(4);scrollTo(0,0)}
+  try{const html=await fn(id,sub,soft);if(html!==undefined&&location.hash===key){view.innerHTML=(me.email_verified||me.role==='admin'?'':BANNER)+html;afterRender[r]?.(id)}}
+  catch(e){if(location.hash===key)view.innerHTML=empty('Something went wrong',esc(e.message),`<button class="btn" data-act="reload">Try again</button>`)}
+}
+addEventListener('hashchange',()=>route());
+const afterRender={};
+const BANNER='<div class="banner"><b>Please verify your email.</b><span class="mut">You need this to post jobs, bid and send offers. Check your inbox for the link.</span><button class="btn sm" style="margin-left:auto" data-act="resend">Resend email</button></div>';
 
-V.talent.overview=async()=>{const o=await api('/me/overview');return head('Welcome back, '+esc(me.name.split(' ')[0]))+`<div class="grid">${stat('Earned',R(o.earned_cents),'paid out to you')}${stat('In progress',R(o.pending_cents),'funded or awaiting payout')}${stat('Active contracts',o.active_contracts)}${stat('Rating','★ '+(o.rating||'–'),o.jobs_done+' jobs done')}${stat('Applications',o.applications)}</div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))"><div class="card"><h3>Profile strength ${o.profile_pct}%</h3><div class="bar"><i style="width:${o.profile_pct}%"></i></div><p class="mut">A complete profile gets far more offers.</p><button class="btn sm ghost" data-go="profile">Improve profile</button></div><div class="card"><h3>Verification</h3><p>${o.verified?badge('approved')+' You show the verified badge.':o.verification==='pending'?badge('pending')+' We are reviewing your documents.':'Verified professionals are hired more often.'}</p>${o.verified||o.verification==='pending'?'':'<button class="btn sm" data-go="profile">Get verified</button>'}</div></div>`};
-V.talent.find=async()=>{const j=await api('/jobs?limit=30');return head('Find work')+(j.data.length?`<div class="list">${j.data.map(x=>`<div class="item"><div><h3>${esc(x.title)}</h3><span class="mut">${esc(x.location)} · ${x.type} · ${esc(x.pay_label)}</span></div><div class="row right">${btn('save',x.id,x.saved?'Saved ♥':'Save ♡')}${btn('apply',x.id,'Apply','')}</div></div>`).join('')}</div>`:'<div class="empty">No open jobs right now.</div>')};
-V.talent.applications=async()=>{const j=await api('/me/applications');return head('Applications')+table(['Job','Where','Applied','Status'],j.data.map(a=>[esc(a.title),esc(a.city+', '+a.province),D(a.created_at),badge(a.status)]))};
-V.talent.contracts=V.shared.contracts;
-V.talent.profile=async()=>{const[p,o]=await Promise.all([api('/talent/'+me.id),api('/me/overview')]);const t=p.data;
-  return head('Profile & verification')+`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))"><div class="card"><h3>Your public profile</h3><form id="pf"><label>Headline<input name="headline" value="${esc(t.headline)}" placeholder="e.g. Qualified electrician"></label><label>About you<textarea name="bio" rows="3">${esc(t.bio)}</textarea></label><label>Skills (comma separated)<input name="skills" value="${esc(t.skills.join(', '))}"></label><label>Hourly rate (R)<input name="hourly_rate" type="number" min="0" value="${t.hourly_rate??''}"></label><label>Province<select name="province">${PROV.map(x=>`<option${x===t.province?' selected':''}>${x}</option>`).join('')}</select></label><label>City<input name="city" value="${esc(t.city)}"></label><button class="btn">Save profile</button></form></div><div class="card"><h3>Get verified</h3><p>${o.verified?badge('approved')+' You are verified.':o.verification==='pending'?badge('pending')+' Under review.':'Submit your ID or trade certificate to earn the verified badge.'}</p>${o.verified||o.verification==='pending'?'':btn('verify','','Request verification','')}<p class="mut" style="margin-top:14px">Privacy: SIIRA keeps only the last 4 characters of your document number.</p></div></div>`};
+/* ===== shared views ===== */
+V.home=async()=>{
+  const [o,f]=await Promise.all([api('/me/overview'),api('/me/feed')]);
+  const first=esc(me.name.split(' ')[0]);
+  const posts=f.activity.length?f.activity.map(n=>`<a class="post ${n.read?'':'unread'}" href="${esc(n.link||'#notifications')}" data-note="${n.id}" style="text-decoration:none">${n.actor_name&&n.type!=='payment'?av(n.actor_name,n.actor_color):noteIco(n.type)}<div class="txt"><p>${esc(n.text)}</p><small>${ago(n.created_at)}</small></div>${n.actor_name?noteIco(n.type).replace('class="ico','style="width:30px;height:30px" class="ico'):''}</a>`).join('')
+    :`<div class="empty" style="padding:20px"><p>${me.role==='client'?'Post a job and bids, offers and messages will show up here as they happen.':'Bid on a job and offers, messages and payments will show up here as they happen.'}</p></div>`;
+  const todo=f.todo.length?f.todo.map(t=>`<a class="todo" href="${esc(t.link)}">${noteIco({offer:'offer',work:'funded',fund:'accepted',review:'delivered',bids:'bid'}[t.kind])}<b>${esc(t.text)}</b><span class="go">Open →</span></a>`).join(''):'<p class="mut" style="margin:0">Nothing needs you right now.</p>';
+  if(me.role==='client'){
+    return ph(`Hi ${first}`,'Here’s what’s happening with your jobs.',`<button class="btn" data-act="postjob">Post a job</button>`)+
+    `<div class="figs"><div><small>Open jobs</small><b>${o.open_jobs}</b></div><div><small>Bids received</small><b>${o.applicants}</b></div><div><small>Active contracts</small><b>${o.active_contracts}</b></div><div><small>Spent through escrow</small><b>${R(o.spent_cents)}</b></div></div>
+    <div class="cols"><div class="stack"><div class="panel"><h2>Needs your attention</h2>${todo}</div><div class="panel"><h2>Activity<a class="link" href="#notifications">See all</a></h2><div id="feed">${posts}</div></div></div>
+    <div class="stack"><div class="panel"><h2>Latest bids</h2>${f.recent_bids.length?f.recent_bids.map(b=>`<a class="post" href="#job/${b.job_id}" style="text-decoration:none">${av(b.name,b.avatar_color)}<div class="txt"><p><b>${esc(b.name)}</b>${b.verified?' <span class="verified">✓</span>':''} on ${esc(b.title)}</p><small>${b.bid_amount?RR(b.bid_amount):'No price'}${b.delivery_days?` · ${plural(b.delivery_days,'day')}`:''} · ${ago(b.created_at)}</small></div>${b.status!=='submitted'?ast(b.status):''}</a>`).join(''):'<p class="mut">No bids yet. Bids arrive here live.</p>'}</div>
+    <div class="panel" style="background:var(--ink);color:#dfe8e3"><h2 style="color:#fff">Looking for someone specific?</h2><p style="color:#a9bab2">Browse verified professionals and message them directly.</p><a class="btn" style="background:var(--sun);color:var(--ink)" href="#talent">Find talent</a></div></div></div>`}
+  const rec=f.recommended.length?f.recommended.map(j=>`<a class="post" href="#job/${j.id}" style="text-decoration:none"><span class="ico bid">${ic('brief')}</span><div class="txt"><p><b>${esc(j.title)}</b></p><small>${esc(j.location)} · ${esc(j.pay_label)} · ${plural(j.bids,'bid')}</small></div>${j.match>1?'<span class="st ok">Good match</span>':''}</a>`).join(''):'<p class="mut">No open jobs right now. We’ll alert you when one matches.</p>';
+  return ph(`Hi ${first}`,'Your offers, messages and matching jobs in one place.',`<a class="btn" href="#find">Find work</a>`)+
+  `<div class="figs"><div><small>Earned</small><b>${R(o.earned_cents)}</b><span>paid out to you</span></div><div><small>In escrow for you</small><b>${R(o.pending_cents)}</b><span>funded or awaiting payout</span></div><div><small>Active contracts</small><b>${o.active_contracts}</b></div><div><small>Rating</small><b>${o.rating?'★ '+o.rating.toFixed(1):'New'}</b><span>${plural(o.jobs_done||0,'job')} done</span></div><div><small>Profile</small><b>${o.profile_pct}%</b><div class="bar"><i style="width:${o.profile_pct}%"></i></div></div></div>
+  <div class="cols"><div class="stack"><div class="panel"><h2>Needs your attention</h2>${todo}${o.profile_pct<100?`<a class="todo" href="#profile"><span class="ico other">${ic('user')}</span><b>Complete your profile to win more bids</b><span class="go">Edit →</span></a>`:''}${!o.verified&&o.verification!=='pending'?`<a class="todo" href="#profile"><span class="ico other">${ic('shield')}</span><b>Get your verified badge</b><span class="go">Start →</span></a>`:''}</div>
+  <div class="panel"><h2>Activity<a class="link" href="#notifications">See all</a></h2><div id="feed">${posts}</div></div></div>
+  <div class="stack"><div class="panel"><h2>Jobs for you<a class="link" href="#find">Browse all</a></h2>${rec}</div></div></div>`};
 
-/* ---------- actions ---------- */
+V.notifications=async()=>{const j=await api('/me/notifications?limit=100');
+  const groups={};j.data.forEach(n=>{(groups[dayLabel(n.created_at)]??=[]).push(n)});
+  return ph('Notifications',j.unread?plural(j.unread,'unread notification'):'You’re all caught up.',j.unread?B('readall','','Mark all read'):'')+
+   (j.data.length?Object.entries(groups).map(([d,ns])=>`<div class="panel" style="margin-bottom:16px"><h2 style="font-size:18px">${d}</h2>${ns.map(n=>`<a class="post ${n.read?'':'unread'}" href="${esc(n.link||'#notifications')}" data-note="${n.id}" style="text-decoration:none">${noteIco(n.type)}<div class="txt"><p>${esc(n.text)}</p><small>${hm(n.created_at)}</small></div>${n.read?'':'<span class="st go">New</span>'}</a>`).join('')}</div>`).join(''):empty('No notifications yet','Offers, bids, messages and payments will appear here.'));};
+
+V.account=async()=>ph('Account')+`<div class="panel" style="max-width:680px"><div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">${av(me.name,me.avatar_color,'lg')}<div><h2 style="margin:0">${esc(me.name)}</h2><span class="mut">${esc(me.email)} · ${ROLE_LABEL[me.role]}</span></div></div>
+  <p>Under POPIA you can download everything TalentBridge holds about you, or delete your account. Financial records are kept for tax purposes but anonymised.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${B('chpw','','Change password')}${B('export','','Download my data')}${me.role!=='admin'?B('delacc','','Delete account','danger'):''}</div></div>`;
+
+/* ===== jobs ===== */
+const metaOpts=k=>(META[k]||[]).map(x=>typeof x==='string'?x:x.name);
+const jobRow=(j,extra='')=>`<a class="row" href="#job/${j.id}"><div class="grow"><h3>${esc(j.title)}${j.featured?' <span class="st wait">Featured</span>':''}</h3><div class="meta"><span>${esc(j.location)}</span><span>${esc(j.type)}</span><span>${esc(j.category)}</span><span>${ago(j.created_at)}</span></div></div><div class="amt">${esc(j.pay_label)}<span>${j.bids?`${plural(j.bids,'bid')}${j.avg_bid?' · avg '+RR(j.avg_bid):''}`:'No bids yet'}</span></div>${extra}</a>`;
+let findState={q:'',category:'',province:'',type:'',page:1};
+V.find=async()=>{const p=new URLSearchParams({limit:20,page:findState.page});for(const k of['q','category','province','type'])if(findState[k])p.set(k,findState[k]);
+  const j=await api('/jobs?'+p);
+  const sel=(k,label,opts)=>`<select data-filter="${k}" aria-label="${label}"><option value="">${label}</option>${opts.map(o=>`<option${o===findState[k]?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  return ph('Find work',`${plural(j.meta.total,'open job')}. Bid with your price and timeline.`)+
+  `<form class="toolbar" id="findForm"><input name="q" placeholder="Search jobs" value="${esc(findState.q)}" type="search">${sel('category','All categories',metaOpts('categories'))}${sel('province','All provinces',META.provinces)}${sel('type','Any type',META.types)}<button class="btn sm">Search</button></form>
+  <div class="rows">${j.data.length?j.data.map(x=>jobRow(x,x.saved?'<span class="st go">Saved</span>':'')).join(''):empty('No jobs match','Try fewer filters. We’ll also alert you when a matching job is posted.')}</div>
+  ${j.meta.pages>1?`<div style="display:flex;gap:8px;justify-content:center;margin-top:18px">${findState.page>1?B('findpage',findState.page-1,'← Previous'):''}<span class="mut" style="align-self:center">Page ${j.meta.page} of ${j.meta.pages}</span>${findState.page<j.meta.pages?B('findpage',findState.page+1,'Next →'):''}</div>`:''}`};
+afterRender.find=()=>{const f=$('#findForm');f.onsubmit=e=>{e.preventDefault();findState.q=f.q.value.trim();findState.page=1;route(true)};$$('[data-filter]',f).forEach(s=>s.onchange=()=>{findState[s.dataset.filter]=s.value;findState.page=1;route(true)})};
+
+V.myjobs=async()=>{const j=await api('/me/jobs');
+  return ph('My jobs','Every job you’ve posted, with its bids.',`<button class="btn" data-act="postjob">Post a job</button>`)+
+  (j.data.length?`<div class="rows">${j.data.map(x=>`<div class="row"><div class="grow"><a href="#job/${x.id}" style="text-decoration:none"><h3>${esc(x.title)}</h3></a><div class="meta"><span>${esc(x.location)}</span><span>${esc(x.type)}</span><span>${esc(x.pay_label)}</span><span>Posted ${ago(x.created_at)}</span></div></div>${gst(x.status)}<div class="amt">${plural(x.applicants,'bid')}<span>${x.avg_bid?'avg '+RR(x.avg_bid):''}</span></div><div style="display:flex;gap:8px"><a class="btn sm" href="#job/${x.id}">View bids</a>${B('jclose',x.id+':'+x.status,x.status==='open'?'Close':'Reopen')}</div></div>`).join('')}</div>`
+  :empty('You haven’t posted a job yet','Describe what you need and professionals will start bidding.',`<button class="btn" data-act="postjob">Post your first job</button>`))};
+
+let bidSort='';
+V.job=async(id)=>{
+  const {data:j}=await api('/jobs/'+id);
+  const c=j.client||{};
+  const owner=me.role==='client'&&j.client_id===me.id||me.role==='admin';
+  const head=`${ph(j.title,`${esc(j.location)} · ${esc(j.type)} · ${esc(j.category)} · posted ${ago(j.created_at)}`,'',owner?['#myjobs','My jobs']:['#find','Find work'])}`;
+  const details=`<div class="panel"><div class="figs" style="box-shadow:none;background:var(--mist);margin-bottom:16px"><div><small>Budget</small><b style="font-size:19px">${esc(j.pay_label)}</b></div><div><small>Bids</small><b style="font-size:22px">${j.bids}</b><span>${j.avg_bid?'avg '+RR(j.avg_bid):''}</span></div><div><small>Status</small><b style="font-size:22px">${j.status==='open'?'Open':'Closed'}</b></div></div><p style="white-space:pre-line;margin:0">${esc(j.description)}</p></div>`;
+  if(owner){
+    const bids=(await api(`/jobs/${id}/applications${bidSort?'?sort='+bidSort:''}`)).data;
+    return head+`<div class="cols"><div class="stack"><div><div class="ph" style="margin:0 0 12px"><h2 style="font-size:26px">${plural(bids.length,'bid')}</h2><div class="acts tabs" style="margin:0">${[['','Newest'],['price','Lowest price'],['rating','Top rated'],['fast','Fastest']].map(([v,l])=>`<button class="chip" data-act="bidsort" data-id="${v}" aria-pressed="${v===bidSort}">${l}</button>`).join('')}</div></div>
+      <div class="rows">${bids.length?bids.map(b=>`<div class="bid ${b.status}">${av(b.name,b.avatar_color)}<div class="who"><b>${esc(b.name)}</b>${b.verified?' <span class="verified">✓ Verified</span>':''}<div class="mut" style="font-size:14px">${esc(b.headline||'Professional')} · <span class="stars">★ ${b.rating?b.rating.toFixed(1):'New'}</span> · ${plural(b.jobs_done||0,'job')} · ${esc(b.city||b.province||'')}</div></div>
+      <div class="price"><b>${b.bid_amount?RR(b.bid_amount):'—'}</b><span>${b.delivery_days?'in '+plural(b.delivery_days,'day'):'no timeline'}</span></div>
+      <p class="prop">${esc(b.message||'No proposal written.')}</p>
+      <div class="acts">${ast(b.status)}<span class="mut" style="font-size:13px;align-self:center">${ago(b.updated_at||b.created_at)}</span><span style="flex:1"></span>
+        ${b.status!=='hired'?B('award',b.id+':'+(b.bid_amount||'')+':'+esc(b.name),'Award job','')+B('bidchat',id+':'+b.id,b.conversation_id?'Open chat':'Chat')+(b.status==='shortlisted'?B('bidstatus',id+':'+b.id+':submitted','Unshortlist'):B('bidstatus',id+':'+b.id+':shortlisted','Shortlist'))+(b.status!=='rejected'?B('bidstatus',id+':'+b.id+':rejected','Decline','danger'):''):`<a class="btn sm soft" href="#contracts">View contract</a>${B('bidchat',id+':'+b.id,'Open chat')}`}
+        <a class="btn sm ghost" href="#talent/${b.talent_id}">Profile</a></div></div>`).join(''):empty('No bids yet','You’ll get a notification the moment a professional bids.')}</div></div></div>
+      <div class="stack">${details}<div class="panel">${B('jclose',j.id+':'+j.status,j.status==='open'?'Close this job':'Reopen this job')}</div></div></div>`}
+  // professional view
+  const mb=j.my_bid;
+  const bidForm=`<form id="bidForm"><div class="field-row"><label>Your price (R)<input name="bid_amount" type="number" min="50" required inputmode="numeric" value="${mb?.bid_amount??''}" placeholder="e.g. 4500"></label><label>Done in (days)<input name="delivery_days" type="number" min="1" max="365" required inputmode="numeric" value="${mb?.delivery_days??''}" placeholder="e.g. 7"></label></div>
+    <label>Proposal<textarea name="message" rows="6" required minlength="20" placeholder="How you’d do the job, relevant experience, and what’s included in your price.">${esc(mb?.message||'')}</textarea></label>
+    <p class="hint" id="youGet"></p><button class="btn wide">${mb?'Update bid':'Place bid'}</button></form>`;
+  const side=me.role!=='talent'?'':j.status!=='open'&&!mb?`<div class="panel"><h2>This job is closed</h2><p class="mut">It’s no longer taking bids.</p></div>`
+    :mb&&!['submitted','shortlisted'].includes(mb.status)?`<div class="panel"><h2>Your bid</h2>${ast(mb.status)}<p style="margin-top:10px"><b>${mb.bid_amount?RR(mb.bid_amount):''}</b> ${mb.delivery_days?'in '+plural(mb.delivery_days,'day'):''}</p>${mb.status==='hired'?'<a class="btn" href="#contracts">Go to contracts</a>':''}</div>`
+    :`<div class="panel"><h2>${mb?'Your bid':'Place a bid'}${mb?' '+ast(mb.status):''}</h2>${bidForm}${mb?`<div style="display:flex;gap:8px;margin-top:10px">${B('withdraw',j.id,'Withdraw bid','danger')}${B('msgclient',j.id+':'+j.client_id,'Message client')}</div>`:''}</div>`;
+  return head+`<div class="cols"><div class="stack">${details}<div class="panel"><h2>About the client</h2><div class="post" style="padding:0">${av(c.name)}<div class="txt"><p><b>${esc(c.name||'Client')}</b>${c.email_verified?' <span class="verified">✓ Email verified</span>':''}</p><small>Member since ${c.created_at?dt(c.created_at).toLocaleDateString('en-ZA',{month:'long',year:'numeric'}):''} · ${plural(c.jobs_posted||0,'job')} posted · ${c.hires||0} paid through escrow</small></div></div></div></div><div class="stack">${side}</div></div>`};
+afterRender.job=id=>{const f=$('#bidForm');if(!f)return;
+  const upd=()=>{const a=+f.bid_amount.value||0;if(!a||!META.commission_pct){$('#youGet').textContent='';return}const fee=a*META.commission_pct/100,vat=fee*(META.vat_pct||0)/100;$('#youGet').textContent=`You’ll receive about ${RR(a-fee-vat)} after the ${META.commission_pct}% service fee and VAT.`};
+  f.bid_amount.oninput=upd;upd();
+  f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector('.btn');b.disabled=true;const v=Object.fromEntries(new FormData(f));
+    try{const had=!!f.querySelector('.btn').textContent.includes('Update');await api(`/jobs/${id}/apply`,{method:had?'PUT':'POST',body:{bid_amount:+v.bid_amount,delivery_days:+v.delivery_days,message:v.message}});toast(had?'Bid updated':'Bid placed. The client has been notified.');route(true)}catch(err){fail(err);b.disabled=false}}};
+
+V.bids=async()=>{const j=await api('/me/applications');
+  return ph('My bids','Track every bid you’ve sent.',`<a class="btn" href="#find">Find work</a>`)+
+  (j.data.length?`<div class="rows">${j.data.map(a=>`<a class="row" href="#job/${a.job_id}"><div class="grow"><h3>${esc(a.title)}</h3><div class="meta"><span>${esc(a.city)}, ${esc(a.province)}</span><span>Sent ${ago(a.created_at)}</span><span>${plural(a.bids,'bid')} in total</span>${a.job_status!=='open'?'<span>Job closed</span>':''}</div></div><div class="amt">${a.bid_amount?RR(a.bid_amount):'No price'}<span>${a.delivery_days?'in '+plural(a.delivery_days,'day'):''}</span></div>${ast(a.status)}</a>`).join('')}</div>`
+  :empty('No bids yet','Find a job that fits your skills and send your first bid.',`<a class="btn" href="#find">Find work</a>`))};
+
+/* ===== talent ===== */
+let talentState={q:'',province:'',verified:'',sort:'rating'};
+V.talent=async(id)=>{
+  if(id)return talentProfile(id);
+  const p=new URLSearchParams({limit:40,sort:talentState.sort});for(const k of['q','province'])if(talentState[k])p.set(k,talentState[k]);if(talentState.verified)p.set('verified','true');
+  const j=await api('/talent?'+p);
+  return ph('Find talent','Message a professional or invite them to one of your jobs.')+
+  `<form class="toolbar" id="talForm"><input type="search" name="q" placeholder="Skill or name, e.g. electrician" value="${esc(talentState.q)}"><select name="province"><option value="">All provinces</option>${META.provinces.map(o=>`<option${o===talentState.province?' selected':''}>${esc(o)}</option>`).join('')}</select><select name="sort">${[['rating','Top rated'],['jobs','Most jobs'],['rate_low','Lowest rate'],['rate_high','Highest rate']].map(([v,l])=>`<option value="${v}"${v===talentState.sort?' selected':''}>${l}</option>`).join('')}</select><label class="check" style="margin:0;align-self:center"><input type="checkbox" name="verified" ${talentState.verified?'checked':''}>Verified only</label><button class="btn sm">Search</button></form>
+  <div class="rows">${j.data.length?j.data.map(t=>`<a class="row" href="#talent/${t.id}">${av(t.name,t.avatar_color)}<div class="grow"><h3>${esc(t.name)}${t.verified?' <span class="verified">✓ Verified</span>':''}</h3><div class="meta"><span>${esc(t.headline||'Professional')}</span><span>${esc([t.city,t.province].filter(Boolean).join(', '))}</span><span class="stars">★ ${t.rating?t.rating.toFixed(1):'New'}</span><span>${plural(t.jobs_done,'job')}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${t.skills.slice(0,5).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}</div></div><div class="amt">${t.hourly_rate?'R'+t.hourly_rate+'/hr':'Quote'}</div></a>`).join(''):empty('No professionals match','Try a broader search.')}</div>`};
+afterRender.talent=()=>{const f=$('#talForm');if(!f)return;f.onsubmit=e=>{e.preventDefault();talentState={q:f.q.value.trim(),province:f.province.value,sort:f.sort.value,verified:f.verified.checked?'1':''};route(true)};f.sort.onchange=f.province.onchange=f.verified.onchange=()=>f.requestSubmit()};
+async function talentProfile(id){const {data:t}=await api('/talent/'+id);const cl=me.role==='client';
+  return ph(t.name,`${esc(t.headline||'Professional')}${t.city?' · '+esc(t.city):''}`,cl?`${B('dm',t.id+':'+esc(t.name),'Message')}${B('offer',t.id+':'+esc(t.name),'Send an offer','')}`:'',me.role==='talent'&&t.id===me.id?['#profile','Edit profile']:['#talent','Find talent'])+
+  `<div class="cols"><div class="stack"><div class="panel"><div style="display:flex;gap:16px;align-items:center">${av(t.name,t.avatar_color,'lg')}<div><h2 style="margin:0">${esc(t.name)}</h2>${t.verified?'<span class="verified">✓ ID verified</span>':'<span class="mut">Not verified yet</span>'}</div></div>
+   ${t.bio?`<p style="white-space:pre-line;margin-top:16px">${esc(t.bio)}</p>`:''}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${t.skills.map(s=>`<span class="tag">${esc(s)}</span>`).join('')}</div></div>
+   ${t.portfolio.length?`<div class="panel"><h2>Past work</h2>${t.portfolio.map(p=>`<div class="post"><span class="ico other">${ic('brief')}</span><div class="txt"><p><b>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener nofollow">${esc(p.title)}</a>`:esc(p.title)}</b></p><small>${esc(p.description)}</small></div></div>`).join('')}</div>`:''}
+   <div class="panel"><h2>Reviews</h2>${t.reviews.length?t.reviews.map(r=>`<div class="post"><span class="ico shortlisted">${ic('star')}</span><div class="txt"><p><span class="stars">${'★'.repeat(r.rating)}</span> <b>${esc(r.job_title)}</b></p><p style="margin:4px 0">${esc(r.comment||'No comment.')}</p><small>${esc(r.client_name)} · ${ago(r.created_at)}</small></div></div>`).join(''):'<p class="mut">No reviews yet.</p>'}</div></div>
+   <div class="stack"><div class="panel"><dl class="money"><dt>Rating</dt><dd class="stars">★ ${t.rating?t.rating.toFixed(1):'New'}</dd><dt>Jobs done</dt><dd>${t.jobs_done}</dd><dt>Rate</dt><dd>${t.hourly_rate?'R'+t.hourly_rate+' per hour':'Quote'}</dd><dt>Location</dt><dd>${esc([t.city,t.province].filter(Boolean).join(', ')||'—')}</dd>${t.languages?`<dt>Languages</dt><dd>${esc(t.languages)}</dd>`:''}<dt>Member since</dt><dd>${t.member_since?dt(t.member_since).toLocaleDateString('en-ZA',{month:'short',year:'numeric'}):''}</dd></dl></div></div></div>`}
+
+/* ===== profile (professional) ===== */
+V.profile=async()=>{const [p,o]=await Promise.all([api('/talent/'+me.id),api('/me/overview')]);const t=p.data;
+  const vst=o.verified?'<span class="st ok">Verified</span>':o.verification==='pending'?'<span class="st wait">Under review</span>':o.verification==='rejected'?'<span class="st bad">Not approved</span>':'<span class="st">Not verified</span>';
+  return ph('Your profile','Clients see this when you bid.',`<a class="btn ghost" href="#talent/${me.id}">Preview</a>`)+
+  `<div class="cols"><form class="panel" id="pf"><h2>Details</h2>
+   <label>Headline<input name="headline" value="${esc(t.headline)}" maxlength="120" placeholder="e.g. Qualified electrician, COC certified"></label>
+   <label>About you<textarea name="bio" rows="5" maxlength="2000" placeholder="Experience, the kind of jobs you do best, areas you cover.">${esc(t.bio)}</textarea></label>
+   <label>Skills<input name="skills" value="${esc(t.skills.join(', '))}" placeholder="Wiring, Solar, COC"><span class="hint">Separate with commas. We use these to alert you to matching jobs.</span></label>
+   <div class="field-row"><label>Hourly rate (R)<input name="hourly_rate" type="number" min="0" value="${t.hourly_rate??''}"></label><label>Languages<input name="languages" value="${esc(t.languages)}" placeholder="English, isiZulu"></label></div>
+   <div class="field-row"><label>Province<select name="province"><option value="">Choose</option>${META.provinces.map(x=>`<option${x===t.province?' selected':''}>${esc(x)}</option>`).join('')}</select></label><label>City or town<input name="city" value="${esc(t.city)}"></label></div>
+   <h2 style="margin-top:12px">Past work</h2><div id="port">${t.portfolio.map(portRow).join('')}</div><button type="button" class="btn sm ghost" data-act="addport">Add a project</button>
+   <div style="margin-top:20px"><button class="btn">Save profile</button></div></form>
+   <div class="stack"><div class="panel"><h2>Profile strength</h2><b style="font:400 34px var(--serif)">${o.profile_pct}%</b><div class="bar"><i style="width:${o.profile_pct}%"></i></div></div>
+   <div class="panel"><h2>Verification ${vst}</h2><p class="mut">Upload an ID, passport, trade certificate or CIPC document. We keep only the last 4 characters of the number and delete the file after review.</p>${!o.verified&&o.verification!=='pending'?B('verify','','Request verification',''):''}</div></div></div>`};
+const portRow=(p={})=>`<div class="port-row"><input name="pt" placeholder="Project title" value="${esc(p.title||'')}" maxlength="80"><input name="pu" type="url" placeholder="Link (optional)" value="${esc(p.url||'')}"><textarea name="pd" placeholder="What you did" maxlength="300">${esc(p.description||'')}</textarea><button type="button" class="btn sm danger" data-act="rmport" style="grid-column:1/-1;justify-self:start">Remove</button></div>`;
+afterRender.profile=()=>{$('#pf').onsubmit=async e=>{e.preventDefault();const f=e.target;const v=Object.fromEntries(new FormData(f));
+  const portfolio=$$('.port-row',f).map(r=>({title:r.querySelector('[name=pt]').value.trim(),url:r.querySelector('[name=pu]').value.trim(),description:r.querySelector('[name=pd]').value.trim()})).filter(p=>p.title);
+  try{await api('/me/profile',{method:'PUT',body:{headline:v.headline,bio:v.bio,city:v.city,languages:v.languages,...(v.province&&{province:v.province}),skills:v.skills.split(',').map(s=>s.trim()).filter(Boolean),hourly_rate:v.hourly_rate===''?undefined:+v.hourly_rate,portfolio}});toast('Profile saved');route(true)}catch(err){fail(err)}}};
+
+/* ===== contracts ===== */
+let cTab='active';
+V.contracts=async(id)=>{if(id)return contractView(id);
+  const j=await api('/contracts');const cl=me.role==='client';
+  const groups={active:c=>['offered','accepted','funded','delivered','disputed'].includes(c.status),done:c=>['released','paid_out'].includes(c.status),closed:c=>['cancelled','refunded'].includes(c.status)};
+  const list=j.data.filter(groups[cTab]);
+  return ph('Contracts',cl?'Offers you’ve sent and work in progress.':'Offers you’ve received and work in progress.')+
+  `<div class="tabs">${[['active','Active'],['done','Completed'],['closed','Cancelled']].map(([k,l])=>`<button class="chip" data-act="ctab" data-id="${k}" aria-pressed="${k===cTab}">${l} (${j.data.filter(groups[k]).length})</button>`).join('')}</div>`+
+  (list.length?`<div class="rows">${list.map(c=>`<a class="row" href="#contracts/${c.id}">${av(cl?c.talent_name:c.client_name)}<div class="grow"><h3>${esc(c.job_title)}</h3><div class="meta"><span>${cl?'With '+esc(c.talent_name):'For '+esc(c.client_name)}</span><span>Updated ${ago(c.updated_at)}</span></div></div><div class="amt">${R(cl?c.amount_cents:c.payout_cents)}<span>${cl?'contract price':'your payout'}</span></div>${cst(c.status)}</a>`).join('')}</div>`
+  :empty(cTab==='active'?'No active contracts':'Nothing here yet',cl?'Award a bid or send an offer to a professional to start a contract.':'When a client sends you an offer it appears here, and you’ll get a notification.'))};
+async function contractView(id){
+  const j=await api('/contracts/'+id),c=j.data,cl=me.id===c.client_id,tal=me.id===c.talent_id,s=c.status;
+  const idx=CSTEP.indexOf(s==='paid_out'?'released':s);
+  const steps=['Offer','Accepted','Escrow funded','Delivered','Paid'];
+  let acts='';
+  if(cl){if(s==='offered')acts+=B('cwithdraw',c.id,'Withdraw offer','danger');if(s==='accepted')acts+=B('fund',c.id,'Fund escrow ('+R(c.amount_cents)+')','moss');if(s==='delivered')acts+=B('release',c.id,'Approve and release payment','moss');if(['funded','delivered'].includes(s))acts+=B('dispute',c.id,'Open a dispute','danger');if(['released','paid_out'].includes(s)&&!j.review)acts+=B('review',c.id,'Leave a review','');}
+  if(tal){if(s==='offered')acts+=B('accept',c.id,'Accept offer','moss')+B('decline',c.id,'Decline','danger');if(s==='funded')acts+=B('deliver',c.id,'Mark as delivered','')+B('dispute',c.id,'Open a dispute','danger');if(s==='delivered')acts+=B('dispute',c.id,'Open a dispute','danger')}
+  if(['released','paid_out'].includes(s))acts+=B('invoice',c.id,'Invoice');
+  if(me.role!=='admin')acts+=`<a class="btn sm ghost" href="#inbox/${j.conversation_id}">Open chat</a>`;
+  const ms=j.milestones;
+  const next={offered:cl?'Waiting for '+esc(c.talent_name)+' to accept.':'Review the offer and accept it to continue.',accepted:cl?'Fund escrow so work can start. The money is held until you approve.':'Waiting for the client to fund escrow. You’ll be notified.',funded:cl?'Work is in progress. The professional will mark it delivered.':'Escrow is funded. Do the work, then mark it delivered.',delivered:cl?'Check the work. Approve to release payment, or open a dispute.':'Waiting for the client to approve and release payment.',released:cl?'Payment released. Thank you!':'Payment released. Your payout is being processed.',paid_out:'This contract is complete.',disputed:'TalentBridge is reviewing this dispute and will contact you both.',cancelled:'This contract was cancelled.',refunded:'The client was refunded.'}[s];
+  return ph(c.job_title,`${cl?'With '+esc(c.talent_name):me.role==='admin'?esc(c.client_name)+' → '+esc(c.talent_name):'For '+esc(c.client_name)} · contract #${c.id}`,cst(s),me.role==='admin'?['#admin/payments','Payments']:['#contracts','Contracts'])+
+  (idx>=0?`<ol class="steps">${steps.map((l,i)=>`<li class="${i<idx||s==='paid_out'||(s==='released'&&i<=idx)?'done':i===idx?'now':''}">${l}</li>`).join('')}</ol>`:'')+
+  `<div class="cols"><div class="stack"><div class="panel"><h2>What happens next</h2><p>${next}</p><div style="display:flex;gap:8px;flex-wrap:wrap">${acts}</div></div>
+   ${ms.length?`<div class="panel"><h2>Milestones</h2>${ms.map(m=>`<div class="ms"><span class="ico ${m.status==='approved'?'funded':m.status==='submitted'?'bid':'other'}" style="width:34px;height:34px">${ic(m.status==='approved'?'check':'flag',16)}</span><div class="grow"><b>${esc(m.title)}</b><br><small class="mut">${R(m.amount_cents)} · ${m.status==='approved'?'Approved':m.status==='submitted'?'Completed, waiting for approval':'Not started'}</small></div>${tal&&s==='funded'&&m.status==='pending'?B('mssubmit',c.id+':'+m.id,'Mark complete',''):''}${cl&&['funded','delivered'].includes(s)&&m.status==='submitted'?B('msapprove',c.id+':'+m.id,'Approve','moss'):''}</div>`).join('')}</div>`:''}
+   <div class="panel"><h2>Scope</h2><p style="white-space:pre-line;margin:0">${esc(c.description)}</p>${c.delivery_note?`<h3 style="font-size:18px;margin:16px 0 6px">Delivery note</h3><p style="white-space:pre-line;margin:0">${esc(c.delivery_note)}</p>`:''}</div>
+   ${j.review?`<div class="panel"><h2>Review</h2><p><span class="stars">${'★'.repeat(j.review.rating)}</span></p><p>${esc(j.review.comment||'')}</p></div>`:''}</div>
+   <div class="stack"><div class="panel"><h2>Money</h2><dl class="money"><dt>Contract price</dt><dd>${R(c.amount_cents)}</dd><dt>Service fee</dt><dd>−${R(c.commission_cents)}</dd><dt>VAT on fee</dt><dd>−${R(c.vat_cents)}</dd><dt class="tot">Professional receives</dt><dd class="tot" style="color:var(--moss)">${R(c.payout_cents)}</dd></dl>
+   ${j.payment?`<p class="mut" style="margin:14px 0 0;font-size:14px">Payment ${esc(j.payment.status.replace('_',' '))} · ref ${esc(j.payment.reference)}</p>`:''}${c.payout_ref?`<p class="mut" style="font-size:14px">Payout ref ${esc(c.payout_ref)}</p>`:''}</div></div></div>`}
+
+/* ===== inbox ===== */
+const Inbox={cur:null,list:[],other_read:0,pending:null,typingTimer:null,lastTyping:0,
+  leave(){this.cur=null},
+  async view(id){
+    const view=$('#view');
+    if(!$('#inboxRoot')){view.innerHTML=`<div class="inbox" id="inboxRoot"><div class="conv-list"><div class="s"><input type="search" id="convQ" placeholder="Search conversations"></div><ul id="convs">${skel(5,56)}</ul></div><div class="thread" id="thread"></div></div>`;
+      $('#convQ').oninput=()=>{clearTimeout(this.qt);this.qt=setTimeout(()=>this.loadList(),250)}}
+    $('#inboxRoot').classList.toggle('has-thread',!!id);
+    await this.loadList();
+    if(id)await this.open(+id);else{this.cur=null;$('#thread').innerHTML=`<div class="inbox-empty"><div>${ic('chat',40)}<h3 style="margin:12px 0 6px;color:var(--ink)">Your messages</h3><p>${this.list.length?'Choose a conversation.':me.role==='client'?'Chat with bidders from a job, or message a professional from their profile.':'Clients can message you about your bids. Conversations appear here.'}</p></div></div>`}
+  },
+  async loadList(){const q=$('#convQ')?.value.trim();const j=await api('/inbox'+(q?'?q='+encodeURIComponent(q):''));this.list=j.data;setCounts(j.counts);this.drawList()},
+  drawList(){const ul=$('#convs');if(!ul)return;
+    ul.innerHTML=this.list.length?this.list.map(c=>`<li><a class="conv ${c.id===this.cur?.id?'on':''} ${c.unread?'unread':''}" href="#inbox/${c.id}">${av(c.other.name,c.other.avatar_color,'',c.other.online)}<div class="t"><b><span>${esc(c.other.name)}</span><small>${ago(c.last_message_at)}</small></b>${c.job_title?`<div class="j">${esc(c.job_title)}</div>`:''}<p>${c.last?(c.last.kind==='event'?'• ':c.last.mine?'You: ':'')+esc(c.last.body||(c.last.attachment?'📎 '+c.last.attachment:'')):'No messages yet'}</p></div>${c.unread?`<span class="u">${c.unread}</span>`:''}</a></li>`).join(''):'<li class="empty">No conversations yet.</li>'},
+  async open(id){
+    const th=$('#thread');if(this.cur?.id!==id)th.innerHTML=`<div style="padding:20px">${skel(4,48)}</div>`;
+    const j=await api(`/inbox/${id}`);const d=j.data;this.cur=d;this.other_read=d.other_read_id;this.pending=null;
+    th.innerHTML=`<div class="th"><a href="#inbox" class="back menu-only" style="margin:0" aria-label="Back to conversations">←</a>${av(d.other.name,d.other.avatar_color,'',d.other.online)}<div style="flex:1;min-width:0"><h2>${esc(d.other.name)}${d.other.verified?' <span class="verified" style="font-family:var(--sans)">✓</span>':''}</h2><div class="sub">${d.other.online?'Online now':'Offline'}${d.job_title?` · <a href="#job/${d.job_id}">${esc(d.job_title)}</a>`:''}</div></div>
+      ${d.contracts.slice(0,2).map(c=>`<a class="btn sm ghost" href="#contracts/${c.id}">Contract #${c.id} · ${R(c.amount_cents)}</a>`).join('')}
+      ${me.role==='client'&&!d.contracts.some(c=>['offered','accepted','funded','delivered'].includes(c.status))?B('offer',d.other.id+':'+esc(d.other.name)+':'+(d.job_id||''),'Send an offer',''):''}
+      ${d.other.role==='talent'?`<a class="btn sm ghost" href="#talent/${d.other.id}">Profile</a>`:''}</div>
+      <div class="msgs" id="msgs">${d.has_more?`<button class="btn sm ghost" style="align-self:center" data-act="older">Load earlier messages</button>`:''}${this.renderMsgs(d.messages)}</div><div class="typing" id="typing"></div>
+      <div id="pend"></div><form class="composer" id="composer"><input type="file" id="file" hidden accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.zip"><button type="button" class="att" id="attBtn" aria-label="Attach a file" title="Attach a file (max 10 MB)">${ic('clip')}</button><label class="sr" for="body">Message</label><textarea id="body" rows="1" placeholder="Write a message"></textarea><button class="btn" aria-label="Send">${ic('send',18)}</button></form>`;
+    $$('.menu-only',th).forEach(a=>a.style.display=innerWidth<900?'inline-flex':'none');
+    this.decorate();this.scroll(true);this.drawList();this.markRead();
+    const ta=$('#body'),f=$('#composer');
+    ta.oninput=()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,160)+'px';if(Date.now()-this.lastTyping>2500){this.lastTyping=Date.now();api(`/inbox/${id}/typing`,{method:'POST'}).catch(()=>{})}};
+    ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();f.requestSubmit()}};
+    $('#attBtn').onclick=()=>$('#file').click();
+    $('#file').onchange=()=>{const fl=$('#file').files[0];if(!fl)return;if(fl.size>10*1024*1024){toast('Files can be up to 10 MB',{err:true});$('#file').value='';return}this.pending=fl;$('#pend').innerHTML=`<div class="pending-file">${ic('clip',16)} ${esc(fl.name)} <span class="mut">(${Math.ceil(fl.size/1024)} KB)</span><button type="button" class="link" style="margin-left:auto" id="rmf">Remove</button></div>`;$('#rmf').onclick=()=>{this.pending=null;$('#file').value='';$('#pend').innerHTML=''}};
+    f.onsubmit=async e=>{e.preventDefault();const body=ta.value.trim();if(!body&&!this.pending)return;const btn=f.querySelector('.btn');btn.disabled=true;
+      const fd=new FormData();fd.append('body',body);if(this.pending)fd.append('file',this.pending);
+      try{const r=await api(`/inbox/${id}/messages`,{form:fd});this.lastTyping=0;ta.value='';ta.style.height='';this.pending=null;$('#file').value='';$('#pend').innerHTML='';this.append(r.data)}catch(err){fail(err)}finally{btn.disabled=false;ta.focus()}};
+    if(innerWidth>900)ta.focus();
+  },
+  renderMsgs(list,prevDay=''){let out='',day=prevDay;
+    for(const m of list){const dl=dayLabel(m.created_at);if(dl!==day){out+=`<div class="day">${dl}</div>`;day=dl}out+=this.msgHtml(m)}this.lastDay=day;return out},
+  msgHtml(m,fresh){
+    if(m.kind==='event'){const [txt,ref]=m.body.split('|');const cid=(ref||'').replace('contract:','');return`<a class="ev" href="#contracts/${esc(cid)}" data-mid="${m.id}">${esc(txt)} · ${hm(m.created_at)}</a>`}
+    const mine=m.sender_id===me.id;
+    const file=m.attachment_name?(m.attachment_mime?.startsWith('image/')?`<img class="pic" alt="${esc(m.attachment_name)}" data-img="${m.conversation_id}:${m.id}">`:`<button class="file" data-act="dl" data-id="${m.conversation_id}:${m.id}:${esc(m.attachment_name)}">${ic('file',18)}<span>${esc(m.attachment_name)}<br><small style="opacity:.75;font-weight:500">${Math.ceil((m.attachment_size||0)/1024)} KB</small></span></button>`):'';
+    return`<div class="msg ${mine?'me':''} ${fresh?'fresh':''}" data-mid="${m.id}" data-mine="${mine?1:0}">${esc(m.body)}${file}<time>${hm(m.created_at)}</time></div>`},
+  decorate(){$$('#msgs img[data-img]:not([src])').forEach(async img=>{const [c,m]=img.dataset.img.split(':');try{img.src=URL.createObjectURL(await blob(`/inbox/${c}/files/${m}?inline=1`));img.onclick=()=>window.open(img.src,'_blank')}catch{img.alt='Image unavailable'}});this.drawSeen()},
+  drawSeen(){$('#seen')?.remove();const mine=$$('#msgs .msg[data-mine="1"]');const last=mine[mine.length-1];if(last&&+last.dataset.mid<=this.other_read){last.insertAdjacentHTML('afterend','<div class="seen" id="seen">Seen</div>')}},
+  scroll(force){const b=$('#msgs');if(!b)return;const near=b.scrollHeight-b.scrollTop-b.clientHeight<160;if(force||near)b.scrollTop=b.scrollHeight},
+  append(m){const b=$('#msgs');if(!b||$(`[data-mid="${m.id}"]`,b))return;const dl=dayLabel(m.created_at);if(dl!==this.lastDay){b.insertAdjacentHTML('beforeend',`<div class="day">${dl}</div>`);this.lastDay=dl}
+    b.insertAdjacentHTML('beforeend',this.msgHtml(m,true));this.decorate();this.scroll(m.sender_id===me.id)},
+  async older(){const b=$('#msgs');const first=$('[data-mid]',b);const j=await api(`/inbox/${this.cur.id}?before=${first.dataset.mid}`);const h=b.scrollHeight;
+    b.querySelector('[data-act=older]')?.remove();b.insertAdjacentHTML('afterbegin',(j.data.has_more?`<button class="btn sm ghost" style="align-self:center" data-act="older">Load earlier messages</button>`:'')+this.renderMsgs(j.data.messages));b.scrollTop=b.scrollHeight-h;this.decorate()},
+  markRead(){if(!this.cur||document.hidden)return;api(`/inbox/${this.cur.id}/read`,{method:'POST'}).then(r=>{setCounts(r.counts);const c=this.list.find(x=>x.id===this.cur?.id);if(c){c.unread=0;this.drawList()}}).catch(()=>{})},
+  onMessage(m){
+    const inThis=this.cur&&m.conversation_id===this.cur.id&&location.hash.startsWith('#inbox');
+    if(inThis){this.append(m);if(m.sender_id!==me.id){this.markRead();$('#typing').textContent=''}}
+    if(location.hash.startsWith('#inbox')){const c=this.list.find(x=>x.id===m.conversation_id);if(c){c.last={body:m.kind==='event'?m.body.split('|')[0]:m.body,kind:m.kind,mine:m.sender_id===me.id,attachment:m.attachment_name};c.last_message_at=m.created_at;if(!inThis&&m.sender_id!==me.id)c.unread++;this.list.sort((a,b)=>a.id===c.id?-1:b.id===c.id?1:0);this.drawList()}else this.loadList()}
+    else if(m.kind==='event'&&location.hash.startsWith('#contracts/'))softRefresh();
+  },
+  onRead(d){if(this.cur&&d.conversation_id===this.cur.id){this.other_read=d.last_read_id;this.drawSeen()}},
+  onTyping(d){if(!this.cur||d.conversation_id!==this.cur.id)return;const t=$('#typing');if(!t)return;t.textContent=`${this.cur.other.name.split(' ')[0]} is typing…`;clearTimeout(this.typingTimer);this.typingTimer=setTimeout(()=>{t.textContent=''},4000)},
+};
+V.inbox=async(id)=>{await Inbox.view(id);return undefined};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Inbox.cur)Inbox.markRead()});
+addEventListener('resize',()=>$$('.menu-only').forEach(a=>a.style.display=innerWidth<900?'inline-flex':'none'));
+
+/* ===== admin ===== */
+const table=(h,rows)=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:empty('Nothing here','There’s nothing to show yet.');
+const D=s=>s?dt(s).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}):'';
+const A_V={
+ async overview(){const o=await api('/admin/overview');
+  const todo=[['admin/verifications',o.pending_verifications,'ID verifications to review','shield'],['admin/payments',o.payments_to_confirm,'EFT payments to confirm','coin'],['admin/payments',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`,'coin'],['admin/reports',o.open_reports,'open disputes and reports','flag'],['admin/leads',o.new_leads,'new hire enquiries','inbox'],['admin/enquiries',o.new_messages,'new contact messages','chat']].filter(t=>t[1]);
+  return ph('Overview','The marketplace at a glance.')+`<div class="figs"><div><small>Gross volume</small><b>${R(o.gmv_cents)}</b><span>funded and completed</span></div><div><small>Revenue</small><b>${R(o.revenue_cents)}</b><span>fees, excl. VAT</span></div><div><small>VAT on fees</small><b>${R(o.vat_cents)}</b></div><div><small>Held in escrow</small><b>${R(o.escrow_cents)}</b></div></div>
+  <div class="figs"><div><small>Professionals</small><b>${o.talent}</b></div><div><small>Clients</small><b>${o.clients}</b></div><div><small>Sign-ups, 30 days</small><b>${o.signups_30d}</b></div><div><small>Open jobs</small><b>${o.jobs_open}</b></div><div><small>Active contracts</small><b>${o.contracts_active}</b></div></div>
+  <div class="panel"><h2>To do</h2>${todo.length?todo.map(([k,n,l,i])=>`<a class="todo" href="#${k}"><span class="ico bid">${ic(i)}</span><b>${n} ${l}</b><span class="go">Open →</span></a>`).join(''):'<p class="mut">All clear.</p>'}</div>`},
+ async verifications(){const j=await api('/admin/verifications');return ph('Verifications','Check the document, then approve or reject. Files are deleted once reviewed.')+table(['Person','Role','Document','Ref (last 4)','Note','Submitted',''],j.data.map(v=>[`<b>${esc(v.name)}</b><br><small class="mut">${esc(v.email)}</small>`,v.role,esc(v.id_type),esc(v.ref_last4),esc(v.note),D(v.created_at),(v.doc_path?B('vdoc',v.id,'View document'):'<small class="mut">No file</small> ')+B('vapprove',v.id,'Approve','moss')+B('vreject',v.id,'Reject','danger')]))},
+ async payments(){const j=await api('/admin/contracts');return ph('Payments & escrow','',B('csv','','Export CSV for your accountant'))+table(['#','Contract','Parties','Amount','Fee + VAT','Status','Payment',''],j.data.map(c=>[c.id,`<a href="#contracts/${c.id}">${esc(c.job_title)}</a>`,`${esc(c.client_name)} → ${esc(c.talent_name)}`,R(c.amount_cents),`${R(c.commission_cents)} + ${R(c.vat_cents)}`,cst(c.status),c.payment_status?`${gst(c.payment_status)}<br><small class="mut">${esc(c.provider)} · ${esc(c.reference)}</small>`:'',
+   (c.status==='accepted'&&c.payment_status==='pending'&&c.provider==='manual'?B('confirmpay',c.id,'Confirm EFT received','moss'):'')+(c.status==='disputed'?B('resolve',c.id,'Resolve','danger'):'')+(['released','refunded'].includes(c.status)?B('payout',c.id,c.status==='released'?'Record payout':'Record refund'):'')+(['released','paid_out'].includes(c.status)?B('invoice',c.id,'Invoice'):'')]))},
+ async reports(){const j=await api('/admin/reports');return ph('Disputes & reports')+table(['#','About','Reporter','Reason','Status','Note',''],j.data.map(r=>[r.id,r.target_type==='contract'?`<a href="#contracts/${r.target_id}">Contract #${r.target_id}</a>`:`${esc(r.target_type)} #${r.target_id}`,esc(r.reporter),esc(r.reason),gst(r.status),esc(r.admin_note),B('rstatus',r.id,'Update')]))},
+ async jobs(){const j=await api('/admin/jobs');return ph('Jobs')+table(['Job','Client','Where','Type','Bids','Status',''],j.data.map(x=>[`<a href="#job/${x.id}">${esc(x.title)}</a>${x.featured?' <span class="st wait">Featured</span>':''}`,esc(x.client_name),esc(x.city),esc(x.type),x.applicants,gst(x.status),B('feature',x.id+':'+x.featured,x.featured?'Unfeature':'Feature')+B('jstatus',x.id+':'+x.status,x.status==='open'?'Close':'Reopen',x.status==='open'?'danger':'ghost')]))},
+ async users(){const j=await api('/admin/users');return ph('Members')+table(['Name','Email','Role','Verified','Joined','Status',''],j.data.map(u=>[esc(u.name),esc(u.email),u.role,u.verified?'<span class="verified">✓</span>':'',D(u.created_at),gst(u.status),u.role==='admin'||u.status==='deleted'?'':B('ustatus',u.id+':'+u.status,u.status==='active'?'Suspend':'Reactivate',u.status==='active'?'danger':'ghost')]))},
+ async leads(){const j=await api('/admin/leads');return ph('Hire enquiries','Visitors without an account who asked to hire a professional.')+table(['From','Wants','Message','Status','Received',''],j.data.map(l=>[`<b>${esc(l.from_name)}</b><br><small class="mut">${esc(l.from_email)}</small>`,esc(l.talent_name),esc(l.message),gst(l.status),D(l.created_at),B('lead',l.id,'Update')]))},
+ async enquiries(){const j=await api('/admin/inbox');return ph('Contact messages','From the contact form on the website.')+table(['From','Topic','Message','Status','Received',''],j.data.map(m=>[`<b>${esc(m.name)}</b><br><small class="mut">${esc(m.email)}</small>`,esc(m.topic),esc(m.message),gst(m.status),D(m.created_at),m.status==='new'?B('inboxdone',m.id,'Mark handled'):'']))},
+ async settings(){const s=await api('/admin/settings');return ph('Fees')+`<form class="panel" id="sf" style="max-width:560px"><p class="mut">The service fee comes out of the professional’s payout. VAT is charged on the fee. New values apply to new contracts only.</p><div class="field-row"><label>Service fee %<input name="commission_pct" type="number" step="0.5" min="0" max="40" value="${s.commission_pct}"></label><label>VAT %<input name="vat_pct" type="number" step="0.5" min="0" max="25" value="${s.vat_pct}"></label></div><button class="btn">Save</button></form>`},
+ async audit(){const j=await api('/admin/audit');return ph('Audit log')+table(['When','Who','Action','Target'],j.data.map(a=>[D(a.created_at),esc(a.actor||'system'),esc(a.action),esc(a.target)]))},
+};
+afterRender.admin=()=>{const f=$('#sf');if(f)f.onsubmit=async e=>{e.preventDefault();const v=Object.fromEntries(new FormData(f));try{await api('/admin/settings',{method:'PUT',body:{commission_pct:+v.commission_pct,vat_pct:+v.vat_pct}});META=await api('/meta');toast('Fees saved')}catch(err){fail(err)}}};
+
+/* ===== actions ===== */
+async function sendOffer({talentId,talentName,jobId,applicationId,amount}){
+  let jobs=[];if(!applicationId){jobs=(await api('/me/jobs')).data.filter(x=>x.status==='open');if(!jobs.length){toast('Post a job first, then send an offer.',{err:true});return}}
+  const m=modal(`<h3>Send an offer to ${esc(talentName)}</h3><p class="mut">They’ll be notified straight away. After they accept, you fund escrow to start.</p><form id="of">
+   ${applicationId?'':field({label:'For which job?',name:'job',type:'select',options:jobs.map(j=>[j.id,j.title]),value:jobId})}
+   ${field({label:'What’s included?',name:'description',type:'textarea',req:true,min:5,ph:'Scope, materials, deadlines…'})}
+   <label class="check"><input type="checkbox" id="useMs">Split into milestones</label>
+   <div id="msBox" hidden><div id="msRows"></div><button type="button" class="btn sm ghost" id="addMs">Add milestone</button></div>
+   <div id="amtBox">${field({label:'Price (R)',name:'amount',type:'number',min:50,req:true,value:amount||''})}</div>
+   <p class="hint" id="ofTot"></p><div class="actions"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn">Send offer</button></div></form>`,{wide:true});
+  const rows=$('#msRows',m),addRow=(t='',a='')=>{rows.insertAdjacentHTML('beforeend',`<div class="ms-row"><input placeholder="Milestone, e.g. Design" value="${esc(t)}"><input type="number" min="50" placeholder="R" value="${esc(a)}" inputmode="numeric"><button type="button" aria-label="Remove">×</button></div>`);upd()};
+  const upd=()=>{const on=$('#useMs',m).checked;if(on){const tot=[...rows.querySelectorAll('.ms-row')].reduce((s,r)=>s+(+r.children[1].value||0),0);$('#ofTot',m).textContent=`Total: ${RR(tot)}`}else $('#ofTot',m).textContent=''};
+  rows.addEventListener('input',upd);rows.addEventListener('click',e=>{if(e.target.matches('button')){e.target.parentElement.remove();upd()}});
+  $('#addMs',m).onclick=()=>addRow();
+  $('#useMs',m).onchange=e=>{const on=e.target.checked;$('#msBox',m).hidden=!on;$('#amtBox',m).hidden=on;$('#amtBox input',m).required=!on;if(on&&!rows.children.length){addRow('Deposit / first part',amount?Math.round(amount/2):'');addRow('Completion',amount?amount-Math.round(amount/2):'')}upd()};
+  $('#of',m).onsubmit=async e=>{e.preventDefault();const f=e.target,on=$('#useMs',m).checked;
+    const body={description:f.description.value.trim()};
+    if(applicationId)body.application_id=+applicationId;else{body.job_id=+f.job.value;body.talent_id=+talentId}
+    if(on){body.milestones=[...rows.querySelectorAll('.ms-row')].map(r=>({title:r.children[0].value.trim(),amount:+r.children[1].value})).filter(x=>x.title&&x.amount);if(!body.milestones.length)return toast('Add at least one milestone',{err:true})}else body.amount=+f.amount.value;
+    try{const r=await api('/contracts',{body});m.close();toast('Offer sent. You’ll be notified when they respond.');location.hash='#contracts/'+r.data.id}catch(err){fail(err)}};
+}
 const A={
- logout,async resend(){await api('/auth/resend-verification',{method:'POST'});toast('Verification email sent')},
- async chpw(){const v=await ask('Change password',[{label:'Current password',name:'current',type:'password'},{label:'New password',name:'password',type:'password'}],'Update');if(!v)return;await api('/me/password',{body:v});toast('Password updated')},
+ logout,reload:()=>route(),
+ async resend(){await api('/auth/resend-verification',{method:'POST'});toast('Verification email sent')},
+ async readall(){await api('/me/notifications/read',{method:'POST'});$('#notesPop').hidden=true;route(true)},
+ async chpw(){const v=await ask('Change password',[{label:'Current password',name:'current',type:'password',req:true},{label:'New password',name:'password',type:'password',req:true,hint:'8 or more characters, with letters and a number.'}],'Update password');if(!v)return;await api('/me/password',{body:v});toast('Password updated')},
+ export:()=>download('/me/export','talentbridge-my-data.json'),
+ async delacc(){const v=await ask('Delete your account',[{label:'Confirm your password',name:'password',type:'password',req:true}],'Delete forever','This can’t be undone. Active contracts must be finished first.');if(!v)return;await api('/me/delete',{body:v});toast('Account deleted');logout()},
  invoice:id=>openBlob(`/contracts/${id}/invoice`),vdoc:id=>openBlob(`/admin/verifications/${id}/document`),
- async csv(){const u=URL.createObjectURL(await blob('/admin/export/contracts.csv'));Object.assign(document.createElement('a'),{href:u,download:'siira-contracts.csv'}).click()},
- async inboxdone(id){await api('/admin/inbox/'+id,{method:'PATCH',body:{status:'handled'}});render()},
- readall:async()=>{await api('/me/notifications/read',{method:'POST'});render()},
- async export(){const r=await fetch('/api/me/export',{headers:{authorization:'Bearer '+token}});const u=URL.createObjectURL(await r.blob());Object.assign(document.createElement('a'),{href:u,download:'siira-my-data.json'}).click()},
- async delacc(){const v=await ask('Delete your account',[{label:'Confirm your password',name:'password',type:'password'}],'Delete forever','This cannot be undone. Active contracts must be finished first.');if(!v)return;await api('/me/delete',{body:v});toast('Account deleted');logout()},
- async open(id){const j=await api('/contracts/'+id),c=j.data,tal=me.id===c.talent_id;
-  const m=modal(`<h3>${esc(c.job_title)} ${badge(c.status)}</h3><p class="mut">${esc(c.client_name)} → ${esc(c.talent_name)}</p><p>${esc(c.description)}</p><div class="fee"><span>Contract price</span><b>${R(c.amount_cents)}</b><span class="mut">SIIRA commission</span><span>−${R(c.commission_cents)}</span><span class="mut">VAT on commission</span><span>−${R(c.vat_cents)}</span><b>Professional receives</b><b>${R(c.payout_cents)}</b></div>${c.delivery_note?`<p><b>Delivery note:</b> ${esc(c.delivery_note)}</p>`:''}${j.review?`<p>Review: ${'★'.repeat(j.review.rating)} ${esc(j.review.comment)}</p>`:''}<div class="msgs">${j.messages.map(x=>`<div class="msg ${x.sender_id===me.id?'me':''}"><b>${esc(x.name)}</b> ${esc(x.body)}</div>`).join('')||'<span class="mut">No messages yet.</span>'}</div><form id="mf" class="row"><input name="body" placeholder="Write a message…" required style="flex:1;margin:0"><button class="btn">Send</button></form>`);
-  m.querySelector('#mf').onsubmit=async e=>{e.preventDefault();await api(`/contracts/${id}/messages`,{body:{body:new FormData(e.target).get('body')}});m.remove();A.open(id)}},
- async accept(id){await api(`/contracts/${id}/accept`,{method:'POST'});toast('Offer accepted');render()},
- async decline(id){await api(`/contracts/${id}/decline`,{method:'POST'});render()},
+ csv:()=>download('/admin/export/contracts.csv','talentbridge-contracts.csv'),
+ async postjob(){const v=await ask('Post a job',[{label:'Job title',name:'title',req:true,ph:'e.g. Install a 5 kW solar system'},{label:'Describe the work',name:'description',type:'textarea',req:true,min:10,rows:5,ph:'What needs doing, when, and anything bidders should know.'},[{label:'Category',name:'category',type:'select',options:metaOpts('categories')},{label:'Job type',name:'type',type:'select',options:META.types,value:'Freelance'}],[{label:'Province',name:'province',type:'select',options:META.provinces,value:'Gauteng'},{label:'City or town',name:'city',req:true}],[{label:'Budget from (R)',name:'pay_min',type:'number',min:0,req:true},{label:'Budget up to (R)',name:'pay_max',type:'number',min:0,req:true}],{label:'Paid per',name:'pay_unit',type:'select',options:META.pay_units.map(u=>[u,{hour:'Hour',day:'Day',month:'Month',project:'Whole project'}[u]||u]),value:'project'}],'Post job','Matching professionals are alerted straight away.');
+  if(!v)return;try{const r=await api('/jobs',{body:{...v,pay_min:+v.pay_min,pay_max:+v.pay_max}});toast('Job posted. Matching professionals have been alerted.');location.hash='#job/'+r.data.id}catch(e){fail(e)}},
+ async jclose(x){const[id,s]=x.split(':');await api('/jobs/'+id,{method:'PATCH',body:{status:s==='open'?'closed':'open'}});toast(s==='open'?'Job closed':'Job reopened');route(true)},
+ findpage(p){findState.page=+p;route(true)},
+ bidsort(v){bidSort=v;route(true)},
+ async bidstatus(x){const[job,aid,st]=x.split(':');await api(`/jobs/${job}/applications/${aid}`,{method:'PATCH',body:{status:st}});toast({shortlisted:'Shortlisted',rejected:'Bid declined',submitted:'Removed from shortlist'}[st]);route(true)},
+ async bidchat(x){const[job,aid]=x.split(':');const r=await api(`/jobs/${job}/applications/${aid}/chat`,{body:{}});location.hash='#inbox/'+r.data.conversation_id},
+ award(x){const[aid,amt,...n]=x.split(':');return sendOffer({applicationId:aid,amount:+amt||'',talentName:n.join(':')})},
+ offer(x){const[t,name,job]=x.split(':');return sendOffer({talentId:t,talentName:name,jobId:job})},
+ async dm(x){const[t,name]=x.split(':');const v=await ask(`Message ${name}`,[{label:'Message',name:'body',type:'textarea',req:true,ph:'Hi, are you available for…'}],'Send');if(!v)return;const r=await api(`/talent/${t}/message`,{body:v});location.hash='#inbox/'+r.data.conversation_id},
+ async msgclient(x){const[job,client]=x.split(':');const r=await api('/inbox',{body:{user_id:+client,job_id:+job}});location.hash='#inbox/'+r.data.id},
+ async withdraw(id){if(!await confirmBox('Withdraw your bid?','The client will no longer see it. You can bid again while the job is open.','Withdraw',true))return;await api(`/jobs/${id}/apply`,{method:'DELETE'});toast('Bid withdrawn');route(true)},
+ async accept(id){await api(`/contracts/${id}/accept`,{method:'POST'});toast('Offer accepted. The client will fund escrow next.');route(true)},
+ async decline(id){if(!await confirmBox('Decline this offer?','The client will be told you declined.','Decline',true))return;await api(`/contracts/${id}/decline`,{method:'POST'});route(true)},
+ async cwithdraw(id){if(!await confirmBox('Withdraw this offer?','The professional will be told.','Withdraw',true))return;await api(`/contracts/${id}/withdraw`,{method:'POST'});route(true)},
  async fund(id){const f=await api(`/contracts/${id}/fund`,{method:'POST'});
   if(f.mode==='paystack')return location.href=f.checkout_url;
-  if(f.mode==='manual')return info('Pay by EFT',`<p>${esc(f.instructions)}</p>`);
-  if(confirm('Sandbox mode: simulate a successful payment?')){await api(`/contracts/${id}/fund/simulate`,{method:'POST'});toast('Escrow funded');render()}},
- async deliver(id){const v=await ask('Mark as delivered',[{label:'Note for the client',name:'note',type:'textarea'}],'Send');if(!v)return;await api(`/contracts/${id}/deliver`,{body:v});toast('Sent to client');render()},
- async release(id){if(!confirm('Approve the work and release payment to the professional?'))return;await api(`/contracts/${id}/release`,{method:'POST'});toast('Payment released');render()},
- async dispute(id){const v=await ask('Open a dispute',[{label:'What went wrong?',name:'reason',type:'textarea'}],'Open dispute','Funds stay in escrow while SIIRA reviews.');if(!v)return;await api(`/contracts/${id}/dispute`,{body:v});toast('Dispute opened');render()},
- async review(id){const v=await ask('Rate this professional',[{label:'Rating',name:'rating',type:'select',options:[5,4,3,2,1],value:5},{label:'Comment',name:'comment',type:'textarea'}],'Submit');if(!v)return;await api(`/contracts/${id}/review`,{body:{rating:+v.rating,comment:v.comment}});toast('Thanks for your review');render()},
- async postjob(){const v=await ask('Post a job',[{label:'Title',name:'title'},{label:'Description',name:'description',type:'textarea'},{label:'Category',name:'category',type:'select',options:CATS},{label:'Type',name:'type',type:'select',options:TYPES},{label:'Province',name:'province',type:'select',options:PROV,value:'Gauteng'},{label:'City',name:'city'},{label:'Pay from (R)',name:'pay_min',type:'number'},{label:'Pay to (R)',name:'pay_max',type:'number'},{label:'Pay unit',name:'pay_unit',type:'select',options:['hour','day','month','project']}],'Post job');if(!v)return;
-  await api('/jobs',{body:{...v,pay_min:+v.pay_min,pay_max:+v.pay_max}});toast('Job posted');view='myjobs';render()},
- async jclose(x){const[id,s]=x.split(':');await api('/jobs/'+id,{method:'PATCH',body:{status:s==='open'?'closed':'open'}});render()},
- async applicants(id){const j=await api(`/jobs/${id}/applications`);info('Applicants',j.data.length?`<div class="list">${j.data.map(a=>`<div class="item" style="box-shadow:none;background:#f4f7fc"><div><b>${esc(a.name)} ${a.verified?'✓':''}</b><br><span class="mut">${esc(a.headline||'')} · ★ ${a.rating||'–'}</span><br>${esc(a.message)}</div><span class="right">${btn('offerjob',id+':'+a.talent_id,'Make offer','')}</span></div>`).join('')}</div>`:'<p class="mut">No applicants yet.</p>')},
- async offerjob(x){const[job,t]=x.split(':');document.querySelector('.modal')?.remove();const v=await ask('Make an offer',[{label:'Price (R)',name:'amount',type:'number'},{label:'What is included?',name:'description',type:'textarea'}],'Send offer');if(!v)return;await api('/contracts',{body:{job_id:+job,talent_id:+t,amount:+v.amount,description:v.description}});toast('Offer sent');view='contracts';render()},
- async offer(t){const jobs=(await api('/me/jobs')).data.filter(x=>x.status==='open');if(!jobs.length)return toast('Post a job first, then make an offer',true);
-  const v=await ask('Make an offer',[{label:'For which job?',name:'job',type:'select',options:jobs.map(j=>[j.id,j.title])},{label:'Price (R)',name:'amount',type:'number'},{label:'What is included?',name:'description',type:'textarea'}],'Send offer');if(!v)return;
-  await api('/contracts',{body:{job_id:+v.job,talent_id:+t,amount:+v.amount,description:v.description}});toast('Offer sent');view='contracts';render()},
- async apply(id){const v=await ask('Apply for this job',[{label:'Message to the client',name:'message',type:'textarea'}],'Send application');if(!v)return;await api(`/jobs/${id}/apply`,{body:v});toast('Application sent')},
- async save(id,b){const on=b.textContent.includes('♥');await api(`/jobs/${id}/save`,{method:on?'DELETE':'POST'});b.textContent=on?'Save ♡':'Saved ♥'},
- async verify(){const v=await ask('Request verification',[{label:'Document type',name:'id_type',type:'select',options:['SA ID','Passport','Trade certificate','Company (CIPC)']},{label:'Document number',name:'reference'},{label:'Upload a clear photo or PDF (max 5 MB)',name:'document',type:'file'},{label:'Anything we should know?',name:'note',type:'textarea'}],'Submit','SIIRA keeps only the last 4 characters of the number and deletes your file once it has been reviewed.');if(!v)return;const fd=new FormData();for(const[k,x]of Object.entries(v)){if(x instanceof File){if(x.size)fd.append(k,x)}else fd.append(k,x)}await api('/me/verification',{form:fd});toast('Submitted for review');render()},
- async vapprove(id){await api(`/admin/verifications/${id}/decision`,{body:{decision:'approved'}});render()},
- async vreject(id){const v=await ask('Reject verification',[{label:'Reason (shown to the user)',name:'note'}],'Reject');if(!v)return;await api(`/admin/verifications/${id}/decision`,{body:{decision:'rejected',note:v.note}});render()},
- async confirmpay(id){if(!confirm('Confirm the EFT has arrived in the SIIRA account?'))return;await api(`/admin/contracts/${id}/mark-funded`,{method:'POST'});render()},
- async resolve(id){const v=await ask('Resolve dispute',[{label:'Decision',name:'action',type:'select',options:[['release','Release payment to professional'],['refund','Refund the client']]},{label:'Note',name:'note',type:'textarea'}],'Resolve');if(!v)return;await api(`/admin/contracts/${id}/resolve`,{body:v});render()},
- async payout(id){const v=await ask('Record payout',[{label:'Bank / EFT reference',name:'payout_ref'}],'Record','Do this after you have paid the money out from the SIIRA account.');if(!v)return;await api(`/admin/contracts/${id}/payout`,{body:v});render()},
- async rstatus(id){const v=await ask('Update report',[{label:'Status',name:'status',type:'select',options:['open','reviewing','resolved','dismissed']},{label:'Note',name:'admin_note',type:'textarea'}]);if(!v)return;await api('/admin/reports/'+id,{method:'PATCH',body:v});render()},
- async feature(id){const rows=(await api('/admin/jobs')).data.find(j=>j.id==id);await api('/admin/jobs/'+id,{method:'PATCH',body:{featured:!rows.featured}});render()},
- async jstatus(id){const rows=(await api('/admin/jobs')).data.find(j=>j.id==id);await api('/admin/jobs/'+id,{method:'PATCH',body:{status:rows.status==='open'?'closed':'open'}});render()},
- async ustatus(x){const[id,s]=x.split(':');if(!confirm(s==='active'?'Suspend this account?':'Reactivate this account?'))return;await api('/admin/users/'+id,{method:'PATCH',body:{status:s==='active'?'suspended':'active'}});render()},
- async lead(id){const v=await ask('Update enquiry',[{label:'Status',name:'status',type:'select',options:['new','contacted','closed']},{label:'Note',name:'admin_note',type:'textarea'}]);if(!v)return;await api('/admin/leads/'+id,{method:'PATCH',body:v});render()},
+  if(f.mode==='manual')return modal(`<h3>Pay by EFT</h3><p>${esc(f.instructions)}</p><div class="actions"><button class="btn" data-close>Done</button></div>`);
+  if(await confirmBox('Test payment','Payments are in sandbox mode. Simulate a successful payment?','Simulate payment')){await api(`/contracts/${id}/fund/simulate`,{method:'POST'});toast('Escrow funded');route(true)}},
+ async deliver(id){const v=await ask('Mark as delivered',[{label:'Note for the client',name:'note',type:'textarea',ph:'What you delivered and anything they should check.'}],'Send to client');if(!v)return;await api(`/contracts/${id}/deliver`,{body:v});toast('Delivered. The client has been notified.');route(true)},
+ async release(id){if(!await confirmBox('Release payment?','This approves the work and releases the escrow payment to the professional. It can’t be undone.','Release payment'))return;await api(`/contracts/${id}/release`,{method:'POST'});toast('Payment released');route(true)},
+ async dispute(id){const v=await ask('Open a dispute',[{label:'What went wrong?',name:'reason',type:'textarea',req:true,min:10}],'Open dispute','Funds stay in escrow while TalentBridge reviews.');if(!v)return;await api(`/contracts/${id}/dispute`,{body:v});toast('Dispute opened');route(true)},
+ async review(id){const v=await ask('Rate this professional',[{label:'Rating',name:'rating',type:'select',options:[[5,'★★★★★ Excellent'],[4,'★★★★ Good'],[3,'★★★ OK'],[2,'★★ Poor'],[1,'★ Bad']],value:5},{label:'Comment',name:'comment',type:'textarea',ph:'What was it like to work with them?'}],'Post review');if(!v)return;await api(`/contracts/${id}/review`,{body:{rating:+v.rating,comment:v.comment}});toast('Thanks for your review');route(true)},
+ async mssubmit(x){const[c,m]=x.split(':');await api(`/contracts/${c}/milestones/${m}/submit`,{method:'POST'});toast('Milestone marked complete');route(true)},
+ async msapprove(x){const[c,m]=x.split(':');await api(`/contracts/${c}/milestones/${m}/approve`,{method:'POST'});toast('Milestone approved');route(true)},
+ ctab(k){cTab=k;route(true)},
+ older:()=>Inbox.older(),
+ dl(x){const[c,m,...n]=x.split(':');return download(`/inbox/${c}/files/${m}`,n.join(':'))},
+ addport(){$('#port').insertAdjacentHTML('beforeend',portRow())},
+ rmport(_,b){b.closest('.port-row').remove()},
+ async verify(){const v=await ask('Request verification',[{label:'Document type',name:'id_type',type:'select',options:['SA ID','Passport','Trade certificate','Company (CIPC)']},{label:'Document number',name:'reference',req:true},{label:'Clear photo or PDF (max 5 MB)',name:'document',type:'file'},{label:'Anything we should know?',name:'note',type:'textarea',rows:2}],'Submit','We keep only the last 4 characters of the number and delete the file after review.');
+  if(!v)return;const fd=new FormData();for(const[k,x]of Object.entries(v)){if(x instanceof File){if(x.size)fd.append(k,x)}else fd.append(k,x)}await api('/me/verification',{form:fd});toast('Submitted for review');route(true)},
+ async vapprove(id){await api(`/admin/verifications/${id}/decision`,{body:{decision:'approved'}});route(true)},
+ async vreject(id){const v=await ask('Reject verification',[{label:'Reason (shown to the member)',name:'note',req:true}],'Reject');if(!v)return;await api(`/admin/verifications/${id}/decision`,{body:{decision:'rejected',note:v.note}});route(true)},
+ async confirmpay(id){if(!await confirmBox('Confirm EFT received?','Only confirm once the money is in the TalentBridge account.','Confirm'))return;await api(`/admin/contracts/${id}/mark-funded`,{method:'POST'});route(true)},
+ async resolve(id){const v=await ask('Resolve dispute',[{label:'Decision',name:'action',type:'select',options:[['release','Release payment to the professional'],['refund','Refund the client']]},{label:'Note',name:'note',type:'textarea'}],'Resolve');if(!v)return;await api(`/admin/contracts/${id}/resolve`,{body:v});route(true)},
+ async payout(id){const v=await ask('Record payout',[{label:'Bank / EFT reference',name:'payout_ref',req:true}],'Record','Do this after paying the money out of the TalentBridge account.');if(!v)return;await api(`/admin/contracts/${id}/payout`,{body:v});route(true)},
+ async rstatus(id){const v=await ask('Update report',[{label:'Status',name:'status',type:'select',options:['open','reviewing','resolved','dismissed']},{label:'Note',name:'admin_note',type:'textarea'}]);if(!v)return;await api('/admin/reports/'+id,{method:'PATCH',body:v});route(true)},
+ async feature(x){const[id,f]=x.split(':');await api('/admin/jobs/'+id,{method:'PATCH',body:{featured:f!=='1'}});route(true)},
+ async jstatus(x){const[id,s]=x.split(':');await api('/admin/jobs/'+id,{method:'PATCH',body:{status:s==='open'?'closed':'open'}});route(true)},
+ async ustatus(x){const[id,s]=x.split(':');if(!await confirmBox(s==='active'?'Suspend this account?':'Reactivate this account?',s==='active'?'They won’t be able to log in.':'They’ll be able to log in again.',s==='active'?'Suspend':'Reactivate',s==='active'))return;await api('/admin/users/'+id,{method:'PATCH',body:{status:s==='active'?'suspended':'active'}});route(true)},
+ async lead(id){const v=await ask('Update enquiry',[{label:'Status',name:'status',type:'select',options:['new','contacted','closed']},{label:'Note',name:'admin_note',type:'textarea'}]);if(!v)return;await api('/admin/leads/'+id,{method:'PATCH',body:v});route(true)},
+ async inboxdone(id){await api('/admin/inbox/'+id,{method:'PATCH',body:{status:'handled'}});route(true)},
 };
-document.addEventListener('submit',async e=>{
-  if(e.target.id==='sf'){e.preventDefault();const f=Object.fromEntries(new FormData(e.target));try{await api('/admin/settings',{method:'PUT',body:{commission_pct:+f.commission_pct,vat_pct:+f.vat_pct}});toast('Settings saved')}catch(err){toast(err.message,true)}}
-  if(e.target.id==='pf'){e.preventDefault();const f=Object.fromEntries(new FormData(e.target));try{await api('/me/profile',{method:'PUT',body:{...f,skills:f.skills.split(',').map(s=>s.trim()).filter(Boolean),hourly_rate:f.hourly_rate===''?undefined:+f.hourly_rate}});toast('Profile saved')}catch(err){toast(err.message,true)}}
-});
-if(token)start();
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-act]');if(!b||!A[b.dataset.act])return;e.preventDefault();
+  if(b.disabled)return;b.disabled=true;try{await A[b.dataset.act](b.dataset.id,b)}catch(err){fail(err)}finally{if(b.isConnected)b.disabled=false}});
+
+/* boot */
+$('#fr [name=province]').innerHTML='<option value="">Choose</option>';
+fetch('/api/meta').then(r=>r.json()).then(m=>{$('#fr [name=province]').innerHTML='<option value="">Choose</option>'+m.provinces.map(p=>`<option>${esc(p)}</option>`).join('')}).catch(()=>{});
+if(token)start();else $('#auth').style.display='grid';
 </script>
 </body>
 </html>

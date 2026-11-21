@@ -8,7 +8,7 @@ const { sendMail } = require('../mailer');
 const password = z.string().min(8).max(100).refine(p => /[A-Za-z]/.test(p) && /\d/.test(p), 'Use letters and at least one number');
 function sendVerify(req, user) {
   const t = createToken(user.id, 'verify', 60 * 24 * 3);
-  sendMail(user.email, 'Verify your SIIRA email', `Hi ${user.name},\n\nConfirm your email address to start using SIIRA:\n${baseUrl(req)}/api/auth/verify-email?token=${t}\n\nThe link works for 3 days.`);
+  sendMail(user.email, 'Verify your TalentBridge email', `Hi ${user.name},\n\nConfirm your email address to start using TalentBridge:\n${baseUrl(req)}/api/auth/verify-email?token=${t}\n\nThe link works for 3 days.`);
 }
 
 const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, email_verified: !!u.email_verified });
@@ -28,7 +28,7 @@ router.post('/register', validate(z.object({
   const hash = bcrypt.hashSync(password, 11);
   const id = db.transaction(() => {
     const uid = db.prepare('INSERT INTO users (name,email,password_hash,role,phone,consent_at) VALUES (?,?,?,?,?,datetime(\'now\'))').run(name, email, hash, role, phone || '').lastInsertRowid;
-    if (role === 'talent') db.prepare('INSERT INTO profiles (user_id, province) VALUES (?,?)').run(uid, province || '');
+    if (role === 'talent') db.prepare('INSERT INTO profiles (user_id, province, avatar_color) VALUES (?,?,?)').run(uid, province || '', ['#6a4bd8', '#2e7d5b', '#b4562e', '#3b6fb6', '#8a5a00', '#17241f'][uid % 6]);
     return uid;
   })();
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
@@ -63,7 +63,7 @@ router.post('/resend-verification', auth(), (req, res) => {
 // Same response whether or not the email exists (no account enumeration)
 router.post('/forgot', validate(z.object({ email: z.email() })), (req, res) => {
   const u = db.prepare("SELECT * FROM users WHERE email = ? AND status = 'active'").get(req.body.email);
-  if (u) sendMail(u.email, 'Reset your SIIRA password', `Hi ${u.name},\n\nReset your password here (valid for 1 hour):\n${baseUrl(req)}/app.html#reset=${createToken(u.id, 'reset', 60)}\n\nIf you did not ask for this, ignore this email.`);
+  if (u) sendMail(u.email, 'Reset your TalentBridge password', `Hi ${u.name},\n\nReset your password here (valid for 1 hour):\n${baseUrl(req)}/app.html#reset=${createToken(u.id, 'reset', 60)}\n\nIf you did not ask for this, ignore this email.`);
   res.json({ ok: true });
 });
 router.post('/reset', validate(z.object({ token: z.string().min(20).max(200), password })), (req, res) => {

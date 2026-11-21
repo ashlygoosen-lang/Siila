@@ -1,7 +1,7 @@
 {
-  "name": "siira-api",
+  "name": "talentbridge-api",
   "version": "1.0.0",
-  "description": "SIIRA backend: jobs, talent and hiring API (Node.js, Express, SQLite)",
+  "description": "TalentBridge backend: jobs, talent and hiring API (Node.js, Express, SQLite)",
   "main": "src/server.js",
   "type": "commonjs",
   "engines": {

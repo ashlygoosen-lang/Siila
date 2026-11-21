@@ -5,7 +5,8 @@ const crypto = require('crypto');
 const { HttpError, auth, requireRole, validate, z, PROVINCES } = require('../util');
 const fs = require('fs');
 const multer = require('multer');
-const { UPLOAD_DIR } = require('../services');
+const { UPLOAD_DIR, counts } = require('../services');
+const { subscribe, send, emit } = require('../events');
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 const EXT = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png' };
@@ -30,8 +31,11 @@ router.get('/saved', (req, res) => {
 });
 
 router.get('/applications', requireRole('talent'), (req, res) => {
-  const rows = db.prepare(`SELECT a.id, a.status, a.created_at, j.id AS job_id, j.title, j.city, j.province
-    FROM applications a JOIN jobs j ON j.id = a.job_id WHERE a.user_id = ? ORDER BY a.created_at DESC`).all(req.user.id);
+  const rows = db.prepare(`SELECT a.id, a.status, a.created_at, a.updated_at, a.message, a.bid_amount, a.delivery_days,
+      j.id AS job_id, j.title, j.city, j.province, j.status AS job_status, j.pay_label_unit, j.client_id,
+      (SELECT COUNT(*) FROM applications x WHERE x.job_id = j.id) AS bids,
+      (SELECT id FROM conversations c WHERE c.talent_id = a.user_id AND c.client_id = j.client_id AND IFNULL(c.job_id,0) = j.id) AS conversation_id
+    FROM applications a JOIN jobs j ON j.id = a.job_id WHERE a.user_id = ? ORDER BY a.created_at DESC`.replace('j.pay_label_unit, ', '')).all(req.user.id);
   res.json({ data: rows });
 });
 
@@ -48,11 +52,14 @@ router.put('/profile', requireRole('talent'), validate(z.object({
   hourly_rate: z.number().int().min(0).max(100000).optional(),
   province: z.enum(PROVINCES).optional(),
   city: z.string().trim().max(80).optional(),
+  languages: z.string().trim().max(120).optional(),
+  portfolio: z.array(z.object({ title: z.string().trim().min(2).max(80), url: z.url().max(300).optional().or(z.literal('')), description: z.string().trim().max(300).default('') })).max(12).optional(),
 })), (req, res) => {
   const b = req.body;
   const sets = [], args = [];
-  for (const k of ['headline', 'bio', 'hourly_rate', 'province', 'city']) if (b[k] !== undefined) { sets.push(`${k} = ?`); args.push(b[k]); }
+  for (const k of ['headline', 'bio', 'hourly_rate', 'province', 'city', 'languages']) if (b[k] !== undefined) { sets.push(`${k} = ?`); args.push(b[k]); }
   if (b.skills) { sets.push('skills = ?'); args.push(JSON.stringify(b.skills)); }
+  if (b.portfolio) { sets.push('portfolio = ?'); args.push(JSON.stringify(b.portfolio)); }
   if (sets.length) db.prepare(`UPDATE profiles SET ${sets.join(', ')} WHERE user_id = ?`).run(...args, req.user.id);
   res.json({ data: db.prepare('SELECT * FROM profiles WHERE user_id = ?').get(req.user.id) });
 });
@@ -84,10 +91,69 @@ router.get('/overview', (req, res) => {
   });
 });
 
-router.get('/notifications', (req, res) => {
-  res.json({ data: db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50').all(req.user.id), unread: n('SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND read = 0', req.user.id) });
+const NOTE_SELECT = `SELECT n.*, a.name AS actor_name, ap.avatar_color AS actor_color FROM notifications n
+  LEFT JOIN users a ON a.id = n.actor_id LEFT JOIN profiles ap ON ap.user_id = n.actor_id`;
+
+router.get('/notifications', validate(z.object({ before: z.coerce.number().int().optional(), limit: z.coerce.number().int().min(1).max(100).default(50) }), 'query'), (req, res) => {
+  const { before, limit } = req.q;
+  const rows = db.prepare(`${NOTE_SELECT} WHERE n.user_id = ? ${before ? 'AND n.id < ?' : ''} ORDER BY n.id DESC LIMIT ?`).all(req.user.id, ...(before ? [before] : []), limit);
+  res.json({ data: rows, unread: n('SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND read = 0', req.user.id) });
 });
-router.post('/notifications/read', (req, res) => { db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ?').run(req.user.id); res.status(204).end(); });
+router.post('/notifications/read', (req, res) => {
+  db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ?').run(req.user.id);
+  emit(req.user.id, 'counts', counts(req.user.id));
+  res.status(204).end();
+});
+router.post('/notifications/:id/read', (req, res) => {
+  db.prepare('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
+  emit(req.user.id, 'counts', counts(req.user.id));
+  res.status(204).end();
+});
+router.get('/counts', (req, res) => res.json(counts(req.user.id)));
+
+// Live stream: notifications, inbox messages and counters are pushed here as they happen.
+router.get('/stream', (req, res) => {
+  res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+  res.flushHeaders?.();
+  req.socket.setTimeout?.(0);
+  const off = subscribe(req.user.id, res);
+  db.prepare("UPDATE users SET last_seen_at = datetime('now') WHERE id = ?").run(req.user.id);
+  send(res, 'ready', { counts: counts(req.user.id) });
+  const ping = setInterval(() => send(res, 'ping', { t: Date.now() }), 25000);
+  req.on('close', () => { clearInterval(ping); off(); db.prepare("UPDATE users SET last_seen_at = datetime('now') WHERE id = ?").run(req.user.id); });
+});
+
+// Dashboard home: an activity feed ("posts") plus things that need the user's attention.
+router.get('/feed', (req, res) => {
+  const id = req.user.id, role = req.user.role;
+  const activity = db.prepare(`${NOTE_SELECT} WHERE n.user_id = ? ORDER BY n.id DESC LIMIT 30`).all(id);
+  const C = `SELECT c.id, c.status, c.amount_cents, c.updated_at, j.title AS job_title, cu.name AS client_name, tu.name AS talent_name
+    FROM contracts c JOIN jobs j ON j.id = c.job_id JOIN users cu ON cu.id = c.client_id JOIN users tu ON tu.id = c.talent_id`;
+  const out = { activity };
+  if (role === 'talent') {
+    const p = db.prepare('SELECT skills, headline, province FROM profiles WHERE user_id = ?').get(id) || {};
+    const words = [...JSON.parse(p.skills || '[]'), ...(p.headline || '').split(/\s+/)].map(w => w.toLowerCase().trim()).filter(w => w.length > 2).slice(0, 12);
+    const score = words.length ? words.map(() => '(CASE WHEN LOWER(j.title || \' \' || j.description || \' \' || j.category) LIKE ? THEN 1 ELSE 0 END)').join(' + ') : '0';
+    out.recommended = db.prepare(`SELECT j.*, (${score}) + (CASE WHEN j.province = ? THEN 1 ELSE 0 END) AS score FROM jobs j
+      WHERE j.status = 'open' AND j.id NOT IN (SELECT job_id FROM applications WHERE user_id = ?) ORDER BY score DESC, j.featured DESC, j.created_at DESC LIMIT 6`)
+      .all(...words.map(w => `%${w}%`), p.province || '', id).map(j => ({ ...shape(j), match: j.score }));
+    out.todo = [
+      ...db.prepare(`${C} WHERE c.talent_id = ? AND c.status = 'offered' ORDER BY c.updated_at DESC`).all(id).map(c => ({ kind: 'offer', text: `Respond to ${c.client_name}'s offer for "${c.job_title}"`, link: `#contracts/${c.id}`, contract: c })),
+      ...db.prepare(`${C} WHERE c.talent_id = ? AND c.status = 'funded' ORDER BY c.updated_at DESC`).all(id).map(c => ({ kind: 'work', text: `Deliver "${c.job_title}" for ${c.client_name}`, link: `#contracts/${c.id}`, contract: c })),
+    ];
+  } else {
+    out.recent_bids = db.prepare(`SELECT a.id, a.bid_amount, a.delivery_days, a.created_at, a.status, j.id AS job_id, j.title, u.name, u.id AS talent_id, p.rating, p.verified, p.avatar_color
+      FROM applications a JOIN jobs j ON j.id = a.job_id JOIN users u ON u.id = a.user_id LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE j.client_id = ? ORDER BY a.id DESC LIMIT 8`).all(id).map(r => ({ ...r, verified: !!r.verified }));
+    out.todo = [
+      ...db.prepare(`${C} WHERE c.client_id = ? AND c.status = 'accepted' ORDER BY c.updated_at DESC`).all(id).map(c => ({ kind: 'fund', text: `${c.talent_name} accepted. Fund escrow for "${c.job_title}"`, link: `#contracts/${c.id}`, contract: c })),
+      ...db.prepare(`${C} WHERE c.client_id = ? AND c.status = 'delivered' ORDER BY c.updated_at DESC`).all(id).map(c => ({ kind: 'review', text: `Review the delivered work for "${c.job_title}"`, link: `#contracts/${c.id}`, contract: c })),
+      ...db.prepare(`SELECT j.id, j.title, COUNT(a.id) n FROM jobs j JOIN applications a ON a.job_id = j.id AND a.status = 'submitted' WHERE j.client_id = ? AND j.status = 'open' GROUP BY j.id ORDER BY MAX(a.id) DESC`).all(id)
+        .map(j => ({ kind: 'bids', text: `${j.n} new bid${j.n > 1 ? 's' : ''} to review on "${j.title}"`, link: `#job/${j.id}/bids` })),
+    ];
+  }
+  res.json(out);
+});
 
 router.post('/verification', requireRole('talent', 'client'), upload.single('document'), validate(z.object({
   id_type: z.enum(['SA ID', 'Passport', 'Trade certificate', 'Company (CIPC)']),
@@ -115,7 +181,7 @@ router.post('/password', validate(z.object({ current: z.string().min(1), passwor
 // POPIA: right of access
 router.get('/export', (req, res) => {
   const id = req.user.id, all = (sql) => db.prepare(sql).all(id);
-  res.setHeader('Content-Disposition', 'attachment; filename="siira-my-data.json"');
+  res.setHeader('Content-Disposition', 'attachment; filename="talentbridge-my-data.json"');
   res.json({
     exported_at: new Date().toISOString(),
     account: db.prepare('SELECT id,name,email,phone,role,status,consent_at,created_at FROM users WHERE id = ?').get(id),
@@ -133,7 +199,7 @@ router.post('/delete', validate(z.object({ password: z.string().min(1) })), (req
   if (!bcrypt.compareSync(req.body.password, u.password_hash)) throw new HttpError(401, 'Incorrect password');
   if (n("SELECT COUNT(*) n FROM contracts WHERE (client_id = ? OR talent_id = ?) AND status IN ('offered','accepted','funded','delivered','disputed','released')", u.id, u.id)) throw new HttpError(409, 'Finish or cancel your active contracts first');
   db.transaction(() => {
-    db.prepare("UPDATE users SET name='Deleted user', email=?, phone='', status='deleted', password_hash=? WHERE id=?").run(`deleted+${u.id}@siira.invalid`, bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 4), u.id);
+    db.prepare("UPDATE users SET name='Deleted user', email=?, phone='', status='deleted', password_hash=? WHERE id=?").run(`deleted+${u.id}@talentbridge.invalid`, bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 4), u.id);
     db.prepare("UPDATE profiles SET headline='', bio='', skills='[]', city='', verified=0 WHERE user_id=?").run(u.id);
     db.prepare("UPDATE jobs SET status='closed' WHERE client_id=?").run(u.id);
     db.prepare('DELETE FROM saved_jobs WHERE user_id=?').run(u.id);

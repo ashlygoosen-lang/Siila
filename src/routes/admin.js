@@ -59,7 +59,7 @@ router.post('/verifications/:id/decision', validate(z.object({ decision: z.enum(
     db.prepare("UPDATE verifications SET doc_path = '' WHERE id = ?").run(v.id);
   })();
   if (v.doc_path) fs.unlink(path.join(UPLOAD_DIR, path.basename(v.doc_path)), () => {}); // delete the document once reviewed (POPIA)
-  notify(v.user_id, 'verification', req.body.decision === 'approved' ? 'You are verified. Your badge now shows on your profile.' : `Verification not approved. ${req.body.note}`);
+  notify(v.user_id, 'verification', req.body.decision === 'approved' ? 'You are verified. Your badge now shows on your profile.' : `Verification not approved. ${req.body.note}`, '#profile');
   audit(req.user.id, `verification.${req.body.decision}`, v.id); res.json({ ok: true });
 });
 
@@ -84,7 +84,7 @@ router.get('/export/contracts.csv', (_req, res) => {
   const head = ['Contract', 'Created', 'Updated', 'Job', 'Client', 'Professional', 'Amount (R)', 'Commission excl VAT (R)', 'VAT (R)', 'Payout (R)', 'Status', 'Payout ref'];
   const r2 = (c) => (c / 100).toFixed(2);
   const lines = [head.map(cell).join(',')].concat(rows.map(r => [r.id, r.created_at, r.updated_at, r.title, r.client, r.talent, r2(r.amount_cents), r2(r.commission_cents), r2(r.vat_cents), r2(r.payout_cents), r.status, r.payout_ref].map(cell).join(',')));
-  res.type('text/csv').setHeader('Content-Disposition', 'attachment; filename="siira-contracts.csv"');
+  res.type('text/csv').setHeader('Content-Disposition', 'attachment; filename="talentbridge-contracts.csv"');
   res.send('\uFEFF' + lines.join('\r\n'));
 });
 
@@ -129,7 +129,7 @@ router.post('/contracts/:id/resolve', validate(z.object({ action: z.enum(['relea
     db.prepare("UPDATE payments SET status=? WHERE contract_id=? AND status='paid'").run(release ? 'payout_due' : 'refund_due', c.id);
     db.prepare("UPDATE reports SET status='resolved', admin_note=? WHERE target_type='contract' AND target_id=? AND status!='resolved'").run(req.body.note, c.id);
   })();
-  for (const uid of [c.client_id, c.talent_id]) notify(uid, 'dispute', `Dispute on contract #${c.id} resolved: ${req.body.action === 'release' ? 'payment released to the professional' : 'client refunded'}.`);
+  for (const uid of [c.client_id, c.talent_id]) notify(uid, 'dispute', `Dispute on contract #${c.id} resolved: ${req.body.action === 'release' ? 'payment released to the professional' : 'client refunded'}.`, `#contracts/${c.id}`);
   audit(req.user.id, `dispute.${req.body.action}`, c.id, { note: req.body.note }); res.json({ ok: true });
 });
 router.post('/contracts/:id/payout', validate(z.object({ payout_ref: z.string().trim().min(3).max(80) })), (req, res) => {
@@ -139,7 +139,7 @@ router.post('/contracts/:id/payout', validate(z.object({ payout_ref: z.string().
     db.prepare("UPDATE contracts SET status = CASE WHEN status='released' THEN 'paid_out' ELSE status END, payout_ref=?, updated_at=datetime('now') WHERE id=?").run(req.body.payout_ref, c.id);
     db.prepare("UPDATE payments SET status = CASE WHEN status='payout_due' THEN 'paid_out' WHEN status='refund_due' THEN 'refunded' ELSE status END WHERE contract_id=?").run(c.id);
   })();
-  if (c.status === 'released') notify(c.talent_id, 'payment', `Payout for contract #${c.id} sent (ref ${req.body.payout_ref}).`);
+  if (c.status === 'released') notify(c.talent_id, 'payment', `Payout for contract #${c.id} sent (ref ${req.body.payout_ref}).`, `#contracts/${c.id}`);
   audit(req.user.id, 'payout.recorded', c.id, { ref: req.body.payout_ref }); res.json({ ok: true });
 });
 

@@ -1,6 +1,6 @@
-# SIIRA – hiring professional talent
+# TalentBridge – hiring professional talent
 
-Node.js backend for the SIIRA marketplace: jobs, talent profiles, applications, saved jobs and hire requests.
+TalentBridge is a South African freelance marketplace in the style of Freelancer.com: clients post jobs, professionals bid with a price and timeline, both sides chat in a live inbox, and payment runs through escrow with optional milestones.
 Express 5 + SQLite (better-sqlite3), JWT auth, zod validation, helmet, CORS, rate limiting.
 
 ## Run it
@@ -8,13 +8,18 @@ Express 5 + SQLite (better-sqlite3), JWT auth, zod validation, helmet, CORS, rat
 npm install
 cp .env.example .env      # set JWT_SECRET
 npm start                 # http://localhost:3000  (site + API)
-npm test                  # 10-step smoke test on an in-memory database
+npm test                  # 16-step smoke test on an in-memory database
 ```
 On first start the database is seeded with 8 jobs, 6 talent profiles and a client.
-Demo logins (password `Siira#2026`): `client@siira.test`, `talent1@siira.test` … `talent6@siira.test`.
+Demo logins (password `TalentBridge#2026`): `client@talentbridge.test`, `talent1@talentbridge.test` … `talent6@talentbridge.test`.
 Set `SEED_DEMO=false` before going live.
 
-The site in `public/index.html` loads jobs and talent from this API (and keeps working with sample data if the API is down).
+The site in `public/index.html` loads everything from this API: categories, live activity, jobs, professionals, stats and fees. Nothing is hard-coded, so it always shows real data (with a retry message if the API can't be reached).
+
+## Live updates
+Signed-in dashboards keep one connection to `GET /api/me/stream` (Server-Sent Events, sent with the `Authorization` header). The server pushes `notification`, `message`, `counts`, `read`, `typing` and `bids` events, so new bids, offers, acceptances, payments and chat messages appear instantly without refreshing. If the connection drops, the dashboard reconnects automatically and polls counters in the meantime.
+
+On a proxy such as Nginx, turn off response buffering for that path (the server already sends `X-Accel-Buffering: no`). Railway works without changes.
 
 ## Endpoints (JSON, `Authorization: Bearer <token>` where marked 🔒)
 | Method | Path | Notes |
@@ -27,13 +32,26 @@ The site in `public/index.html` loads jobs and talent from this API (and keeps w
 | GET | `/api/jobs/:id` | |
 | POST | `/api/jobs` 🔒 client | create job |
 | PATCH / DELETE | `/api/jobs/:id` 🔒 owner | `{status:'open'|'closed'}` / delete |
-| POST | `/api/jobs/:id/apply` 🔒 talent | `{message}`; one application per job |
-| GET | `/api/jobs/:id/applications` 🔒 owner | applicants |
+| POST / PUT / DELETE | `/api/jobs/:id/apply` 🔒 talent | place, edit or withdraw a bid `{bid_amount,delivery_days,message}` |
+| GET | `/api/jobs/:id/applications` 🔒 owner | bids, `?sort=price|rating|fast` |
+| PATCH | `/api/jobs/:id/applications/:aid` 🔒 owner | shortlist / decline a bid |
+| POST | `/api/jobs/:id/applications/:aid/chat` 🔒 owner | open a chat with a bidder |
 | POST / DELETE | `/api/jobs/:id/save` 🔒 | save / unsave |
 | GET | `/api/talent`, `/api/talent/:id` | `?q&province&verified&limit` |
 | POST | `/api/talent/:id/hire-request` | `{from_name,from_email,message}` |
 | GET | `/api/me/saved`, `/api/me/applications`, `/api/me/jobs` 🔒 | dashboards |
-| PUT | `/api/me/profile` 🔒 talent | headline, bio, skills, hourly_rate, province, city |
+| PUT | `/api/me/profile` 🔒 talent | headline, bio, skills, hourly_rate, province, city, languages, portfolio |
+| GET | `/api/me/feed` 🔒 | dashboard activity feed, to-do items, recommended jobs or latest bids |
+| GET | `/api/me/stream` 🔒 | live events (SSE) |
+| GET | `/api/me/counts` 🔒 | unread notifications and inbox messages |
+| GET / POST | `/api/inbox` 🔒 | conversations / start one `{user_id,job_id?,body?}` |
+| GET | `/api/inbox/:id` 🔒 | thread with `?before=` paging |
+| POST | `/api/inbox/:id/messages` 🔒 | multipart: `body` and optional `file` (PDF, image, DOCX, ZIP, 10 MB) |
+| POST | `/api/inbox/:id/read`, `/api/inbox/:id/typing` 🔒 | read receipts, typing indicator |
+| POST | `/api/contracts` 🔒 client | offer, from a bid with `application_id`, optional `milestones[]` |
+| POST | `/api/contracts/:id/milestones/:mid/submit` / `approve` 🔒 | milestone progress |
+| POST | `/api/talent/:id/message` 🔒 client | message a professional directly |
+| GET | `/api/pulse` | public live activity for the homepage |
 
 ## What is included
 Public site (`/`), Terms (`/terms.html`), Privacy (`/privacy.html`), dashboards (`/app.html`), REST API (`/api`), SEO (`robots.txt`, `sitemap.xml`), 404 page.
@@ -51,9 +69,9 @@ In production the database is copied to `<data dir>/backups` daily (last 14 kept
 ## Dashboards (`/app.html`)
 One login page, three workspaces based on the account role.
 - **Admin**: KPIs (volume, revenue, VAT, escrow), ID verification queue, payments and escrow (confirm EFT, resolve disputes, record payouts), reports, job moderation, users (suspend), hire enquiries, fee settings, audit log.
-- **Client**: post jobs, review applicants, make offers, fund escrow, approve work, dispute, review, find talent.
-- **Professional**: find and save jobs, apply, accept offers, deliver work, profile, verification, earnings, notifications.
-- **Everyone**: contract messaging, notifications, POPIA data export and account deletion.
+- **Hirer (client)**: home feed of bids, offers and payments as they happen; post jobs; compare and sort bids; shortlist, decline, chat, award with milestones; fund escrow, approve milestones and work; dispute; review; find and message talent.
+- **Professional**: home feed with offers, messages and jobs matching their skills; find work; bid, edit or withdraw; accept offers; complete milestones; deliver; profile with portfolio and languages; verification; earnings.
+- **Everyone**: live two-pane inbox (files, read receipts, typing, contract timeline lines), notification bell, POPIA data export and account deletion.
 
 Create the first admin with `ADMIN_EMAIL` / `ADMIN_PASSWORD` (see `.env.example`).
 

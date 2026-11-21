@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const db = require('./db');
 
-const DEMO_PASSWORD = 'Siira#2026';
+const DEMO_PASSWORD = 'TalentBridge#2026';
 
 function seed() {
   if (db.prepare('SELECT COUNT(*) c FROM users').get().c > 0) return false;
@@ -13,18 +13,18 @@ function seed() {
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
 
   db.transaction(() => {
-    addUser.run('SIIRA Admin', 'admin@siira.test', hash, 'admin');
-    const client = addUser.run('Demo Client', 'client@siira.test', hash, 'client').lastInsertRowid;
+    addUser.run('TalentBridge Admin', 'admin@talentbridge.test', hash, 'admin');
+    const client = addUser.run('Demo Client', 'client@talentbridge.test', hash, 'client').lastInsertRowid;
     const talent = [
-      ['Thando M.', 'Electrician', ['Wiring', 'Solar', 'Compliance'], 350, 'Gauteng', 'Johannesburg', 4.9, 212, '#0a3d8f'],
-      ['Lerato K.', 'Graphic Designer', ['Branding', 'Figma', 'Print'], 280, 'Western Cape', 'Cape Town', 5.0, 148, '#0f5aa8'],
-      ['Sipho N.', 'Plumber', ['Geysers', 'Leaks', 'Bathrooms'], 300, 'KwaZulu-Natal', 'Durban', 4.8, 186, '#c25400'],
-      ['Naledi P.', 'Bookkeeper', ['Xero', 'VAT', 'Payroll'], 220, 'Gauteng', 'Pretoria', 4.9, 97, '#b85f00'],
-      ['Ayanda D.', 'Web Developer', ['React', 'WordPress', 'SEO'], 320, 'Eastern Cape', 'Gqeberha', 4.9, 64, '#2f7be0'],
-      ['Zanele M.', 'Home Care Pro', ['Cleaning', 'Laundry', 'Elder care'], 75, 'Western Cape', 'Cape Town', 5.0, 305, '#062a63'],
+      ['Thando M.', 'Electrician', ['Wiring', 'Solar', 'Compliance'], 350, 'Gauteng', 'Johannesburg', 4.9, 212, '#6a4bd8'],
+      ['Lerato K.', 'Graphic Designer', ['Branding', 'Figma', 'Print'], 280, 'Western Cape', 'Cape Town', 5.0, 148, '#2e7d5b'],
+      ['Sipho N.', 'Plumber', ['Geysers', 'Leaks', 'Bathrooms'], 300, 'KwaZulu-Natal', 'Durban', 4.8, 186, '#b4562e'],
+      ['Naledi P.', 'Bookkeeper', ['Xero', 'VAT', 'Payroll'], 220, 'Gauteng', 'Pretoria', 4.9, 97, '#8a5a00'],
+      ['Ayanda D.', 'Web Developer', ['React', 'WordPress', 'SEO'], 320, 'Eastern Cape', 'Gqeberha', 4.9, 64, '#3b6fb6'],
+      ['Zanele M.', 'Home Care Pro', ['Cleaning', 'Laundry', 'Elder care'], 75, 'Western Cape', 'Cape Town', 5.0, 305, '#17241f'],
     ];
     talent.forEach(([name, headline, skills, rate, province, city, rating, done, color], i) => {
-      const id = addUser.run(name, `talent${i + 1}@siira.test`, hash, 'talent').lastInsertRowid;
+      const id = addUser.run(name, `talent${i + 1}@talentbridge.test`, hash, 'talent').lastInsertRowid;
       addProfile.run(id, headline, JSON.stringify(skills), rate, province, city, rating, done, color);
     });
     const g = (a, b, c) => `linear-gradient(120deg,${a},${b} 65%,${c})`;
@@ -39,6 +39,24 @@ function seed() {
       ['Plumber', 'Geyser installs and repairs across eThekwini.', 'Trades & Repairs', 'Freelance', 'KwaZulu-Natal', 'Durban', 250, 400, 'hour', 'tools', g('#3a1a00', '#c25400', '#ff8a00')],
     ];
     jobs.forEach(j => addJob.run(client, ...j));
+    // Bios and a few open bids so dashboards show real activity on a fresh install.
+    const bios = [
+      'Registered electrician with 9 years on homes and small businesses. COC certificates issued on every job.',
+      'Brand and print designer. I help small businesses look as good as the service they give.',
+      'Plumber for geysers, leaks and bathroom refits across eThekwini. Same-day call-outs where possible.',
+      'Bookkeeper for SMEs: monthly books, VAT201 and payroll on Xero and Sage.',
+      'Web developer building fast React and WordPress sites with local payment gateways.',
+      'Home care and cleaning professional. Reliable, discreet and references available.',
+    ];
+    const ids = db.prepare("SELECT id FROM users WHERE role = 'talent' ORDER BY id").all().map(r => r.id);
+    ids.forEach((id, i) => db.prepare('UPDATE profiles SET bio = ?, languages = ? WHERE user_id = ?').run(bios[i], i % 2 ? 'English, isiXhosa' : 'English, isiZulu', id));
+    const jobIds = db.prepare('SELECT id, title FROM jobs ORDER BY id').all();
+    const bid = db.prepare("INSERT INTO applications (job_id,user_id,message,bid_amount,delivery_days,updated_at) VALUES (?,?,?,?,?,datetime('now'))");
+    const byTitle = (t) => jobIds.find(j => j.title === t).id;
+    bid.run(byTitle('Website Developer'), ids[4], 'I have shipped three booking sites this year and can share them. I would start with a clickable prototype in week one.', 18000, 30);
+    bid.run(byTitle('Brand Designer'), ids[1], 'Fintech brands are my favourite brief. I would begin with a short workshop and three directions.', 28000, 21);
+    bid.run(byTitle('Plumber'), ids[2], 'Based in Durban with my own tools and bakkie. Geyser installs within 48 hours.', 320, 2);
+    bid.run(byTitle('Domestic Cleaner'), ids[5], 'Five years with Atlantic Seaboard families. Flexible mornings.', 70, 1);
     db.prepare('UPDATE users SET email_verified = 1').run();
   })();
   return true;
@@ -49,7 +67,7 @@ function ensureAdmin() {
   const { ADMIN_EMAIL: email, ADMIN_PASSWORD: pw } = process.env;
   if (!email || !pw || pw.length < 10) return false;
   if (db.prepare("SELECT 1 FROM users WHERE role = 'admin'").get()) return false;
-  db.prepare('INSERT INTO users (name,email,password_hash,role,email_verified) VALUES (?,?,?,?,1)').run('SIIRA Admin', email, bcrypt.hashSync(pw, 11), 'admin');
+  db.prepare('INSERT INTO users (name,email,password_hash,role,email_verified) VALUES (?,?,?,?,1)').run('TalentBridge Admin', email, bcrypt.hashSync(pw, 11), 'admin');
   return true;
 }
 

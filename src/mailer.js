@@ -18,7 +18,7 @@ async function sendMail(to, subject, text) {
     console.log(process.env.NODE_ENV === 'production' ? `[mail not sent: SMTP not configured] to=${to} subject=${subject}` : `[mail] to=${to}\n${subject}\n${text}\n`);
     return;
   }
-  try { await t.sendMail({ from: process.env.MAIL_FROM || 'SIIRA <no-reply@siira.co.za>', to, subject, text }); }
+  try { await t.sendMail({ from: process.env.MAIL_FROM || 'TalentBridge <no-reply@talentbridge.co.za>', to, subject, text }); }
   catch (e) { console.error('Mail failed:', e.message); }
 }
 

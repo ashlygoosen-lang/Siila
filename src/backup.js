@@ -7,7 +7,7 @@ async function backup() {
   if (file === ':memory:') return null;
   const dir = path.join(path.dirname(file), 'backups');
   fs.mkdirSync(dir, { recursive: true });
-  const name = `siira-${new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16)}.db`;
+  const name = `talentbridge-${new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16)}.db`;
   await db.backup(path.join(dir, name));
   fs.readdirSync(dir).filter(f => f.endsWith('.db')).sort().slice(0, -14).forEach(f => fs.unlinkSync(path.join(dir, f))); // keep 14
   return name;

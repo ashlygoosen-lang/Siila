@@ -15,7 +15,19 @@ router.post('/contact', limiter, validate(z.object({
   if (req.body.website) return res.status(201).json({ ok: true }); // bot
   const { name, email, topic, message } = req.body;
   db.prepare('INSERT INTO contact_messages (name,email,topic,message) VALUES (?,?,?,?)').run(name, email, topic, message);
-  sendMail(process.env.SUPPORT_EMAIL, `SIIRA enquiry: ${topic}`, `From: ${name} <${email}>\n\n${message}`);
+  sendMail(process.env.SUPPORT_EMAIL, `TalentBridge enquiry: ${topic}`, `From: ${name} <${email}>\n\n${message}`);
   res.status(201).json({ ok: true });
 });
+// Public live activity for the homepage: newest jobs and bids (first names only, no amounts per person).
+router.get('/pulse', (_req, res) => {
+  const jobs = db.prepare(`SELECT j.id, j.title, j.city, j.province, j.category, j.created_at AS at,
+    (SELECT COUNT(*) FROM applications a WHERE a.job_id = j.id) AS bids, (SELECT ROUND(AVG(bid_amount)) FROM applications a WHERE a.job_id = j.id) AS avg_bid, j.pay_unit
+    FROM jobs j WHERE j.status = 'open' ORDER BY j.id DESC LIMIT 6`).all().map(j => ({ kind: 'job', ...j }));
+  const bids = db.prepare(`SELECT a.created_at AS at, u.name, p.avatar_color, j.id AS job_id, j.title, j.city FROM applications a
+    JOIN users u ON u.id = a.user_id LEFT JOIN profiles p ON p.user_id = u.id JOIN jobs j ON j.id = a.job_id
+    WHERE j.status = 'open' AND u.status = 'active' ORDER BY a.id DESC LIMIT 6`).all()
+    .map(b => ({ kind: 'bid', ...b, name: b.name.split(' ')[0] + (b.name.split(' ')[1] ? ' ' + b.name.split(' ')[1][0] + '.' : '') }));
+  res.json({ data: [...jobs, ...bids].sort((a, b) => (b.at > a.at ? 1 : -1)).slice(0, 6) });
+});
+
 module.exports = router;

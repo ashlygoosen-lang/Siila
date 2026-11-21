@@ -131,4 +131,76 @@ CREATE TABLE IF NOT EXISTS audit_log (
 addCol('verifications', 'doc_path', "TEXT DEFAULT ''");
 addCol('verifications', 'doc_mime', "TEXT DEFAULT ''");
 
+// ---- TalentBridge: bids, inbox, live feed, milestones, portfolio ----
+addCol('applications', 'bid_amount', 'INTEGER');
+addCol('applications', 'delivery_days', 'INTEGER');
+addCol('applications', 'updated_at', 'TEXT');
+addCol('notifications', 'link', "TEXT DEFAULT ''");
+addCol('notifications', 'actor_id', 'INTEGER');
+addCol('profiles', 'portfolio', "TEXT NOT NULL DEFAULT '[]'");
+addCol('profiles', 'languages', "TEXT DEFAULT ''");
+addCol('users', 'last_seen_at', 'TEXT');
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS conversations (
+  id INTEGER PRIMARY KEY,
+  job_id INTEGER REFERENCES jobs(id) ON DELETE SET NULL,
+  client_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  talent_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_message_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conv_pair ON conversations(client_id, talent_id, IFNULL(job_id, 0));
+CREATE INDEX IF NOT EXISTS idx_conv_client ON conversations(client_id, last_message_at);
+CREATE INDEX IF NOT EXISTS idx_conv_talent ON conversations(talent_id, last_message_at);
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INTEGER PRIMARY KEY,
+  conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id INTEGER NOT NULL REFERENCES users(id),
+  body TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL DEFAULT 'text',
+  attachment_path TEXT DEFAULT '',
+  attachment_name TEXT DEFAULT '',
+  attachment_mime TEXT DEFAULT '',
+  attachment_size INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_chat_conv ON chat_messages(conversation_id, id);
+CREATE TABLE IF NOT EXISTS conversation_reads (
+  conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  last_read_id INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (conversation_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS contract_milestones (
+  id INTEGER PRIMARY KEY,
+  contract_id INTEGER NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL DEFAULT 0,
+  title TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','submitted','approved')),
+  note TEXT DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_milestones ON contract_milestones(contract_id, position);
+`);
+
+// One-time: move older contract messages into the new inbox conversations.
+if (!db.prepare("SELECT 1 FROM settings WHERE key = 'inbox_migrated'").get()) {
+  db.transaction(() => {
+    const rows = db.prepare('SELECT m.*, c.job_id, c.client_id, c.talent_id FROM messages m JOIN contracts c ON c.id = m.contract_id ORDER BY m.id').all();
+    const conv = db.prepare('SELECT id FROM conversations WHERE client_id = ? AND talent_id = ? AND IFNULL(job_id,0) = ?');
+    const addConv = db.prepare('INSERT INTO conversations (job_id, client_id, talent_id, created_at, last_message_at) VALUES (?,?,?,?,?)');
+    const addMsg = db.prepare('INSERT INTO chat_messages (conversation_id, sender_id, body, created_at) VALUES (?,?,?,?)');
+    const touch = db.prepare('UPDATE conversations SET last_message_at = ? WHERE id = ?');
+    for (const m of rows) {
+      const id = conv.get(m.client_id, m.talent_id, m.job_id || 0)?.id ?? addConv.run(m.job_id, m.client_id, m.talent_id, m.created_at, m.created_at).lastInsertRowid;
+      addMsg.run(id, m.sender_id, m.body, m.created_at);
+      touch.run(m.created_at, id);
+    }
+    db.prepare("INSERT INTO settings VALUES ('inbox_migrated','1')").run();
+    db.prepare("UPDATE users SET name = 'TalentBridge Admin' WHERE name = 'SIIRA Admin'").run();
+  })();
+}
+
 module.exports = db;
