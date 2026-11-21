@@ -54,6 +54,7 @@ async function loadPulse(){
 async function loadFacts(){
   try{const s=await get('/stats');
     const f=[[num(s.professionals),'professionals'],[num(s.open_jobs),'open jobs'],[s.avg_rating?s.avg_rating.toFixed(1)+' / 5':'New','average rating'],[num(s.jobs_completed),'jobs completed'],[num(s.bids_this_week),'bids this week']];
+    if(s.avg_rating){$('#rateVal').textContent=s.avg_rating.toFixed(1)+' out of 5';$('#rateChip').hidden=false}
     $('#facts').innerHTML=f.map(([v,l])=>`<div><b>${v}</b>${l}</div>`).join('');
   }catch{$('#facts').hidden=true}
 }
