@@ -96,7 +96,7 @@ function markFunded(contractId, reference) {
   if (!c || c.status !== 'accepted') return false;
   db.transaction(() => {
     db.prepare("UPDATE payments SET status = 'paid', paid_at = datetime('now') WHERE contract_id = ? AND reference = ?").run(contractId, reference);
-    db.prepare("UPDATE contracts SET status = 'funded', updated_at = datetime('now') WHERE id = ?").run(contractId);
+    db.prepare("UPDATE contracts SET status = 'funded', funded_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(contractId);
   })();
   const link = `#contracts/${c.id}`;
   try { require('./kyc').checkContract(c); } catch (e) { console.error('AML check failed', e.message); }

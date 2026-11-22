@@ -25,6 +25,7 @@ router.get('/overview', (_req, res) => {
     payments_to_confirm: n("SELECT COUNT(*) n FROM contracts c JOIN payments p ON p.contract_id=c.id WHERE c.status='accepted' AND p.status='pending' AND p.provider='manual'"),
     payouts_due: n("SELECT COUNT(*) n FROM contracts WHERE status='released'"),
     payouts_due_cents: n("SELECT SUM(payout_cents) n FROM contracts WHERE status='released'"),
+    contract_refunds_due: n("SELECT COUNT(*) n FROM contracts WHERE status='refunded' AND refunded_at IS NULL"),
     escrow_cents: n("SELECT SUM(amount_cents) n FROM contracts WHERE status IN ('funded','delivered','disputed')"),
     gmv_cents: n("SELECT SUM(amount_cents) n FROM contracts WHERE status IN ('funded','delivered','released','paid_out','disputed')"),
     revenue_cents: n("SELECT SUM(commission_cents) n FROM contracts WHERE status IN ('released','paid_out')"),
@@ -123,8 +124,9 @@ router.patch('/leads/:id', validate(z.object({ status: z.enum(['new', 'contacted
 router.get('/contracts', (_req, res) => {
   res.json({ data: db.prepare(`SELECT c.*, j.title job_title, cu.name client_name, tu.name talent_name, p.provider, p.reference, p.status payment_status
     FROM contracts c JOIN jobs j ON j.id=c.job_id JOIN users cu ON cu.id=c.client_id JOIN users tu ON tu.id=c.talent_id
-    LEFT JOIN payments p ON p.id = (SELECT MAX(id) FROM payments WHERE contract_id=c.id) ORDER BY c.updated_at DESC LIMIT 200`).all()
-    .map(c => ({ ...c, payout_blockers: c.status === 'released' ? require('../kyc').payoutBlockers(c) : [] })) });
+    LEFT JOIN payments p ON p.id = (SELECT MAX(id) FROM payments WHERE contract_id=c.id AND status != 'void') ORDER BY c.updated_at DESC LIMIT 300`).all()
+    .map(c => ({ ...c, state: require('../finance').moneyState(c, 'admin'), payout_blockers: c.status === 'released' ? require('../kyc').payoutBlockers(c) : [],
+      needs: c.status === 'released' ? 'payout' : c.status === 'refunded' && !c.refunded_at ? 'refund' : c.status === 'disputed' ? 'dispute' : c.status === 'accepted' && c.payment_status === 'pending' && c.provider === 'manual' ? 'eft' : '' })) });
 });
 router.post('/contracts/:id/mark-funded', (req, res) => {
   const p = db.prepare("SELECT reference FROM payments WHERE contract_id = ? AND status = 'pending' ORDER BY id DESC").get(req.params.id);
@@ -132,6 +134,7 @@ router.post('/contracts/:id/mark-funded', (req, res) => {
   audit(req.user.id, 'payment.confirmed', req.params.id, p); res.json({ ok: true });
 });
 // Upfront escrow for remote jobs: EFT deposits to confirm, and unused balances to refund.
+router.get('/finance', (_req, res) => res.json({ data: require('../finance').forAdmin() }));
 router.get('/escrow', (_req, res) => {
   res.json({
     deposits: db.prepare(`SELECT d.*, j.title job_title, u.name client_name, u.email client_email FROM job_deposits d JOIN jobs j ON j.id = d.job_id JOIN users u ON u.id = d.client_id
@@ -157,24 +160,36 @@ router.post('/escrow/refunds/:id/done', validate(z.object({ reference: z.string(
 router.post('/contracts/:id/resolve', validate(z.object({ action: z.enum(['release', 'refund']), note: z.string().trim().max(500).default('') })), (req, res) => {
   const c = db.prepare("SELECT * FROM contracts WHERE id = ? AND status = 'disputed'").get(req.params.id);
   if (!c) throw new HttpError(409, 'Only disputed contracts can be resolved');
+  const release = req.body.action === 'release';
+  // A contract paid from a remote job's upfront escrow goes back to that job's balance; the client can reuse it or ask for it back.
+  const pay = db.prepare("SELECT * FROM payments WHERE contract_id = ? AND status = 'paid' ORDER BY id DESC").get(c.id);
+  const toJob = !release && pay?.provider === 'job_escrow';
   db.transaction(() => {
-    const release = req.body.action === 'release';
-    db.prepare("UPDATE contracts SET status=?, updated_at=datetime('now') WHERE id=?").run(release ? 'released' : 'refunded', c.id);
-    db.prepare("UPDATE payments SET status=? WHERE contract_id=? AND status='paid'").run(release ? 'payout_due' : 'refund_due', c.id);
+    if (release) db.prepare("UPDATE contracts SET status='released', released_at=datetime('now'), resolution=?, updated_at=datetime('now') WHERE id=?").run(req.body.note || 'Released after dispute', c.id);
+    else db.prepare(`UPDATE contracts SET status='refunded', resolution=?, ${toJob ? "refunded_at=datetime('now'), refund_ref='Returned to job escrow'," : ''} updated_at=datetime('now') WHERE id=?`).run(req.body.note || 'Refunded after dispute', c.id);
+    db.prepare("UPDATE payments SET status=? WHERE contract_id=? AND status='paid'").run(release ? 'payout_due' : toJob ? 'refunded' : 'refund_due', c.id);
+    if (toJob) db.prepare('UPDATE jobs SET escrow_balance_cents = escrow_balance_cents + ? WHERE id = ?').run(c.amount_cents, c.job_id);
+    if (release) db.prepare('UPDATE profiles SET jobs_done = jobs_done + 1 WHERE user_id = ?').run(c.talent_id);
     db.prepare("UPDATE reports SET status='resolved', admin_note=? WHERE target_type='contract' AND target_id=? AND status!='resolved'").run(req.body.note, c.id);
   })();
-  for (const uid of [c.client_id, c.talent_id]) notify(uid, 'dispute', `Dispute on contract #${c.id} resolved: ${req.body.action === 'release' ? 'payment released to the professional' : 'client refunded'}.`, `#contracts/${c.id}`);
+  const R = (x) => 'R' + (x / 100).toLocaleString('en-ZA');
+  notify(c.client_id, 'dispute', `Dispute on contract #${c.id} resolved: ${release ? 'the payment was released to the professional' : toJob ? `${R(c.amount_cents)} went back into your job’s escrow` : `you will be refunded ${R(c.amount_cents)}`}.${req.body.note ? ' Note: ' + req.body.note : ''}`, `#contracts/${c.id}`);
+  notify(c.talent_id, 'dispute', `Dispute on contract #${c.id} resolved: ${release ? `your payout of ${R(c.payout_cents)} is being processed` : 'the client was refunded'}.${req.body.note ? ' Note: ' + req.body.note : ''}`, `#contracts/${c.id}`);
   audit(req.user.id, `dispute.${req.body.action}`, c.id, { note: req.body.note }); res.json({ ok: true });
 });
 router.post('/contracts/:id/payout', validate(z.object({ payout_ref: z.string().trim().min(3).max(80) })), (req, res) => {
   const c = db.prepare("SELECT * FROM contracts WHERE id = ? AND status IN ('released','refunded')").get(req.params.id);
   if (!c) throw new HttpError(409, 'Nothing to pay out for this contract');
   if (c.status === 'released') { const blockers = require('../kyc').payoutBlockers(c); if (blockers.length) throw new HttpError(409, `Payout on hold: ${blockers.join('; ')}`); }
+  if (c.status === 'refunded' && c.refunded_at) throw new HttpError(409, 'This refund was already recorded');
   db.transaction(() => {
-    db.prepare("UPDATE contracts SET status = CASE WHEN status='released' THEN 'paid_out' ELSE status END, payout_ref=?, updated_at=datetime('now') WHERE id=?").run(req.body.payout_ref, c.id);
+    if (c.status === 'released') db.prepare("UPDATE contracts SET status='paid_out', payout_ref=?, paid_out_at=datetime('now'), updated_at=datetime('now') WHERE id=?").run(req.body.payout_ref, c.id);
+    else db.prepare("UPDATE contracts SET refund_ref=?, refunded_at=datetime('now'), updated_at=datetime('now') WHERE id=?").run(req.body.payout_ref, c.id);
     db.prepare("UPDATE payments SET status = CASE WHEN status='payout_due' THEN 'paid_out' WHEN status='refund_due' THEN 'refunded' ELSE status END WHERE contract_id=?").run(c.id);
   })();
-  if (c.status === 'released') notify(c.talent_id, 'payment', `Payout for contract #${c.id} sent (ref ${req.body.payout_ref}).`, `#contracts/${c.id}`);
+  const R = (x) => 'R' + (x / 100).toLocaleString('en-ZA');
+  if (c.status === 'released') notify(c.talent_id, 'payment', `Payout of ${R(c.payout_cents)} for contract #${c.id} sent to your bank account (ref ${req.body.payout_ref}). It usually shows within 1 to 2 business days.`, `#payments`);
+  else notify(c.client_id, 'payment', `Refund of ${R(c.amount_cents)} for contract #${c.id} sent (ref ${req.body.payout_ref}). It usually shows within 5 business days.`, `#payments`);
   audit(req.user.id, 'payout.recorded', c.id, { ref: req.body.payout_ref }); res.json({ ok: true });
 });
 

@@ -71,6 +71,16 @@ router.post('/', requireRole('client'), requireEmailVerified, validate(z.object(
   res.status(201).json({ data: c });
 });
 
+// Shared printable receipt layout (contract escrow payments and remote-job escrow deposits).
+function receiptHtml(co, no, rows, total) {
+  return `<!doctype html><meta charset="utf-8"><title>${no}</title><style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1d2b4a}h1{font-size:26px;margin:0}table{width:100%;border-collapse:collapse;margin:18px 0}td{padding:10px 8px;border-bottom:1px solid #e3e8f2}td:first-child{color:#667592;width:34%}.t td{font-weight:700;font-size:18px;border-bottom:0}.m{color:#667592;font-size:13px}@media print{button{display:none}}</style>
+<button id="p" style="float:right;padding:8px 16px">Print</button><script>document.getElementById("p").onclick=function(){print()}</script>
+<h1>Payment receipt ${no}</h1><p class="m">Issued ${new Date().toLocaleDateString('en-ZA')}</p>
+<p><b>${esc(co.name || 'TalentBridge')}</b><br>${esc(co.address)}${co.reg ? '<br>Reg no: ' + esc(co.reg) : ''}${co.vat ? '<br>VAT no: ' + esc(co.vat) : ''}</p>
+<table>${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}<tr class="t"><td>Amount received</td><td>${total}</td></tr></table>
+<p class="m">TalentBridge holds this money in escrow on your behalf until you approve the work, then pays the professional. This receipt confirms a payment into escrow; it is not a tax invoice for services.</p>`;
+}
+
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const rand = (cents) => 'R ' + (cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -91,10 +101,27 @@ router.get('/:id/invoice', (req, res) => {
 <p class="m">${c.payout_ref ? 'Payout reference: ' + esc(c.payout_ref) : 'Payout pending.'}</p>`);
 });
 
+// Receipt for what the client paid into escrow.
+router.get('/:id/receipt', (req, res) => {
+  const c = load(req, req.params.id);
+  if (req.user.id !== c.client_id && req.user.role !== 'admin') throw new HttpError(403, 'Only the client can download this receipt');
+  const p = db.prepare("SELECT * FROM payments WHERE contract_id = ? AND status NOT IN ('void','pending','cancelled') ORDER BY id DESC").get(c.id);
+  if (!p || p.provider === 'job_escrow') throw new HttpError(404, p ? 'This contract was paid from your job’s upfront escrow; download that receipt from the job.' : 'No payment has been made on this contract yet');
+  const co = company(), no = 'TB-RCT-' + String(p.id).padStart(6, '0');
+  const st = require('../finance').moneyState(c, 'client');
+  res.type('html').send(receiptHtml(co, no, [
+    ['Received from', esc(c.client_name)], ['For', `${esc(c.job_title)} (contract #${c.id} with ${esc(c.talent_name)})`],
+    ['Paid on', p.paid_at ? new Date(p.paid_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-ZA') : ''], ['Method', { payfast: 'PayFast', manual: 'EFT', paystack: 'Paystack', sandbox: 'Test payment' }[p.provider] || esc(p.provider)],
+    ['Reference', esc(p.reference)], ['Status now', esc(st.label)],
+  ], rand(p.amount_cents)));
+});
+
 router.get('/:id', (req, res) => {
   const c = load(req, req.params.id);
+  const F = require('../finance');
   res.json({
     data: c,
+    money: { state: F.moneyState(c, req.user.id === c.talent_id ? 'talent' : req.user.id === c.client_id ? 'client' : 'admin'), timeline: F.timeline(c) },
     milestones: milestones(c.id),
     conversation_id: getOrCreateConversation(c.client_id, c.talent_id, c.job_id).id,
     review: db.prepare('SELECT rating, comment FROM reviews WHERE contract_id = ?').get(c.id) || null,
@@ -104,10 +131,11 @@ router.get('/:id', (req, res) => {
 
 // Client withdraws an offer that has not been accepted yet.
 router.post('/:id/withdraw', requireRole('client'), (req, res) => {
-  const c = load(req, req.params.id, 'client'); need(c, 'offered');
+  const c = load(req, req.params.id, 'client'); need(c, 'offered', 'accepted');
+  db.prepare("UPDATE payments SET status = 'void' WHERE contract_id = ? AND status = 'pending'").run(c.id);
   setStatus(c.id, 'cancelled');
-  notify(c.talent_id, 'declined', `${c.client_name} withdrew the offer for "${c.job_title}".`, L(c.id), c.client_id);
-  contractEvent(c, 'Offer withdrawn', c.client_id);
+  notify(c.talent_id, 'declined', `${c.client_name} ${c.status === 'accepted' ? 'cancelled the contract before paying' : 'withdrew the offer'} for "${c.job_title}". Nothing was charged.`, L(c.id), c.client_id);
+  contractEvent(c, c.status === 'accepted' ? 'Contract cancelled before payment' : 'Offer withdrawn', c.client_id);
   res.json({ ok: true });
 });
 
@@ -177,7 +205,7 @@ router.post('/:id/fund/simulate', requireRole('client'), (req, res) => {
 
 router.post('/:id/deliver', requireRole('talent'), validate(z.object({ note: z.string().trim().max(2000).default('') })), (req, res) => {
   const c = load(req, req.params.id, 'talent'); need(c, 'funded');
-  setStatus(c.id, 'delivered', ', delivery_note = ' + db.prepare('SELECT quote(?) q').get(req.body.note).q);
+  setStatus(c.id, 'delivered', ", delivered_at = datetime('now'), delivery_note = " + db.prepare('SELECT quote(?) q').get(req.body.note).q);
   notify(c.client_id, 'delivered', `${c.talent_name} delivered the work for "${c.job_title}". Review it and release payment.`, L(c.id), c.talent_id);
   contractEvent(c, 'Work delivered' + (req.body.note ? `: ${req.body.note.slice(0, 200)}` : ''), c.talent_id);
   res.json({ ok: true });
@@ -186,7 +214,7 @@ router.post('/:id/deliver', requireRole('talent'), validate(z.object({ note: z.s
 router.post('/:id/release', requireRole('client'), (req, res) => {
   const c = load(req, req.params.id, 'client'); need(c, 'delivered');
   db.transaction(() => {
-    setStatus(c.id, 'released');
+    setStatus(c.id, 'released', ", released_at = datetime('now')");
     db.prepare("UPDATE payments SET status = 'payout_due' WHERE contract_id = ? AND status = 'paid'").run(c.id);
     db.prepare('UPDATE profiles SET jobs_done = jobs_done + 1 WHERE user_id = ?').run(c.talent_id);
   })();
@@ -200,7 +228,7 @@ router.post('/:id/dispute', validate(z.object({ reason: z.string().trim().min(10
   const c = load(req, req.params.id); need(c, 'funded', 'delivered');
   if (req.user.role === 'admin') throw new HttpError(403, 'Admins resolve disputes, they do not open them');
   db.transaction(() => {
-    setStatus(c.id, 'disputed');
+    setStatus(c.id, 'disputed', ", disputed_at = datetime('now')");
     db.prepare("INSERT INTO reports (reporter_id,target_type,target_id,reason) VALUES (?, 'contract', ?, ?)").run(req.user.id, c.id, req.body.reason);
   })();
   const other = req.user.id === c.client_id ? c.talent_id : c.client_id;
@@ -254,3 +282,4 @@ router.post('/:id/messages', validate(z.object({ body: z.string().trim().min(1).
 });
 
 module.exports = router;
+module.exports.receiptHtml = receiptHtml;

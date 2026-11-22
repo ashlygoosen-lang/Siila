@@ -531,6 +531,73 @@ const { outbox } = require('../src/mailer');
     assert.equal((await call('GET', '/admin/remote-feeds', null, adm)).body.data.remotive.live, 2);
   });
 
+  await step('payments: each party sees the same money with dates, receipts, cancellations, disputes and refunds', async () => {
+    const pw = 'TalentBridge#2026';
+    const cl = (await call('POST', '/auth/login', { email: 'client@talentbridge.test', password: pw })).body.token;
+    const tt = (await call('POST', '/auth/login', { email: 'talent5@talentbridge.test', password: pw })).body.token;
+    const adm = (await call('POST', '/auth/login', { email: 'admin@talentbridge.test', password: pw })).body.token;
+    const tid = (await call('GET', '/auth/me', null, tt)).body.user.id;
+    const before = { c: (await call('GET', '/me/payments', null, cl)).body.summary, t: (await call('GET', '/me/payments', null, tt)).body.summary, a: (await call('GET', '/admin/finance', null, adm)).body.data };
+    const job = (await call('POST', '/jobs', { title: 'Paint a two-bedroom flat', description: 'Interior walls and ceilings, paint supplied by the client.', category: 'Trades & Repairs', type: 'Short-Term', province: 'Gauteng', city: 'Pretoria', pay_min: 4000, pay_max: 6000, pay_unit: 'project' }, cl)).body.data;
+    const offer = async (amount) => (await call('POST', '/contracts', { job_id: job.id, talent_id: tid, amount, description: 'Paint walls and ceilings' }, cl)).body.data;
+    const fund = async (id) => { const f = (await call('POST', `/contracts/${id}/fund`, null, cl)).body; assert.equal((await call('POST', `/contracts/${id}/fund/simulate`, null, cl)).status, 200); return f; };
+
+    // 1. Client can cancel after acceptance, before paying; nothing is charged
+    const c0 = await offer(5000);
+    await call('POST', `/contracts/${c0.id}/accept`, null, tt);
+    assert.equal((await call('GET', '/me/payments', null, cl)).body.summary.due_cents, before.c.due_cents + 500000);
+    assert.equal((await call('POST', `/contracts/${c0.id}/withdraw`, null, cl)).status, 200);
+    assert.equal((await call('GET', `/contracts/${c0.id}`, null, tt)).body.data.status, 'cancelled');
+
+    // 2. Full path: funded → delivered → released → paid out, with dates and plain-language states for each side
+    const c1 = await offer(6000);
+    await call('POST', `/contracts/${c1.id}/accept`, null, tt);
+    await fund(c1.id);
+    let vc = (await call('GET', `/contracts/${c1.id}`, null, cl)).body, vt = (await call('GET', `/contracts/${c1.id}`, null, tt)).body;
+    assert.equal(vc.money.state.key, 'held'); assert.equal(vt.money.state.label, 'Held in escrow'); assert.ok(vc.data.funded_at); assert.equal(vc.money.timeline[0].key, 'funded');
+    assert.equal((await call('GET', '/me/payments', null, tt)).body.summary.in_escrow_cents, before.t.in_escrow_cents + vt.data.payout_cents);
+    const rc = await raw(`/contracts/${c1.id}/receipt`, cl); assert.equal(rc.status, 200); assert.ok(rc.text.includes('Payment receipt') && rc.text.includes('R 6'));
+    assert.equal((await raw0(`/contracts/${c1.id}/receipt`, tt)).status, 403);
+    await call('POST', `/contracts/${c1.id}/deliver`, { note: 'Done' }, tt);
+    await call('POST', `/contracts/${c1.id}/release`, null, cl);
+    vt = (await call('GET', `/contracts/${c1.id}`, null, tt)).body;
+    assert.equal(vt.money.state.key, 'payout'); assert.ok(vt.data.released_at); assert.deepEqual(vt.money.timeline.map(t => t.key), ['funded', 'delivered', 'released']);
+    let ts = (await call('GET', '/me/payments', null, tt)).body;
+    assert.equal(ts.summary.on_the_way_cents, before.t.on_the_way_cents + vt.data.payout_cents);
+    let fin = (await call('GET', '/admin/finance', null, adm)).body.data;
+    assert.equal(fin.payouts_due_cents, before.a.payouts_due_cents + vt.data.payout_cents);
+    assert.ok((await call('GET', '/admin/contracts', null, adm)).body.data.some(c => c.id === c1.id && c.needs === 'payout'));
+    assert.equal((await call('POST', `/admin/contracts/${c1.id}/payout`, { payout_ref: 'EFT-777' }, adm)).status, 200);
+    vt = (await call('GET', `/contracts/${c1.id}`, null, tt)).body;
+    assert.equal(vt.money.state.key, 'done'); assert.ok(vt.money.state.detail.includes('EFT-777')); assert.equal(vt.money.timeline.at(-1).ref, 'EFT-777');
+    ts = (await call('GET', '/me/payments', null, tt)).body;
+    assert.equal(ts.summary.paid_out_cents, before.t.paid_out_cents + vt.data.payout_cents);
+    assert.ok(ts.rows.some(r => r.id === c1.id && r.payout_ref === 'EFT-777' && r.net_cents === vt.data.payout_cents));
+    let cs = (await call('GET', '/me/payments', null, cl)).body;
+    assert.equal(cs.summary.released_cents, before.c.released_cents + 600000);
+    assert.ok(cs.rows.some(r => r.id === c1.id && r.receipt && r.state.label === 'Paid to the professional'));
+
+    // 3. Dispute → admin refunds the client → refund recorded and shown to both sides
+    const c2 = await offer(4500);
+    await call('POST', `/contracts/${c2.id}/accept`, null, tt);
+    await fund(c2.id);
+    await call('POST', `/contracts/${c2.id}/dispute`, { reason: 'The painter did not arrive on the agreed days.' }, cl);
+    assert.equal((await call('GET', `/contracts/${c2.id}`, null, cl)).body.money.state.label, 'On hold: dispute');
+    assert.equal((await call('GET', '/admin/finance', null, adm)).body.data.disputed_cents, before.a.disputed_cents + 450000);
+    assert.equal((await call('POST', `/admin/contracts/${c2.id}/resolve`, { action: 'refund', note: 'No work was done' }, adm)).status, 200);
+    cs = (await call('GET', '/me/payments', null, cl)).body;
+    assert.equal(cs.summary.refund_pending_cents, before.c.refund_pending_cents + 450000);
+    assert.equal((await call('GET', '/admin/finance', null, adm)).body.data.refunds_due_cents, before.a.refunds_due_cents + 450000);
+    assert.equal((await call('POST', `/admin/contracts/${c2.id}/payout`, { payout_ref: 'PF-RF-55' }, adm)).status, 200);
+    assert.equal((await call('POST', `/admin/contracts/${c2.id}/payout`, { payout_ref: 'PF-RF-56' }, adm)).status, 409); // can't record twice
+    const v2 = (await call('GET', `/contracts/${c2.id}`, null, cl)).body;
+    assert.equal(v2.money.state.key, 'refunded'); assert.ok(v2.money.state.detail.includes('PF-RF-55')); assert.equal(v2.data.resolution, 'No work was done');
+    cs = (await call('GET', '/me/payments', null, cl)).body;
+    assert.equal(cs.summary.refunded_cents, before.c.refunded_cents + 450000); assert.equal(cs.summary.refund_pending_cents, before.c.refund_pending_cents);
+    assert.ok(outbox.some(m => /Refund of R4/.test(m.text)));
+    assert.equal((await call('GET', '/me/payments', null, adm)).body.role, 'admin');
+  });
+
   await step('PayFast: signed checkout, verified ITN funds escrow, forged or wrong-amount ITNs are ignored', async () => {
     const PF = require('../src/payfast');
     // PHP urlencode compatibility

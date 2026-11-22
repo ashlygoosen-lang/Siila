@@ -375,6 +375,10 @@ if (!/awaiting_funding/.test(db.prepare("SELECT sql FROM sqlite_master WHERE nam
   })();
   db.pragma('foreign_keys = ON');
 }
+// When each money step happened, so every party sees dates, not just a status.
+for (const c of ['funded_at', 'delivered_at', 'released_at', 'paid_out_at', 'disputed_at', 'refunded_at']) addCol('contracts', c, 'TEXT');
+addCol('contracts', 'refund_ref', "TEXT NOT NULL DEFAULT ''");
+addCol('contracts', 'resolution', "TEXT NOT NULL DEFAULT ''");
 db.exec(`CREATE TABLE IF NOT EXISTS job_deposits (
   id INTEGER PRIMARY KEY,
   job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,

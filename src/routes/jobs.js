@@ -140,6 +140,19 @@ router.post('/:id/escrow/simulate', auth(), validate(z.object({ reference: z.str
   const out = ESC.markDepositPaid(d.reference, 'sandbox');
   res.json({ data: { ...shape(out), escrow: ESC.summary(out) } });
 });
+router.get('/:id/escrow/receipt/:did', auth(), (req, res) => {
+  const j = owned(req);
+  const d = db.prepare("SELECT * FROM job_deposits WHERE id = ? AND job_id = ? AND status = 'paid'").get(req.params.did, j.id);
+  if (!d) throw new HttpError(404, 'Receipt not found');
+  const { company } = require('../services');
+  const e = (s) => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const u = db.prepare('SELECT name FROM users WHERE id = ?').get(j.client_id);
+  res.type('html').send(require('./contracts').receiptHtml(company(), 'TB-ESC-' + String(d.id).padStart(6, '0'), [
+    ['Received from', e(u?.name)], ['For', `Upfront escrow for remote job #${j.id}: ${e(j.title)}`],
+    ['Paid on', d.paid_at ? new Date(d.paid_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-ZA') : ''], ['Method', { payfast: 'PayFast', manual: 'EFT', sandbox: 'Test payment' }[d.provider] || e(d.provider)],
+    ['Reference', e(d.reference)],
+  ], 'R ' + (d.amount_cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2 })));
+});
 router.post('/:id/escrow/refund', auth(), requireRole('client', 'admin'), (req, res) => {
   const j = owned(req);
   const amount = ESC.requestRefund(req.user.id, j);

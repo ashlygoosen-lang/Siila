@@ -105,7 +105,8 @@ router.get('/overview', (req, res) => {
       applications: n('SELECT COUNT(*) n FROM applications WHERE user_id = ?', id),
       active_contracts: n("SELECT COUNT(*) n FROM contracts WHERE talent_id = ? AND status IN ('offered','accepted','funded','delivered')", id),
       earned_cents: n("SELECT SUM(payout_cents) n FROM contracts WHERE talent_id = ? AND status = 'paid_out'", id),
-      pending_cents: n("SELECT SUM(payout_cents) n FROM contracts WHERE talent_id = ? AND status IN ('funded','delivered','released')", id),
+      pending_cents: n("SELECT SUM(payout_cents) n FROM contracts WHERE talent_id = ? AND status IN ('funded','delivered','released','disputed')", id),
+      on_the_way_cents: n("SELECT SUM(payout_cents) n FROM contracts WHERE talent_id = ? AND status = 'released'", id),
       verification: db.prepare('SELECT status FROM verifications WHERE user_id = ? ORDER BY id DESC').get(id)?.status || null,
     });
   }
@@ -115,7 +116,8 @@ router.get('/overview', (req, res) => {
     applicants: n('SELECT COUNT(*) n FROM applications a JOIN jobs j ON j.id = a.job_id WHERE j.client_id = ?', id),
     active_contracts: n("SELECT COUNT(*) n FROM contracts WHERE client_id = ? AND status IN ('offered','accepted','funded','delivered')", id),
     needs_action: n("SELECT COUNT(*) n FROM contracts WHERE client_id = ? AND status IN ('accepted','delivered')", id),
-    spent_cents: n("SELECT SUM(amount_cents) n FROM contracts WHERE client_id = ? AND status IN ('funded','delivered','released','paid_out')", id),
+    spent_cents: n("SELECT SUM(amount_cents) n FROM contracts WHERE client_id = ? AND status IN ('released','paid_out')", id),
+    held_cents: n("SELECT SUM(amount_cents) n FROM contracts WHERE client_id = ? AND status IN ('funded','delivered','disputed')", id) + n('SELECT SUM(escrow_balance_cents) n FROM jobs WHERE client_id = ? AND escrow_required = 1', id),
   });
 });
 
@@ -152,6 +154,14 @@ router.get('/stream', (req, res) => {
 });
 
 // Dashboard home: an activity feed ("posts") plus things that need the user's attention.
+// Each party's money: what they paid or earned, where it is now, and every movement with dates and references.
+router.get('/payments', (req, res) => {
+  const F = require('../finance');
+  if (req.user.role === 'talent') return res.json(F.forTalent(req.user.id));
+  if (req.user.role === 'client') return res.json(F.forClient(req.user.id));
+  res.json({ role: 'admin', summary: F.forAdmin(), rows: [] });
+});
+
 router.get('/feed', (req, res) => {
   const id = req.user.id, role = req.user.role;
   const activity = db.prepare(`${NOTE_SELECT} WHERE n.user_id = ? ORDER BY n.id DESC LIMIT 30`).all(id);
@@ -168,6 +178,7 @@ router.get('/feed', (req, res) => {
     out.todo = [
       ...db.prepare(`${C} WHERE c.talent_id = ? AND c.status = 'offered' ORDER BY c.updated_at DESC`).all(id).map(c => ({ kind: 'offer', text: `Respond to ${c.client_name}'s offer for "${c.job_title}"`, link: `#contracts/${c.id}`, contract: c })),
       ...db.prepare(`${C} WHERE c.talent_id = ? AND c.status = 'funded' ORDER BY c.updated_at DESC`).all(id).map(c => ({ kind: 'work', text: `Deliver "${c.job_title}" for ${c.client_name}`, link: `#contracts/${c.id}`, contract: c })),
+      ...require('../finance').forTalent(id).holds.filter(h => /Add your bank|identity verification/.test(h)).map(h => ({ kind: 'fund', text: `Payout waiting: ${h}`, link: '#verify' })),
     ];
   } else {
     out.recent_bids = db.prepare(`SELECT a.id, a.bid_amount, a.delivery_days, a.created_at, a.status, j.id AS job_id, j.title, u.name, u.id AS talent_id, p.rating, p.verified, p.avatar_color
@@ -176,6 +187,7 @@ router.get('/feed', (req, res) => {
     out.todo = [
       ...db.prepare(`${C} WHERE c.client_id = ? AND c.status = 'accepted' ORDER BY c.updated_at DESC`).all(id).map(c => ({ kind: 'fund', text: `${c.talent_name} accepted. Fund escrow for "${c.job_title}"`, link: `#contracts/${c.id}`, contract: c })),
       ...db.prepare(`${C} WHERE c.client_id = ? AND c.status = 'delivered' ORDER BY c.updated_at DESC`).all(id).map(c => ({ kind: 'review', text: `Review the delivered work for "${c.job_title}"`, link: `#contracts/${c.id}`, contract: c })),
+      ...db.prepare("SELECT id, title, escrow_cents FROM jobs WHERE client_id = ? AND status = 'awaiting_funding' ORDER BY id DESC").all(id).map(j => ({ kind: 'fund', text: `Pay the escrow to put "${j.title}" live`, link: `#job/${j.id}` })),
       ...db.prepare(`SELECT j.id, j.title, COUNT(a.id) n FROM jobs j JOIN applications a ON a.job_id = j.id AND a.status = 'submitted' WHERE j.client_id = ? AND j.status = 'open' GROUP BY j.id ORDER BY MAX(a.id) DESC`).all(id)
         .map(j => ({ kind: 'bids', text: `${j.n} new bid${j.n > 1 ? 's' : ''} to review on "${j.title}"`, link: `#job/${j.id}/bids` })),
     ];
