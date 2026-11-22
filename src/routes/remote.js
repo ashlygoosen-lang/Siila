@@ -46,9 +46,13 @@ router.get('/remote', validate(q, 'query'), (req, res) => {
     const rows = db.prepare(`SELECT * FROM feed_jobs WHERE ${w.join(' AND ')} ORDER BY published_at DESC LIMIT ? OFFSET ?`).all(...a, limit, (page - 1) * limit);
     partners = { data: rows.map(feedShape), meta: { page, limit, total, pages: Math.ceil(total / limit) } };
   }
+  const stats = { open_to_sa: db.prepare('SELECT COUNT(*) n FROM feed_jobs WHERE open_to_sa = 1').get().n + db.prepare("SELECT COUNT(*) n FROM jobs WHERE status = 'open' AND remote = 1").get().n,
+    total: db.prepare('SELECT COUNT(*) n FROM feed_jobs').get().n, companies: db.prepare("SELECT COUNT(DISTINCT company) n FROM feed_jobs WHERE company != ''").get().n,
+    funded: db.prepare("SELECT COUNT(*) n FROM jobs WHERE status = 'open' AND remote = 1 AND escrow_required = 1 AND funded_at IS NOT NULL").get().n };
+  const hiring = db.prepare(`SELECT company FROM feed_jobs WHERE company != '' ${region === 'sa' ? 'AND open_to_sa = 1' : ''} GROUP BY company ORDER BY MAX(published_at) DESC LIMIT 24`).all().map(r => r.company);
   const cats = db.prepare(`SELECT category, COUNT(*) n FROM feed_jobs ${region === 'sa' ? 'WHERE open_to_sa = 1' : ''} GROUP BY category ORDER BY n DESC`).all();
   res.set('Cache-Control', 'no-cache');
-  res.json({ talentbridge: tb, partners, categories: cats, sources: Object.entries(F.SOURCES).map(([k, s]) => ({ key: k, name: s.name, site: s.site })) });
+  res.json({ talentbridge: tb, partners, categories: cats, stats, hiring, sources: Object.entries(F.SOURCES).map(([k, s]) => ({ key: k, name: s.name, site: s.site })) });
 });
 
 router.get('/fx', (_req, res) => {
