@@ -428,6 +428,47 @@ const { outbox } = require('../src/mailer');
     const pub = (await call('GET', '/talent/' + fid)).body.data;
     assert.equal(pub.international, true); assert.equal(pub.occupation, 'Software Developer'); assert.equal(pub.country, 'Nigeria');
   });
+  await step('PayFast: signed checkout, verified ITN funds escrow, forged or wrong-amount ITNs are ignored', async () => {
+    const PF = require('../src/payfast');
+    // PHP urlencode compatibility
+    assert.equal(PF.enc('Test item & more'), 'Test+item+%26+more'); assert.equal(PF.enc("a~b!c'(d)*"), 'a%7Eb%21c%27%28d%29%2A');
+    // signature matches the reference algorithm (fields in order, trimmed, empty skipped, passphrase last)
+    const f = { merchant_id: '10000100', merchant_key: '46f0cd694581a', amount: '100.00', item_name: ' Test product ', name_last: '' };
+    assert.equal(PF.checkoutSignature(f, 'jt7NOE43FZPn'), PF.md5('merchant_id=10000100&merchant_key=46f0cd694581a&amount=100.00&item_name=Test+product&passphrase=jt7NOE43FZPn'));
+    process.env.PAYMENTS_MODE = 'payfast'; process.env.PAYFAST_SKIP_IP_CHECK = 'true'; process.env.PAYFAST_SKIP_VALIDATE = 'true';
+    try {
+      const pw = 'TalentBridge#2026';
+      const cl = (await call('POST', '/auth/login', { email: 'client@talentbridge.test', password: pw })).body.token;
+      const tt = (await call('POST', '/auth/login', { email: 'talent5@talentbridge.test', password: pw })).body.token;
+      const tid = (await call('GET', '/auth/me', null, tt)).body.user.id;
+      const job = (await call('POST', '/jobs', { title: 'Install a 5 kW inverter', description: 'Supply and install inverter with battery, COC included.', category: 'Trades & Repairs', type: 'Freelance', province: 'Gauteng', city: 'Midrand', pay_min: 20000, pay_max: 40000, pay_unit: 'project' }, cl)).body.data;
+      const cr = await call('POST', '/contracts', { job_id: job.id, talent_id: tid, amount: 31250, description: 'Inverter, battery and COC' }, cl);
+      const c = cr.body.data;
+      assert.equal((await call('POST', `/contracts/${c.id}/accept`, null, tt)).status, 200);
+      const pay = (await call('POST', `/contracts/${c.id}/fund`, null, cl)).body;
+      assert.equal(pay.mode, 'payfast'); assert.equal(pay.action, 'https://sandbox.payfast.co.za/eng/process');
+      assert.equal(pay.fields.amount, (c.amount_cents / 100).toFixed(2)); assert.equal(pay.fields.m_payment_id, pay.reference);
+      assert.ok(pay.fields.notify_url.endsWith('/api/webhooks/payfast')); assert.ok(pay.fields.return_url.includes('payment=return'));
+      const { signature, ...unsigned } = pay.fields; assert.equal(signature, PF.checkoutSignature(unsigned, 'jt7NOE43FZPn'));
+      // build an ITN the way PayFast sends one
+      const itn = (over = {}) => {
+        const d = { m_payment_id: pay.reference, pf_payment_id: '1089250', payment_status: 'COMPLETE', item_name: pay.fields.item_name, item_description: pay.fields.item_description,
+          amount_gross: pay.fields.amount, amount_fee: '-720.36', amount_net: '30530.14', custom_str1: '', custom_int1: String(c.id), name_first: pay.fields.name_first, name_last: pay.fields.name_last || '',
+          email_address: pay.fields.email_address, merchant_id: '10000100', ...over };
+        const pairs = Object.entries(d); const sig = PF.md5(PF.itnParamString(pairs) + '&passphrase=jt7NOE43FZPn');
+        return pairs.map(([k, v]) => `${k}=${PF.enc(v)}`).join('&') + '&signature=' + (over.__sig || sig);
+      };
+      const post = (body) => fetch(base + '/webhooks/payfast', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body });
+      assert.equal((await post(itn({ __sig: 'f'.repeat(32) }).replace('&__sig=' + 'f'.repeat(32), ''))).status, 400); // forged signature
+      assert.equal((await post(itn({ amount_gross: '10.00' }))).status, 200); // valid signature, wrong amount: ignored
+      assert.equal((await call('GET', `/contracts/${c.id}`, null, cl)).body.data.status, 'accepted');
+      assert.equal((await post(itn())).status, 200);
+      assert.equal((await call('GET', `/contracts/${c.id}`, null, cl)).body.data.status, 'funded');
+      assert.equal((await post(itn())).status, 200); // repeated ITN is harmless
+      const row = require('../src/db').prepare('SELECT * FROM payments WHERE reference = ?').get(pay.reference);
+      assert.equal(row.status, 'paid'); assert.equal(row.provider_ref, '1089250'); assert.ok(row.paid_at);
+    } finally { delete process.env.PAYMENTS_MODE; delete process.env.PAYFAST_SKIP_IP_CHECK; delete process.env.PAYFAST_SKIP_VALIDATE; }
+  });
   await step('unknown API route returns JSON 404', async () => {
     assert.equal((await call('GET', '/nope')).status, 404);
   });

@@ -30,6 +30,8 @@ app.use(helmet({
       'font-src': ["'self'", 'https://fonts.gstatic.com'],
       'img-src': ["'self'", 'data:', 'blob:'],
       'media-src': ["'self'", 'blob:'],
+      // the checkout form posts straight to PayFast's payment page
+      'form-action': ["'self'", 'https://www.payfast.co.za', 'https://sandbox.payfast.co.za'],
     },
   },
 }));
@@ -73,6 +75,63 @@ app.get('/api/stats', (_req, res) => {
     bids_this_week: c("SELECT COUNT(*) c FROM applications WHERE created_at > datetime('now','-7 days')"),
     reviews: c('SELECT COUNT(*) c FROM reviews'),
   });
+});
+
+// PayFast self-test (sandbox only): posts a signed R5 test payment to the PayFast sandbox and reports whether the
+// ITN that comes back passes every check. Used to prove the integration on the real server before going live.
+const selftests = new Map();
+app.get('/api/payfast/selftest', (req, res) => {
+  const PF = require('./payfast');
+  if (!PF.isSandbox()) return res.status(404).json({ error: 'Only available in PayFast sandbox mode' });
+  const { baseUrl } = require('./services');
+  const ref = 'SELFTEST-' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
+  selftests.set(ref, { created: Date.now(), itn: null });
+  for (const [k, v] of selftests) if (Date.now() - v.created > 3600e3) selftests.delete(k);
+  const b = baseUrl(req);
+  const out = PF.checkout({ reference: ref, amountCents: 500, itemName: 'TalentBridge PayFast self-test', itemDescription: 'Sandbox test payment & signature check', buyer: { first: 'Test', last: 'Buyer', email: 'sbtu01@payfast.io' }, contractId: 0, baseUrl: b });
+  out.fields.return_url = `${b}/api/payfast/selftest/result?ref=${ref}`; out.fields.cancel_url = out.fields.return_url;
+  const { signature, ...unsigned } = out.fields; out.fields.signature = PF.checkoutSignature(unsigned, PF.creds().pass);
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  res.type('html').send(`<!doctype html><meta charset="utf-8"><title>PayFast self-test</title><body style="font:16px system-ui;padding:40px"><p>Sending a R5.00 sandbox test payment to PayFast…</p>
+<form id="f" method="post" action="${esc(out.action)}">${Object.entries(out.fields).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('')}<button>Continue to PayFast</button></form>
+<script>document.getElementById('f').submit()</script>`);
+});
+app.get('/api/payfast/selftest/result', (req, res) => {
+  const st = selftests.get(String(req.query.ref || ''));
+  if (!st) return res.status(404).type('html').send('<p style="font:16px system-ui;padding:40px">Unknown or expired test.</p>');
+  const r = st.itn;
+  res.type('html').send(`<!doctype html><meta charset="utf-8"><title>PayFast self-test</title>${r ? '' : '<meta http-equiv="refresh" content="3">'}<body style="font:16px system-ui;padding:40px;max-width:640px">
+<h1 style="font-size:24px">PayFast self-test</h1><p>Reference: <code>${req.query.ref}</code></p>
+${!r ? '<p>Waiting for PayFast’s notification (ITN)… this page refreshes every 3 seconds.</p>'
+    : r.ok ? `<p style="color:#1f6b45;font-weight:700">ITN received and verified: signature, PayFast server address and PayFast confirmation all passed. Payment status: ${r.status}.</p>`
+    : `<p style="color:#b42318;font-weight:700">ITN received but rejected: ${r.reason}.</p>`}`);
+});
+
+// PayFast ITN: PayFast posts here after every payment. Nothing is trusted until verifyItn() passes all four checks.
+app.post('/api/webhooks/payfast', express.urlencoded({ extended: false, limit: '20kb', verify: (req, _res, buf) => { req.rawBody = buf; } }), async (req, res) => {
+  const PF = require('./payfast');
+  const { audit } = require('./services');
+  const v = await PF.verifyItn(req.rawBody ? req.rawBody.toString('utf8') : '', req.ip);
+  const d = v.data || {};
+  const st = selftests.get(d.m_payment_id);
+  if (st) { st.itn = { ok: v.ok, reason: v.reason || '', status: d.payment_status || '', at: new Date().toISOString() }; return res.sendStatus(v.ok ? 200 : 400); }
+  if (!v.ok) {
+    console.warn(`PayFast ITN rejected (${v.reason}) ref=${d.m_payment_id || '-'} ip=${req.ip}`);
+    audit(null, 'payment.itn_rejected', d.m_payment_id || '', { reason: v.reason, ip: req.ip });
+    return res.sendStatus(400);
+  }
+  const p = db.prepare('SELECT * FROM payments WHERE reference = ?').get(d.m_payment_id);
+  if (!p) { audit(null, 'payment.itn_unknown', d.m_payment_id || '', { pf: d.pf_payment_id }); return res.sendStatus(200); }
+  const gross = Math.round(parseFloat(d.amount_gross) * 100);
+  audit(null, 'payment.itn_' + String(d.payment_status || '').toLowerCase(), p.reference, { pf: d.pf_payment_id, gross, fee: d.amount_fee, net: d.amount_net });
+  if (gross !== p.amount_cents) { console.warn(`PayFast amount mismatch ref=${p.reference} expected=${p.amount_cents} got=${gross}`); return res.sendStatus(200); }
+  if (d.payment_status === 'COMPLETE') {
+    db.prepare('UPDATE payments SET provider_ref = ? WHERE id = ?').run(String(d.pf_payment_id || ''), p.id);
+    markFunded(p.contract_id, p.reference);
+  } else if (d.payment_status === 'CANCELLED' && p.status === 'pending') {
+    db.prepare("UPDATE payments SET status = 'cancelled' WHERE id = ?").run(p.id);
+  }
+  res.sendStatus(200);
 });
 
 app.post('/api/webhooks/paystack', (req, res) => {
@@ -132,7 +191,7 @@ if (seedDemo && seed()) console.log('Seeded demo data (password for demo account
 
 if (require.main === module) {
   const port = process.env.PORT || 3000;
-  const srv = app.listen(port, () => console.log(`TalentBridge API listening on http://localhost:${port}`));
+  const srv = app.listen(port, () => { console.log(`TalentBridge API listening on http://localhost:${port}`); if (isProd) require('./readiness').logReport(); });
   const stop = () => srv.close(() => { db.close(); process.exit(0); });
   process.on('SIGTERM', stop); process.on('SIGINT', stop);
   if (isProd && process.env.BACKUP_DAILY !== 'false') { // daily SQLite backup, keeps the last 14

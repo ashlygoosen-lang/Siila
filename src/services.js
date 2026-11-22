@@ -8,7 +8,7 @@ const { emit } = require('./events');
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'siira.db');
 const UPLOAD_DIR = process.env.UPLOAD_DIR || (dbPath === ':memory:' ? path.join(os.tmpdir(), 'talentbridge-uploads') : path.join(path.dirname(dbPath), 'uploads'));
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
-const baseUrl = (req) => process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+const baseUrl = (req) => (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
 const company = () => ({ name: process.env.COMPANY_NAME || '', reg: process.env.COMPANY_REG || '', vat: process.env.VAT_NUMBER || '', address: process.env.COMPANY_ADDRESS || '', email: process.env.SUPPORT_EMAIL || 'support@talentbridge.co.za', phone: process.env.SUPPORT_PHONE || '', info_officer: process.env.INFO_OFFICER || '' });
 
 function createToken(uid, kind, minutes) {
@@ -88,14 +88,14 @@ function calcFees(amountCents) {
   return { commission_cents: commission, vat_cents: vat, payout_cents: amountCents - commission - vat };
 }
 
-// sandbox: simulate payments (dev) | manual: EFT, admin confirms | paystack: card/EFT via Paystack
+// sandbox: simulate payments (dev) | manual: EFT, admin confirms | payfast: card, Instant EFT and more via PayFast | paystack
 const paymentsMode = () => process.env.PAYMENTS_MODE || (process.env.NODE_ENV === 'production' ? 'manual' : 'sandbox');
 
 function markFunded(contractId, reference) {
   const c = db.prepare('SELECT * FROM contracts WHERE id = ?').get(contractId);
   if (!c || c.status !== 'accepted') return false;
   db.transaction(() => {
-    db.prepare("UPDATE payments SET status = 'paid' WHERE contract_id = ? AND reference = ?").run(contractId, reference);
+    db.prepare("UPDATE payments SET status = 'paid', paid_at = datetime('now') WHERE contract_id = ? AND reference = ?").run(contractId, reference);
     db.prepare("UPDATE contracts SET status = 'funded', updated_at = datetime('now') WHERE id = ?").run(contractId);
   })();
   const link = `#contracts/${c.id}`;

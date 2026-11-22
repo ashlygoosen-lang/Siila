@@ -2,7 +2,7 @@ const router = require('express').Router();
 const crypto = require('crypto');
 const db = require('../db');
 const { requireEmailVerified, HttpError, auth, requireRole, validate, z } = require('../util');
-const { company, notify, calcFees, paymentsMode, markFunded, contractEvent, getOrCreateConversation } = require('../services');
+const { company, notify, calcFees, paymentsMode, markFunded, contractEvent, getOrCreateConversation, baseUrl } = require('../services');
 const K = require('../kyc');
 const L = (id) => `#contracts/${id}`;
 const milestones = (id) => db.prepare('SELECT * FROM contract_milestones WHERE contract_id = ? ORDER BY position').all(id);
@@ -133,6 +133,15 @@ router.post('/:id/fund', requireRole('client'), async (req, res) => {
   const reference = `TB-${c.id}-${crypto.randomBytes(4).toString('hex')}`;
   db.prepare("UPDATE payments SET status = 'void' WHERE contract_id = ? AND status = 'pending'").run(c.id);
   db.prepare('INSERT INTO payments (contract_id,provider,reference,amount_cents) VALUES (?,?,?,?)').run(c.id, mode, reference, c.amount_cents);
+  if (mode === 'payfast') {
+    const PF = require('../payfast');
+    if (!PF.configured()) throw new HttpError(503, 'Card payments are not set up yet. Please contact support.');
+    const u = db.prepare('SELECT name, email FROM users WHERE id = ?').get(req.user.id);
+    const [first, ...rest] = String(u.name || '').trim().split(/\s+/);
+    const out = PF.checkout({ reference, amountCents: c.amount_cents, itemName: `TalentBridge contract #${c.id}`, itemDescription: `Escrow for: ${c.job_title || 'contract'}`,
+      buyer: { first, last: rest.join(' '), email: u.email }, contractId: c.id, baseUrl: baseUrl(req) });
+    return res.json({ mode, reference, ...out });
+  }
   if (mode === 'paystack') {
     const email = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id).email;
     const r = await fetch('https://api.paystack.co/transaction/initialize', {

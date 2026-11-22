@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 
+// On Railway, keep the database (and uploads, backups and keys beside it) on the attached volume so they survive deploys.
+if (!process.env.DB_PATH && process.env.RAILWAY_VOLUME_MOUNT_PATH) process.env.DB_PATH = path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'talentbridge.db');
 const file = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'siira.db');
 if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
 
@@ -208,6 +210,8 @@ addCol('users', 'kyc_status', "TEXT NOT NULL DEFAULT 'none'"); // none | draft |
 addCol('users', 'failed_logins', 'INTEGER NOT NULL DEFAULT 0');
 addCol('users', 'locked_until', 'TEXT');
 addCol('contracts', 'aml_hold', 'INTEGER NOT NULL DEFAULT 0');
+addCol('payments', 'provider_ref', "TEXT NOT NULL DEFAULT ''");
+addCol('payments', 'paid_at', 'TEXT');
 // Allow work permit and SAQA certificate uploads in databases created before these kinds existed (SQLite can't alter a CHECK, so rebuild).
 if (!/work_permit/.test(db.prepare("SELECT sql FROM sqlite_master WHERE name = 'kyc_documents'").get()?.sql || 'work_permit')) {
   db.pragma('foreign_keys = OFF');

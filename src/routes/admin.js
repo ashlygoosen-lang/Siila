@@ -9,6 +9,8 @@ router.use(auth(), requireRole('admin'));
 const n = (sql, ...a) => db.prepare(sql).get(...a).n || 0;
 const like = (q) => `%${q || ''}%`;
 
+router.get('/readiness', (_req, res) => res.json({ data: require('../readiness').checks() }));
+
 router.get('/overview', (_req, res) => {
   res.json({
     talent: n("SELECT COUNT(*) n FROM users WHERE role='talent' AND status='active'"),
