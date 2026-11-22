@@ -435,7 +435,7 @@ const { outbox } = require('../src/mailer');
     // signature matches the reference algorithm (fields in order, trimmed, empty skipped, passphrase last)
     const f = { merchant_id: '10000100', merchant_key: '46f0cd694581a', amount: '100.00', item_name: ' Test product ', name_last: '' };
     assert.equal(PF.checkoutSignature(f, 'jt7NOE43FZPn'), PF.md5('merchant_id=10000100&merchant_key=46f0cd694581a&amount=100.00&item_name=Test+product&passphrase=jt7NOE43FZPn'));
-    process.env.PAYMENTS_MODE = 'payfast'; process.env.PAYFAST_SKIP_IP_CHECK = 'true'; process.env.PAYFAST_SKIP_VALIDATE = 'true';
+    process.env.PAYMENTS_MODE = 'payfast'; Object.assign(process.env, { PAYFAST_MERCHANT_ID: '10000100', PAYFAST_MERCHANT_KEY: '46f0cd694581a', PAYFAST_PASSPHRASE: 'jt7NOE43FZPn' }); process.env.PAYFAST_SKIP_IP_CHECK = 'true'; process.env.PAYFAST_SKIP_VALIDATE = 'true';
     try {
       const pw = 'TalentBridge#2026';
       const cl = (await call('POST', '/auth/login', { email: 'client@talentbridge.test', password: pw })).body.token;
@@ -467,7 +467,12 @@ const { outbox } = require('../src/mailer');
       assert.equal((await post(itn())).status, 200); // repeated ITN is harmless
       const row = require('../src/db').prepare('SELECT * FROM payments WHERE reference = ?').get(pay.reference);
       assert.equal(row.status, 'paid'); assert.equal(row.provider_ref, '1089250'); assert.ok(row.paid_at);
-    } finally { delete process.env.PAYMENTS_MODE; delete process.env.PAYFAST_SKIP_IP_CHECK; delete process.env.PAYFAST_SKIP_VALIDATE; }
+      const adm = (await call('POST', '/auth/login', { email: 'admin@talentbridge.test', password: pw })).body.token;
+      const rd = (await call('GET', '/admin/readiness', null, adm)).body.data;
+      assert.ok(rd.checks.some(c => c.key === 'payfast_setup' && c.ok)); assert.ok(rd.checks.some(c => c.key === 'payfast_live' && !c.ok));
+      assert.ok(rd.checks.some(c => c.key === 'demo' && !c.ok)); assert.equal(rd.ready, false);
+      assert.equal((await call('GET', '/admin/readiness', null, cl)).status, 403);
+    } finally { for (const k of ['PAYMENTS_MODE', 'PAYFAST_SKIP_IP_CHECK', 'PAYFAST_SKIP_VALIDATE', 'PAYFAST_MERCHANT_ID', 'PAYFAST_MERCHANT_KEY', 'PAYFAST_PASSPHRASE']) delete process.env[k]; }
   });
   await step('unknown API route returns JSON 404', async () => {
     assert.equal((await call('GET', '/nope')).status, 404);

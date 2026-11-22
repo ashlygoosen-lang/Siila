@@ -83,6 +83,11 @@ const selftests = new Map();
 app.get('/api/payfast/selftest', (req, res) => {
   const PF = require('./payfast');
   if (!PF.isSandbox()) return res.status(404).json({ error: 'Only available in PayFast sandbox mode' });
+  if (!PF.configured()) return res.status(503).type('html').send(`<!doctype html><meta charset="utf-8"><title>PayFast self-test</title><body style="font:16px system-ui;padding:40px;max-width:640px;line-height:1.5">
+<h1 style="font-size:24px">PayFast isn’t set up yet</h1><ol><li>Create a free sandbox account at <a href="https://sandbox.payfast.co.za">sandbox.payfast.co.za</a>.</li>
+<li>In it, open Settings → Developer settings, note the Merchant ID and Merchant Key, and set a passphrase.</li>
+<li>In Railway → Variables set <code>PAYMENTS_MODE=payfast</code>, <code>PAYFAST_SANDBOX=true</code>, <code>PAYFAST_MERCHANT_ID</code>, <code>PAYFAST_MERCHANT_KEY</code> and <code>PAYFAST_PASSPHRASE</code>.</li>
+<li>Open this page again to send a R5 test payment.</li></ol>`);
   const { baseUrl } = require('./services');
   const ref = 'SELFTEST-' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
   selftests.set(ref, { created: Date.now(), itn: null });
@@ -90,9 +95,7 @@ app.get('/api/payfast/selftest', (req, res) => {
   const b = baseUrl(req);
   const out = PF.checkout({ reference: ref, amountCents: 500, itemName: 'TalentBridge PayFast self-test', itemDescription: 'Sandbox test payment & signature check', buyer: { first: 'Test', last: 'Buyer', email: 'sbtu01@payfast.io' }, contractId: 0, baseUrl: b });
   out.fields.return_url = `${b}/api/payfast/selftest/result?ref=${ref}`; out.fields.cancel_url = out.fields.return_url;
-  // ?passphrase=none signs without a passphrase, to find out how the sandbox account is set up
-  const { signature, ...unsigned } = out.fields; out.fields.signature = PF.checkoutSignature(unsigned, req.query.passphrase === 'none' ? '' : PF.creds().pass);
-  selftests.get(ref).nopass = req.query.passphrase === 'none';
+  const { signature, ...unsigned } = out.fields; out.fields.signature = PF.checkoutSignature(unsigned, PF.creds().pass);
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   res.type('html').send(`<!doctype html><meta charset="utf-8"><title>PayFast self-test</title><body style="font:16px system-ui;padding:40px"><p>Sending a R5.00 sandbox test payment to PayFast…</p>
 <form id="f" method="post" action="${esc(out.action)}">${Object.entries(out.fields).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('')}<button>Continue to PayFast</button></form>

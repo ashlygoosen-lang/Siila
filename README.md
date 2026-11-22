@@ -85,8 +85,9 @@ PayFast then posts an ITN to `/api/webhooks/payfast`; the contract is marked fun
 the MD5 signature (with your passphrase), the request coming from a PayFast server (DNS of www/sandbox/w1w/w2w.payfast.co.za),
 the amount matching the contract, and PayFast confirming the data at `/eng/query/validate`. Repeated ITNs are harmless.
 
-1. Test: keep `PAYFAST_SANDBOX=true` (PayFast's shared sandbox account is used if no merchant details are set). As admin, open
-   `/api/payfast/selftest`: it sends a R5 sandbox payment and shows whether the ITN was verified on your server.
+1. Test: create a free sandbox account at https://sandbox.payfast.co.za, set a passphrase in it (Settings > Developer settings) and set
+   `PAYFAST_SANDBOX=true`, `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`. Then open `/api/payfast/selftest`:
+   it sends a R5 sandbox payment and shows whether the ITN was verified on your server. (PayFast's shared demo account rejects signed requests.)
 2. Go live: in the PayFast dashboard set a passphrase (Settings > Developer settings), then set `PAYFAST_MERCHANT_ID`,
    `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, `PAYFAST_SANDBOX=false` and `APP_URL=https://your-domain`.
 PayFast's transaction fees are deducted from your PayFast settlement, not from the client or the professional.

@@ -8,13 +8,14 @@ const dns = require('dns').promises;
 const isSandbox = () => process.env.PAYFAST_SANDBOX !== 'false';
 const host = () => (isSandbox() ? 'sandbox.payfast.co.za' : 'www.payfast.co.za');
 
-// PayFast's shared public sandbox account is used when no merchant details are set (sandbox only).
+// Merchant details always come from the environment. For testing, create a free sandbox account at
+// https://sandbox.payfast.co.za (its own merchant ID, key and passphrase); PayFast's shared demo account
+// does not accept signed requests, so it can't be used to prove the integration.
 function creds() {
-  if (process.env.PAYFAST_MERCHANT_ID) return { id: process.env.PAYFAST_MERCHANT_ID, key: process.env.PAYFAST_MERCHANT_KEY || '', pass: process.env.PAYFAST_PASSPHRASE || '' };
-  if (isSandbox()) return { id: '10000100', key: '46f0cd694581a', pass: process.env.PAYFAST_PASSPHRASE ?? 'jt7NOE43FZPn' };
-  return null;
+  if (!process.env.PAYFAST_MERCHANT_ID) return null;
+  return { id: process.env.PAYFAST_MERCHANT_ID, key: process.env.PAYFAST_MERCHANT_KEY || '', pass: process.env.PAYFAST_PASSPHRASE || '' };
 }
-const configured = () => !!creds() && (isSandbox() || (!!process.env.PAYFAST_MERCHANT_KEY && !!process.env.PAYFAST_PASSPHRASE));
+const configured = () => !!creds() && !!process.env.PAYFAST_MERCHANT_KEY && !!process.env.PAYFAST_PASSPHRASE;
 
 // Same encoding as PHP urlencode(): spaces become "+", hex in upper case, only A-Z a-z 0-9 - _ . left as is.
 const enc = (v) => encodeURIComponent(String(v)).replace(/%20/g, '+').replace(/[!'()*~]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
