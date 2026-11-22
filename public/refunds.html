@@ -2,7 +2,7 @@
 <html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Refund Policy | TalentBridge</title>
 <meta name="description" content="When and how money paid into Escrow on TalentBridge is refunded, including your cooling-off right and how to request a refund.">
-<link rel="icon" href="/assets/favicon-32.png"><link rel="stylesheet" href="/assets/tb.css"><link rel="stylesheet" href="/assets/legal.css">
+<link rel="icon" href="/assets/favicon-32.png"><link rel="stylesheet" href="/assets/tb.css"><link rel="stylesheet" href="/assets/legal.css"><link rel="stylesheet" href="/assets/motion.css">
 </head><body>
 <header class="lh"><div class="in"><a class="brand" href="/"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#6a4bd8"/><path d="M10 40c7-12 14-17 22-17s15 5 22 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M20 30v17M44 30v17" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M9 47h46" stroke="#f5b935" stroke-width="5" stroke-linecap="round"/></svg>TalentBridge</a><nav><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a><a href="/refunds.html" aria-current="page">Refunds</a><a class="btn sm" href="/app.html">Log in</a></nav></div></header>
 <div class="hero-l"><div class="in"><h1>Refund Policy</h1><p class="meta">Last updated 22 November 2026 · Effective 22 November 2026</p><p class="intro">When and how money paid into Escrow on TalentBridge is refunded, including your cooling-off right and how to request a refund.</p></div></div>
@@ -66,4 +66,5 @@ fetch('/api/config').then(r=>r.json()).then(c=>{const k=c.company||{};document.q
 fetch('/api/meta').then(r=>r.json()).then(m=>{document.querySelectorAll('[data-fee]').forEach(e=>e.textContent=m.commission_pct+'%');document.querySelectorAll('[data-vat]').forEach(e=>e.textContent=m.vat_pct+'%')}).catch(()=>{});
 document.getElementById('printBtn').addEventListener('click',()=>print());
 </script>
+<script src="/assets/motion.js" defer></script>
 </body></html>

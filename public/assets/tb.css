@@ -104,3 +104,23 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--jac);margin:0;fle
 .legal h1{font-size:44px;margin:30px 0 16px}
 .legal h2{font-size:24px;margin:30px 0 10px}
 .legal li{margin-bottom:6px}
+
+/* ===== motion shared by every page ===== */
+:root{--ease-out:cubic-bezier(.16,1,.3,1);--ease-io:cubic-bezier(.65,0,.35,1)}
+/* smooth cross-page transitions in browsers that support them (others navigate normally) */
+@view-transition{navigation:auto}
+@media (prefers-reduced-motion:no-preference){
+  ::view-transition-old(root){animation:vtOut .32s var(--ease-io) both}
+  ::view-transition-new(root){animation:vtIn .6s var(--ease-out) both}
+  @keyframes vtOut{to{opacity:0;transform:scale(.99)}}
+  @keyframes vtIn{from{opacity:0;transform:translate3d(0,14px,0)}}
+  .modal{animation:fade .3s var(--ease-out)}
+  .modal .sheet{animation:sheetIn .5s var(--ease-out)}
+  @keyframes sheetIn{from{opacity:0;transform:translate3d(0,18px,0) scale(.97)}}
+  .toast{animation:tin .55s var(--ease-out)}
+  .btn{transition:background .2s,color .2s,box-shadow .35s var(--ease-out),transform .35s var(--ease-out)}
+  .btn:active{transform:scale(.97);transition-duration:.1s}
+  .row,.panel.lift{transition:transform .45s var(--ease-out),box-shadow .45s var(--ease-out)}
+  a.row:hover{transform:translate3d(0,-2px,0)}
+}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}

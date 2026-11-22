@@ -14,6 +14,8 @@
 <link rel="preload" href="/assets/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/tb.css">
 <link rel="stylesheet" href="/assets/home.css">
+<link rel="stylesheet" href="/assets/motion.css">
+<script>document.documentElement.classList.add('motion')</script>
 </head>
 <body>
 <header class="hd dark" id="hd"><div class="wrap">
@@ -24,10 +26,18 @@
 </div></header>
 
 <main>
-<section class="hero"><div class="wrap">
+<section class="hero">
+<svg class="bridge" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+  <defs><linearGradient id="bridgeGrad" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#6a4bd8" stop-opacity=".15"/><stop offset=".5" stop-color="#8b6cf0" stop-opacity=".7"/><stop offset="1" stop-color="#f5b935" stop-opacity=".5"/></linearGradient>
+  <radialGradient id="sparkGlow"><stop offset="0" stop-color="#fff"/><stop offset=".4" stop-color="#f5d27a" stop-opacity=".8"/><stop offset="1" stop-color="#f5b935" stop-opacity="0"/></radialGradient></defs>
+  <path class="b1" id="bridgeArc" d="M-120 1010 C 240 470, 1200 470, 1560 1010"/>
+  <path class="b2" d="M-120 1080 C 300 640, 1140 640, 1560 1080"/>
+  <g class="spark"><circle r="14" fill="url(#sparkGlow)"/><circle r="2.5" fill="#fff"/><animateMotion dur="3.2s" begin="indefinite" fill="freeze" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines=".45 0 .25 1"><mpath href="#bridgeArc"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.12;.85;1" dur="3.2s" begin="indefinite" fill="freeze"/></g>
+</svg>
+<div class="wrap">
   <div class="grid">
     <div>
-      <h1>Post a job. Compare bids. Pay when it’s done.</h1>
+      <h1><span class="ln" style="--i:0"><span>Post a job.</span></span> <span class="ln" style="--i:1"><span>Compare bids.</span></span> <span class="ln" style="--i:2"><span>Pay when it’s done.</span></span></h1>
       <p class="lede">TalentBridge connects South African homes and businesses with verified electricians, designers, cleaners, developers, drivers and bookkeepers. Your money stays in escrow until you approve the work.</p>
       <div class="mode" role="group" aria-label="What are you looking for?"><button type="button" data-mode="jobs" aria-pressed="true">Find work</button><button type="button" data-mode="talent" aria-pressed="false">Find talent</button></div>
       <form class="search" id="search" role="search">
@@ -263,5 +273,6 @@
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <script src="/assets/home.js"></script>
+<script src="/assets/motion.js" defer></script>
 </body>
 </html>

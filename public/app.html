@@ -229,6 +229,8 @@ td .btn{margin:2px 4px 2px 0}
 .stepper li:not(:last-child)::after{content:"";position:absolute;top:15px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2px;background:var(--line)}.stepper li.on:not(:last-child)::after{background:#1f7a4d}
 .intl.on{border:1.5px solid #cfe6da;background:linear-gradient(180deg,#f3fbf6,var(--paper) 60%)}.intl h2 svg{vertical-align:-3px}
 .row h3 .st,.ph h1 .st{font-family:var(--sans);font-size:12px;font-weight:650;vertical-align:4px;margin-left:6px}
+@media (prefers-reduced-motion:no-preference){#view.vin>*{animation:vIn .6s var(--ease-out) both}#view.vin>*:nth-child(2){animation-delay:.05s}#view.vin>*:nth-child(3){animation-delay:.1s}#view.vin>*:nth-child(n+4){animation-delay:.15s}
+@keyframes vIn{from{opacity:0;transform:translate3d(0,14px,0)}}.stepper li.on i{transition:background .5s var(--ease-out)}.bar i{transition:width .9s var(--ease-out)}}
 .qbadge{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line2)}.qbadge:first-of-type{border:0}
 @media(max-width:600px){.kqual .kh,.kdoc{flex-wrap:wrap}.kqual .kh .kacts{justify-content:flex-start}}
 @media(max-width:1000px){.kgrid{grid-template-columns:1fr}.ksticky{position:static}.kgrid>aside{order:-1}}
@@ -450,8 +452,8 @@ async function route(soft){
   if(r==='admin')fn=()=>A_V[id||'overview']?.(sub);
   else fn=V[r];
   if(!fn||(r==='admin'&&me.role!=='admin')){view.innerHTML=empty('Page not found','That page doesn’t exist.',`<a class="btn" href="#">Go home</a>`);return}
-  if(first&&!soft&&r!=='inbox'){view.innerHTML=skel(4);scrollTo(0,0)}
-  try{const html=await fn(id,sub,soft);if(html!==undefined&&location.hash===key){view.innerHTML=(me.email_verified||me.role==='admin'?'':BANNER)+(me.role!=='admin'&&me.email_verified&&r!=='verify'&&me.kyc_status!=='approved'?kycBanner():'')+html;afterRender[r]?.(id)}}
+  if(first&&!soft&&r!=='inbox'){view.classList.remove('vin');view.innerHTML=skel(4);scrollTo(0,0)}
+  try{const html=await fn(id,sub,soft);if(html!==undefined&&location.hash===key){if(first&&!soft){view.classList.remove('vin');void view.offsetWidth;view.classList.add('vin')}view.innerHTML=(me.email_verified||me.role==='admin'?'':BANNER)+(me.role!=='admin'&&me.email_verified&&r!=='verify'&&me.kyc_status!=='approved'?kycBanner():'')+html;afterRender[r]?.(id)}}
   catch(e){if(location.hash===key)view.innerHTML=empty('Something went wrong',esc(e.message),`<button class="btn" data-act="reload">Try again</button>`)}
 }
 addEventListener('hashchange',()=>route());
