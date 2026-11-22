@@ -90,7 +90,9 @@ app.get('/api/payfast/selftest', (req, res) => {
   const b = baseUrl(req);
   const out = PF.checkout({ reference: ref, amountCents: 500, itemName: 'TalentBridge PayFast self-test', itemDescription: 'Sandbox test payment & signature check', buyer: { first: 'Test', last: 'Buyer', email: 'sbtu01@payfast.io' }, contractId: 0, baseUrl: b });
   out.fields.return_url = `${b}/api/payfast/selftest/result?ref=${ref}`; out.fields.cancel_url = out.fields.return_url;
-  const { signature, ...unsigned } = out.fields; out.fields.signature = PF.checkoutSignature(unsigned, PF.creds().pass);
+  // ?passphrase=none signs without a passphrase, to find out how the sandbox account is set up
+  const { signature, ...unsigned } = out.fields; out.fields.signature = PF.checkoutSignature(unsigned, req.query.passphrase === 'none' ? '' : PF.creds().pass);
+  selftests.get(ref).nopass = req.query.passphrase === 'none';
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   res.type('html').send(`<!doctype html><meta charset="utf-8"><title>PayFast self-test</title><body style="font:16px system-ui;padding:40px"><p>Sending a R5.00 sandbox test payment to PayFast…</p>
 <form id="f" method="post" action="${esc(out.action)}">${Object.entries(out.fields).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('')}<button>Continue to PayFast</button></form>
