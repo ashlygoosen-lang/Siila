@@ -1,0 +1,52 @@
+.rm-hero .intro{max-width:62ch;font-size:18px;color:#c9d6cf}
+.rm-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.btn.ghost-l{background:transparent;color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45)}.btn.ghost-l:hover{background:rgba(255,255,255,.08)}
+
+.rm{max-width:1100px;margin:0 auto;padding:26px 24px 64px}
+.rm-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;top:64px;z-index:5;background:var(--mist);padding:12px 0}
+.rm-bar input{flex:1 1 300px;padding:13px 18px;border-radius:999px;border:1.5px solid var(--line);font:inherit;background:#fff}
+.rm-bar select{padding:12px 14px;border-radius:999px;border:1.5px solid var(--line);font:inherit;background:#fff;max-width:240px}
+.rm-cur{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:14px;font-weight:600;color:var(--ink2)}
+.rm-tabs{display:flex;gap:8px;margin:4px 0 8px}
+.rm-tabs .chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font:650 14px var(--sans);cursor:pointer;color:var(--ink)}
+.rm-tabs .chip[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.rm-tabs .chip:focus-visible,.rm-bar :focus-visible{outline:3px solid var(--jac);outline-offset:2px}
+
+.rm-lane{margin-top:30px}
+.rm-lh h2{font-size:clamp(24px,3vw,30px);margin:0}
+.rm-lh p{margin:4px 0 14px;color:var(--mut);max-width:70ch}
+.rm-list{display:grid;gap:10px}
+.rm-job{display:flex;gap:20px;align-items:flex-start;background:#fff;border:1px solid var(--line2);border-radius:16px;padding:18px 20px;text-decoration:none;color:inherit}
+.rm-job h3{font-size:19px;margin:0 0 4px;line-height:1.3}
+.rm-main{flex:1;min-width:0}
+.rm-main p{margin:8px 0 0;font-size:15px;line-height:1.55;color:var(--ink2);max-width:72ch}
+.rm-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;color:var(--mut)}
+.rm-src{display:block;margin-top:8px;font-size:12.5px;color:var(--mut)}.rm-src a{color:inherit}
+.rm-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;text-align:right;min-width:170px}
+.rm-side b{font-size:17px}.rm-side .sal{font-size:15px;font-weight:650}.rm-side small{color:var(--mut);font-size:13px}
+
+/* TalentBridge's own jobs: the money is already in escrow */
+.rm-lane.tb .rm-job{border:0;box-shadow:inset 4px 0 0 var(--jac),0 1px 2px rgba(23,36,31,.06),0 8px 24px -16px rgba(79,51,184,.45)}
+a.rm-job.tb:hover{box-shadow:inset 4px 0 0 var(--jac),0 2px 4px rgba(23,36,31,.08),0 14px 30px -14px rgba(79,51,184,.55)}
+.rm-badge{display:inline-flex;align-items:center;gap:6px;background:var(--moss-s);color:var(--moss);font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px}
+.rm-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--moss)}
+.rm-go{font-weight:700;color:var(--jac-d);font-size:14px}
+
+.rm-more{display:flex;justify-content:center;margin-top:16px}
+
+.rm-hire{margin-top:56px;display:grid;grid-template-columns:1fr 1.1fr;gap:36px;background:var(--ink);color:#dfe8e3;border-radius:24px;padding:36px}
+.rm-hire h2{color:#fff;font-size:clamp(26px,3.2vw,34px);margin:0 0 10px}
+.rm-hire p{color:#b4c4bc;max-width:52ch}
+.rm-hire .btn{background:var(--sun);color:var(--ink);margin-top:8px}
+.rm-steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:14px}
+.rm-steps li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;column-gap:14px;align-items:start}
+.rm-steps li::before{content:counter(s);grid-row:span 2;width:40px;height:40px;border-radius:12px;background:rgba(245,185,53,.16);color:var(--sun);display:grid;place-items:center;font-weight:800}
+.rm-steps b{color:#fff}.rm-steps span{color:#a9bab2;font-size:15px}
+
+.rm-credit{margin-top:28px;font-size:13px;color:var(--mut);max-width:80ch}.rm-credit a{color:inherit}
+
+@media(max-width:760px){
+  .rm{padding:16px 16px 48px}.rm-bar{top:56px}
+  .rm-job{flex-direction:column;gap:10px}.rm-side{align-items:flex-start;text-align:left;min-width:0}
+  .rm-hire{grid-template-columns:1fr;padding:26px 22px}
+}

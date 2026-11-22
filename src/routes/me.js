@@ -82,6 +82,15 @@ router.put('/profile', requireRole('talent'), validate(z.object({
 
 const n = (sql, ...a) => db.prepare(sql).get(...a).n || 0;
 
+// Country, display currency and company name (international companies post remote jobs; prices still charge in rand).
+router.put('/preferences', validate(z.object({ country: z.string().trim().max(60), currency: z.string().trim().length(3), company: z.string().trim().max(120).default('') })), (req, res) => {
+  const FX = require('../fx');
+  if (!FX.COUNTRIES.some(([n]) => n === req.body.country)) throw new HttpError(400, 'Choose a country from the list');
+  if (!FX.CURRENCIES[req.body.currency]) throw new HttpError(400, 'Choose a currency from the list');
+  db.prepare('UPDATE users SET country = ?, currency = ?, company = ? WHERE id = ?').run(req.body.country, req.body.currency, req.body.company, req.user.id);
+  res.json({ ok: true });
+});
+
 router.get('/work-info', requireRole('talent'), (req, res) => {
   const p = db.prepare('SELECT residency, work_rights, country, nationality, relocate, occupation_ofo, experience_years, saqa_status, prof_body, prof_reg_no FROM profiles WHERE user_id = ?').get(req.user.id) || {};
   res.json({ data: { ...p, relocate: !!p.relocate, locked: db.prepare('SELECT kyc_status FROM users WHERE id = ?').get(req.user.id).kyc_status !== 'none' } });

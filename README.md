@@ -113,3 +113,9 @@ The admin overview shows a **Launch checklist** that reads your live settings; t
 - Configure SMTP so verification, password-reset and notification emails are delivered.
 - Set `COMPANY_ADDRESS`, `INFO_OFFICER`, `SUPPORT_PHONE` (and `VAT_NUMBER`) so the legal pages and invoices are complete.
 - Payments: PayFast as above. Copy the daily backups off-site regularly.
+
+## Remote work
+
+- **Escrow-first remote jobs.** A remote job is created as `awaiting_funding` and stays hidden until the client pays at least one pay period at the top of the budget (project, one month, five days or a 40-hour week) into escrow, through PayFast, EFT (admin confirms) or the sandbox. Offers must fit within the balance, an accepted offer is paid from it at once, and the client can ask for the unused balance back (admin records the refund under Payments & escrow).
+- **International companies.** Sign-up takes a country, a display currency and a company name. Prices are always charged in rand; other currencies are shown for reference using daily rates from ExchangeRate-API (`/api/fx`, cached).
+- **Partner listings.** `src/remotefeed.js` pulls remote jobs from Remotive, Jobicy and Arbeitnow at most every six hours, stores them in `feed_jobs`, credits the source on every listing and links to the original posting. Public page: `/remote.html`; professionals get suggested remote jobs from their skills (`/api/remote/suggestions`).

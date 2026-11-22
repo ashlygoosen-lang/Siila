@@ -54,6 +54,8 @@ app.get('/api/meta', (_req, res) => res.json({
   commission_pct: setting('commission_pct', 10), vat_pct: setting('vat_pct', 15),
   sponsorship: { wait_days: require('./sponsor').WAIT_DAYS, min_months: require('./sponsor').MIN_MONTHS },
   critical_skills: require('./skills').CRITICAL.map(c => ({ ofo: c.ofo, name: c.name, field: c.field })),
+  countries: require('./fx').COUNTRIES, currencies: require('./fx').CURRENCIES,
+  escrow_periods: require('./escrow').PERIOD_LABEL, remote_categories: require('./remotefeed').GROUPS,
 }));
 // Full South African skills catalogue: Critical Skills List (with NQF level and registration) and general skills by category.
 app.get('/api/skills', (req, res) => {
@@ -126,6 +128,15 @@ app.post('/api/webhooks/payfast', express.urlencoded({ extended: false, limit: '
     return res.sendStatus(400);
   }
   const p = db.prepare('SELECT * FROM payments WHERE reference = ?').get(d.m_payment_id);
+  const dep = !p && db.prepare('SELECT * FROM job_deposits WHERE reference = ?').get(d.m_payment_id);
+  if (dep) { // upfront escrow for a remote job
+    const gross = Math.round(parseFloat(d.amount_gross) * 100);
+    audit(null, 'escrow.itn_' + String(d.payment_status || '').toLowerCase(), dep.reference, { pf: d.pf_payment_id, gross, fee: d.amount_fee, net: d.amount_net });
+    if (gross !== dep.amount_cents) { console.warn(`PayFast amount mismatch ref=${dep.reference} expected=${dep.amount_cents} got=${gross}`); return res.sendStatus(200); }
+    if (d.payment_status === 'COMPLETE') require('./escrow').markDepositPaid(dep.reference, d.pf_payment_id);
+    else if (d.payment_status === 'CANCELLED' && dep.status === 'pending') db.prepare("UPDATE job_deposits SET status = 'cancelled' WHERE id = ?").run(dep.id);
+    return res.sendStatus(200);
+  }
   if (!p) { audit(null, 'payment.itn_unknown', d.m_payment_id || '', { pf: d.pf_payment_id }); return res.sendStatus(200); }
   const gross = Math.round(parseFloat(d.amount_gross) * 100);
   audit(null, 'payment.itn_' + String(d.payment_status || '').toLowerCase(), p.reference, { pf: d.pf_payment_id, gross, fee: d.amount_fee, net: d.amount_net });
@@ -152,6 +163,7 @@ app.post('/api/webhooks/paystack', (req, res) => {
   res.sendStatus(200);
 });
 
+app.use('/api', require('./routes/remote'));
 app.use('/api', require('./routes/public'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/jobs', require('./routes/jobs'));
@@ -169,7 +181,7 @@ app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Endpoint not foun
 
 const base = (req) => process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
 app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nDisallow: /api/\nDisallow: /app.html\nSitemap: ${base(req)}/sitemap.xml\n`));
-app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/skills.html', '/terms.html', '/privacy.html', '/refunds.html'].map(p => `<url><loc>${base(req)}${p}</loc></url>`).join('')}</urlset>`));
+app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/remote.html', '/skills.html', '/terms.html', '/privacy.html', '/refunds.html'].map(p => `<url><loc>${base(req)}${p}</loc></url>`).join('')}</urlset>`));
 // Pages, styles and scripts are revalidated on every visit so a new deploy shows at once;
 // photos, fonts and icons are cached for a week.
 app.use(express.static(path.join(__dirname, '..', 'public'), {
@@ -197,6 +209,8 @@ if (seedDemo && seed()) console.log('Seeded demo data (password for demo account
 if (require.main === module) {
   const port = process.env.PORT || 3000;
   const srv = app.listen(port, () => { console.log(`TalentBridge API listening on http://localhost:${port}`); if (isProd) require('./readiness').logReport(); });
+  require('./remotefeed').start();
+  if (process.env.NODE_ENV !== 'test') { require('./fx').refresh().catch(() => {}); setInterval(() => require('./fx').refresh().catch(() => {}), 3 * 3600 * 1000).unref(); }
   const stop = () => srv.close(() => { db.close(); process.exit(0); });
   process.on('SIGTERM', stop); process.on('SIGINT', stop);
   if (isProd && process.env.BACKUP_DAILY !== 'false') { // daily SQLite backup, keeps the last 14

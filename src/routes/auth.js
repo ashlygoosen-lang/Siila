@@ -11,7 +11,7 @@ function sendVerify(req, user) {
   sendMail(user.email, 'Verify your TalentBridge email', `Hi ${user.name},\n\nConfirm your email address to start using TalentBridge:\n${baseUrl(req)}/api/auth/verify-email?token=${t}\n\nThe link works for 3 days.`);
 }
 
-const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, email_verified: !!u.email_verified, kyc_status: u.kyc_status || 'none', needs_visa: u.role === 'talent' && require('../sponsor').needsSponsorship(u.id) });
+const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, email_verified: !!u.email_verified, kyc_status: u.kyc_status || 'none', needs_visa: u.role === 'talent' && require('../sponsor').needsSponsorship(u.id), country: u.country || '', currency: u.currency || 'ZAR', company: u.company || '' });
 
 router.post('/register', validate(z.object({
   name: z.string().trim().min(2).max(80),
@@ -21,14 +21,20 @@ router.post('/register', validate(z.object({
   role: z.enum(['talent', 'client']),
   province: z.enum(PROVINCES).optional(),
   phone: z.string().trim().max(20).optional(),
+  country: z.string().trim().max(60).optional(),
+  currency: z.string().trim().length(3).optional(),
+  company: z.string().trim().max(120).optional(),
   accept_terms: z.literal(true, { error: 'You must accept the Terms and Privacy Policy (POPIA consent)' }),
 })), (req, res) => {
   const { name, email, password, role, province, phone } = req.body;
+  const FX = require('../fx');
+  const country = FX.COUNTRIES.some(([n]) => n === req.body.country) ? req.body.country : 'South Africa';
+  const currency = FX.CURRENCIES[req.body.currency] ? req.body.currency : FX.currencyFor(country);
   if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) throw new HttpError(409, 'An account with that email already exists');
   const hash = bcrypt.hashSync(password, 11);
   const id = db.transaction(() => {
-    const uid = db.prepare('INSERT INTO users (name,email,password_hash,role,phone,consent_at) VALUES (?,?,?,?,?,datetime(\'now\'))').run(name, email, hash, role, phone || '').lastInsertRowid;
-    if (role === 'talent') db.prepare('INSERT INTO profiles (user_id, province, avatar_color) VALUES (?,?,?)').run(uid, province || '', ['#6a4bd8', '#2e7d5b', '#b4562e', '#3b6fb6', '#8a5a00', '#17241f'][uid % 6]);
+    const uid = db.prepare('INSERT INTO users (name,email,password_hash,role,phone,consent_at,country,currency,company) VALUES (?,?,?,?,?,datetime(\'now\'),?,?,?)').run(name, email, hash, role, phone || '', country, currency, req.body.company || '').lastInsertRowid;
+    if (role === 'talent') db.prepare('INSERT INTO profiles (user_id, province, country, avatar_color) VALUES (?,?,?,?)').run(uid, country === 'South Africa' ? (province || '') : '', country === 'South Africa' ? '' : country, ['#6a4bd8', '#2e7d5b', '#b4562e', '#3b6fb6', '#8a5a00', '#17241f'][uid % 6]);
     return uid;
   })();
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);

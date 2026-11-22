@@ -20,6 +20,8 @@ router.get('/overview', (_req, res) => {
     pending_verifications: n("SELECT COUNT(*) n FROM verifications WHERE status='pending'"),
     open_reports: n("SELECT COUNT(*) n FROM reports WHERE status IN ('open','reviewing')"),
     new_leads: n("SELECT COUNT(*) n FROM hire_requests WHERE status='new'"),
+    escrow_deposits_to_confirm: n("SELECT COUNT(*) n FROM job_deposits WHERE status='pending' AND provider='manual'"),
+    escrow_refunds_due: n("SELECT COUNT(*) n FROM escrow_refunds WHERE status='due'"),
     payments_to_confirm: n("SELECT COUNT(*) n FROM contracts c JOIN payments p ON p.contract_id=c.id WHERE c.status='accepted' AND p.status='pending' AND p.provider='manual'"),
     payouts_due: n("SELECT COUNT(*) n FROM contracts WHERE status='released'"),
     payouts_due_cents: n("SELECT SUM(payout_cents) n FROM contracts WHERE status='released'"),
@@ -128,6 +130,29 @@ router.post('/contracts/:id/mark-funded', (req, res) => {
   const p = db.prepare("SELECT reference FROM payments WHERE contract_id = ? AND status = 'pending' ORDER BY id DESC").get(req.params.id);
   if (!p || !markFunded(Number(req.params.id), p.reference)) throw new HttpError(409, 'No pending payment to confirm');
   audit(req.user.id, 'payment.confirmed', req.params.id, p); res.json({ ok: true });
+});
+// Upfront escrow for remote jobs: EFT deposits to confirm, and unused balances to refund.
+router.get('/escrow', (_req, res) => {
+  res.json({
+    deposits: db.prepare(`SELECT d.*, j.title job_title, u.name client_name, u.email client_email FROM job_deposits d JOIN jobs j ON j.id = d.job_id JOIN users u ON u.id = d.client_id
+      WHERE d.status = 'pending' OR d.created_at > datetime('now','-30 days') ORDER BY d.status = 'pending' DESC, d.id DESC LIMIT 200`).all(),
+    refunds: db.prepare(`SELECT r.*, j.title job_title, u.name client_name, u.email client_email FROM escrow_refunds r JOIN jobs j ON j.id = r.job_id JOIN users u ON u.id = r.client_id
+      ORDER BY r.status = 'due' DESC, r.id DESC LIMIT 200`).all(),
+    held_cents: db.prepare('SELECT IFNULL(SUM(escrow_balance_cents),0) n FROM jobs WHERE escrow_required = 1').get().n,
+  });
+});
+router.post('/escrow/deposits/:id/confirm', (req, res) => {
+  const d = db.prepare("SELECT * FROM job_deposits WHERE id = ? AND status = 'pending'").get(req.params.id);
+  if (!d) throw new HttpError(409, 'No pending escrow payment to confirm');
+  require('../escrow').markDepositPaid(d.reference, 'eft-confirmed');
+  audit(req.user.id, 'escrow.deposit_confirmed', d.job_id, { reference: d.reference, amount_cents: d.amount_cents }); res.json({ ok: true });
+});
+router.post('/escrow/refunds/:id/done', validate(z.object({ reference: z.string().trim().min(2).max(80) })), (req, res) => {
+  const r = db.prepare("SELECT * FROM escrow_refunds WHERE id = ? AND status = 'due'").get(req.params.id);
+  if (!r) throw new HttpError(409, 'No refund due');
+  db.prepare("UPDATE escrow_refunds SET status = 'refunded', reference = ?, refunded_at = datetime('now') WHERE id = ?").run(req.body.reference, r.id);
+  notify(r.client_id, 'payment', `Your escrow refund of R${(r.amount_cents / 100).toLocaleString('en-ZA')} has been paid back (reference ${req.body.reference}).`, `#job/${r.job_id}`, req.user.id);
+  audit(req.user.id, 'escrow.refunded', r.job_id, { amount_cents: r.amount_cents, reference: req.body.reference }); res.json({ ok: true });
 });
 router.post('/contracts/:id/resolve', validate(z.object({ action: z.enum(['release', 'refund']), note: z.string().trim().max(500).default('') })), (req, res) => {
   const c = db.prepare("SELECT * FROM contracts WHERE id = ? AND status = 'disputed'").get(req.params.id);

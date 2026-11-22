@@ -53,6 +53,11 @@ router.post('/', requireRole('client'), requireEmailVerified, validate(z.object(
   if (db.prepare("SELECT 1 FROM contracts WHERE job_id = ? AND talent_id = ? AND status IN ('offered','accepted','funded','delivered','disputed')").get(job_id, talent_id))
     throw new HttpError(409, 'There is already an open contract with this professional for this job');
   const cents = amount * 100, f = calcFees(cents);
+  if (job.escrow_required) { // remote jobs: offers must fit inside the money already in escrow
+    const open = db.prepare("SELECT IFNULL(SUM(amount_cents),0) n FROM contracts WHERE job_id = ? AND status IN ('offered','accepted')").get(job.id).n;
+    const free = job.escrow_balance_cents - open;
+    if (cents > free) throw new HttpError(409, `This job has R${(Math.max(free, 0) / 100).toLocaleString('en-ZA')} of escrow available for new offers. Add R${((cents - Math.max(free, 0)) / 100).toLocaleString('en-ZA')} to the job’s escrow, or offer less.`, [{ field: 'top_up_cents', message: String(cents - Math.max(free, 0)) }]);
+  }
   const id = db.transaction(() => {
     const cid = db.prepare(`INSERT INTO contracts (job_id,client_id,talent_id,description,amount_cents,commission_cents,vat_cents,payout_cents)
       VALUES (?,?,?,?,?,?,?,?)`).run(job_id, req.user.id, talent_id, description, cents, f.commission_cents, f.vat_cents, f.payout_cents).lastInsertRowid;
@@ -114,9 +119,12 @@ router.post('/:id/accept', requireRole('talent'), (req, res) => {
   if (!db.prepare('SELECT 1 FROM bank_accounts WHERE user_id = ?').get(req.user.id)) throw new HttpError(403, 'Add your bank account under Verification before accepting offers, so we can pay you.');
   K.checkContract(c);
   setStatus(c.id, 'accepted');
-  notify(c.client_id, 'accepted', `${c.talent_name} accepted your offer for "${c.job_title}". Fund escrow to start the work.`, L(c.id), c.talent_id);
+  const upfront = !!db.prepare('SELECT escrow_required FROM jobs WHERE id = ?').get(c.job_id)?.escrow_required;
+  notify(c.client_id, 'accepted', `${c.talent_name} accepted your offer for "${c.job_title}".${upfront ? ' Paid from the job’s escrow, so work can start now.' : ' Fund escrow to start the work.'}`, L(c.id), c.talent_id);
   contractEvent(c, 'Offer accepted', c.talent_id);
-  res.json({ ok: true });
+  let funded = false;
+  if (upfront) { try { funded = require('../escrow').fundContractFromJob({ ...c, status: 'accepted' }); } catch (e) { console.warn('Job escrow funding failed', c.id, e.message); } }
+  res.json({ ok: true, funded });
 });
 router.post('/:id/decline', requireRole('talent'), (req, res) => {
   const c = load(req, req.params.id, 'talent'); need(c, 'offered');
@@ -129,6 +137,7 @@ router.post('/:id/decline', requireRole('talent'), (req, res) => {
 router.post('/:id/fund', requireRole('client'), async (req, res) => {
   const c = load(req, req.params.id, 'client'); need(c, 'accepted');
   K.requireVerified(req.user.id, 'pay into escrow');
+  if (require('../escrow').fundContractFromJob(c)) return res.json({ mode: 'job_escrow', funded: true });
   const mode = paymentsMode();
   const reference = `TB-${c.id}-${crypto.randomBytes(4).toString('hex')}`;
   db.prepare("UPDATE payments SET status = 'void' WHERE contract_id = ? AND status = 'pending'").run(c.id);

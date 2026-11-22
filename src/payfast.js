@@ -28,13 +28,14 @@ function checkoutSignature(fields, pass) {
 }
 
 /** Build the form PayFast expects. The browser posts it to PayFast's payment page. */
-function checkout({ reference, amountCents, itemName, itemDescription, buyer, contractId, baseUrl }) {
+function checkout({ reference, amountCents, itemName, itemDescription, buyer, contractId, baseUrl, returnHash }) {
+  const hash = returnHash || `contracts/${contractId}`;
   const c = creds();
   if (!c) throw new Error('PayFast is not configured');
   const fields = {
     merchant_id: c.id, merchant_key: c.key,
-    return_url: `${baseUrl}/app.html?payment=return#contracts/${contractId}`,
-    cancel_url: `${baseUrl}/app.html?payment=cancelled#contracts/${contractId}`,
+    return_url: `${baseUrl}/app.html?payment=return#${hash}`,
+    cancel_url: `${baseUrl}/app.html?payment=cancelled#${hash}`,
     notify_url: `${baseUrl}/api/webhooks/payfast`,
     name_first: (buyer.first || '').slice(0, 100), name_last: (buyer.last || '').slice(0, 100), email_address: (buyer.email || '').slice(0, 100),
     m_payment_id: reference, amount: (amountCents / 100).toFixed(2),

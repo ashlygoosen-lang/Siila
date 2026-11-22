@@ -6,6 +6,8 @@ const { emit } = require('../events');
 const SP = require('../sponsor');
 const { byOfo } = require('../skills');
 const { audit } = require('../services');
+const ESC = require('../escrow');
+const { announceJob } = require('../jobalerts');
 
 const bidStats = db.prepare('SELECT COUNT(*) n, ROUND(AVG(bid_amount)) avg FROM applications WHERE job_id = ?');
 const clientInfo = db.prepare(`SELECT u.name, u.created_at, u.email_verified,
@@ -15,7 +17,8 @@ const clientInfo = db.prepare(`SELECT u.name, u.created_at, u.email_verified,
 
 const shape = (j, saved = false) => ({
   id: j.id, title: j.title, description: j.description, category: j.category, type: j.type,
-  province: j.province, city: j.city, location: `${j.city}, ${j.province}`,
+  province: j.province, city: j.city, location: j.remote ? `Remote${j.company_country ? ` · company in ${j.company_country}` : ''}` : `${j.city}, ${j.province}`,
+  company_country: j.company_country || '', escrow_funded: !!(j.escrow_required && j.funded_at),
   pay_min: j.pay_min, pay_max: j.pay_max, pay_unit: j.pay_unit, pay_label: payLabel(j),
   icon: j.icon, gradient: j.gradient, featured: !!j.featured, status: j.status, created_at: j.created_at, saved,
   client_id: j.client_id, bids: bidStats.get(j.id).n, avg_bid: bidStats.get(j.id).avg || null,
@@ -55,10 +58,13 @@ router.get('/', auth(false), validate(listQuery, 'query'), (req, res) => {
 
 router.get('/:id', auth(false), (req, res) => {
   const j = db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
-  if (!j) throw new HttpError(404, 'Job not found');
+  const mine = req.user && j && (req.user.id === j.client_id || req.user.role === 'admin');
+  if (!j || (j.status === 'awaiting_funding' && !mine)) throw new HttpError(404, 'Job not found');
   const saved = req.user ? !!db.prepare('SELECT 1 FROM saved_jobs WHERE user_id=? AND job_id=?').get(req.user.id, j.id) : false;
   const out = shape(j, saved);
   out.client = clientInfo.get(j.client_id) || null;
+  if (out.client) out.client.country = j.company_country || '';
+  if (mine) out.escrow = ESC.summary(j);
   if (req.user && (req.user.id === j.client_id || req.user.role === 'admin')) out.international = { ...SP.eligibility(j), local_applicants: j.local_applicants, local_reason: j.local_reason, salary_annual: j.salary_annual, note: j.intl_note, requested_at: j.intl_requested_at, decided_at: j.intl_decided_at, route_label: SP.ROUTE_LABEL[j.occupation_ofo ? SP.routeFor(j.occupation_ofo) : 'general_work'] };
   if (req.user?.role === 'talent') { const cb = SP.canBid(req.user.id, j); out.can_bid = cb.ok; out.bid_block = cb.reason || ''; out.needs_sponsorship = SP.needsSponsorship(req.user.id); }
   if (req.user?.role === 'talent') out.my_bid = db.prepare('SELECT id, bid_amount, delivery_days, message, status, created_at FROM applications WHERE job_id = ? AND user_id = ?').get(j.id, req.user.id) || null;
@@ -70,8 +76,9 @@ const jobBody = z.object({
   description: z.string().trim().min(10).max(5000),
   category: z.enum(CATEGORIES),
   type: z.enum(TYPES),
-  province: z.enum(PROVINCES),
-  city: z.string().trim().min(2).max(80),
+  province: z.enum(PROVINCES).optional(),
+  city: z.string().trim().max(80).optional(),
+  escrow_amount: z.number().int().min(50).max(1000000).optional(),
   pay_min: z.number().int().min(0),
   pay_max: z.number().int().min(0),
   pay_unit: z.enum(['hour', 'day', 'month', 'project']),
@@ -81,24 +88,25 @@ const jobBody = z.object({
   occupation_ofo: z.string().trim().max(20).default('').refine(v => !v || !!byOfo(v), 'Choose an occupation from the Critical Skills List, or leave it blank'),
   remote: z.boolean().default(false),
 }).refine(j => j.pay_max >= j.pay_min, { message: 'pay_max must be at least pay_min', path: ['pay_max'] })
+  .refine(j => j.remote || j.province, { message: 'Choose a province', path: ['province'] })
+  .refine(j => j.remote || (j.city && j.city.length >= 2), { message: 'Enter the city or town', path: ['city'] })
   .refine(j => j.contract_term !== 'fixed' || j.duration_months, { message: 'Enter the contract length in months', path: ['duration_months'] });
 
 router.post('/', auth(), requireRole('client', 'admin'), requireEmailVerified, validate(jobBody), (req, res) => {
   const j = req.body;
-  const id = db.prepare(`INSERT INTO jobs (client_id,title,description,category,type,province,city,pay_min,pay_max,pay_unit,icon,contract_term,duration_months,occupation_ofo,remote)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(req.user.id, j.title, j.description, j.category, j.type, j.province, j.city, j.pay_min, j.pay_max, j.pay_unit, j.icon,
-    j.contract_term, j.contract_term === 'fixed' ? j.duration_months : null, j.occupation_ofo, j.remote ? 1 : 0).lastInsertRowid;
-  const job = shape(db.prepare('SELECT * FROM jobs WHERE id=?').get(id));
-  // Alert freelancers whose skills or headline match the job (like a project feed), capped to stay polite.
-  const words = `${j.title} ${j.category}`.toLowerCase().split(/[^a-z]+/).filter(w => w.length > 3);
-  if (words.length) {
-    const like = words.map(() => '(LOWER(p.skills) LIKE ? OR LOWER(p.headline) LIKE ?)').join(' OR ');
-    const matches = db.prepare(`SELECT u.id FROM users u JOIN profiles p ON p.user_id = u.id WHERE u.role = 'talent' AND u.status = 'active' AND (${like})
-      AND (${j.remote ? '1' : "NOT (p.residency = 'foreign' AND p.work_rights != 'yes')"}) LIMIT 50`)
-      .all(...words.flatMap(w => [`%${w}%`, `%${w}%`]));
-    for (const m of matches) notify(m.id, 'job_match', `New job that matches your skills: "${j.title}" in ${j.city}.`, `#job/${id}`, req.user.id);
-  }
-  res.status(201).json({ data: job });
+  // Remote jobs are escrow-first: they stay hidden until the client has paid the budget into escrow.
+  const remote = !!j.remote;
+  const minimum = remote ? ESC.minEscrowCents(j) : 0;
+  const escrow = remote ? Math.max(minimum, (j.escrow_amount || 0) * 100) : 0;
+  const country = remote ? (db.prepare('SELECT country FROM users WHERE id = ?').get(req.user.id)?.country || '') : '';
+  const id = db.prepare(`INSERT INTO jobs (client_id,title,description,category,type,province,city,pay_min,pay_max,pay_unit,icon,contract_term,duration_months,occupation_ofo,remote,
+      status,escrow_required,escrow_cents,company_country)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(req.user.id, j.title, j.description, j.category, j.type, j.province || '', (j.city || '').trim() || (remote ? 'Remote' : ''),
+    j.pay_min, j.pay_max, j.pay_unit, j.icon, j.contract_term, j.contract_term === 'fixed' ? j.duration_months : null, j.occupation_ofo, remote ? 1 : 0,
+    remote ? 'awaiting_funding' : 'open', remote ? 1 : 0, escrow, country).lastInsertRowid;
+  const row = db.prepare('SELECT * FROM jobs WHERE id=?').get(id);
+  if (!remote) announceJob(row, req.user.id);
+  res.status(201).json({ data: { ...shape(row), escrow: ESC.summary(row) } });
 });
 
 const owned = (req) => {
@@ -109,9 +117,33 @@ const owned = (req) => {
 };
 
 router.patch('/:id', auth(), validate(z.object({ status: z.enum(['open', 'closed']) })), (req, res) => {
-  owned(req);
+  const cur = owned(req);
+  if (req.body.status === 'open' && cur.escrow_required && !cur.funded_at) throw new HttpError(409, 'Fund the escrow first. The job goes live as soon as the payment is received.');
   db.prepare('UPDATE jobs SET status = ? WHERE id = ?').run(req.body.status, req.params.id);
   res.json({ data: shape(db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id)) });
+});
+
+// ---- upfront escrow for remote jobs ----
+router.post('/:id/escrow', auth(), requireRole('client', 'admin'), validate(z.object({ amount: z.number().int().min(50).max(1000000).optional() })), (req, res) => {
+  const j = owned(req);
+  require('../kyc').requireVerified(req.user.id, 'pay into escrow');
+  const due = Math.max(0, j.escrow_cents - j.escrow_balance_cents);
+  const cents = req.body.amount ? req.body.amount * 100 : due;
+  if (!cents) throw new HttpError(400, 'Enter how much to add to the escrow');
+  res.json(ESC.startDeposit(req, j, cents));
+});
+router.post('/:id/escrow/simulate', auth(), validate(z.object({ reference: z.string().max(60) })), (req, res) => {
+  if (require('../services').paymentsMode() !== 'sandbox') throw new HttpError(404, 'Not available');
+  const j = owned(req);
+  const d = db.prepare("SELECT * FROM job_deposits WHERE job_id = ? AND reference = ? AND status = 'pending'").get(j.id, req.body.reference);
+  if (!d) throw new HttpError(404, 'No pending escrow payment');
+  const out = ESC.markDepositPaid(d.reference, 'sandbox');
+  res.json({ data: { ...shape(out), escrow: ESC.summary(out) } });
+});
+router.post('/:id/escrow/refund', auth(), requireRole('client', 'admin'), (req, res) => {
+  const j = owned(req);
+  const amount = ESC.requestRefund(req.user.id, j);
+  res.json({ ok: true, amount_cents: amount });
 });
 
 // Client asks to open a long-term job to foreign nationals after the local search period.
@@ -147,7 +179,9 @@ router.delete('/:id/international', auth(), (req, res) => {
 });
 
 router.delete('/:id', auth(), (req, res) => {
-  owned(req);
+  const j = owned(req);
+  if (j.escrow_required && (j.escrow_balance_cents > 0 || db.prepare("SELECT 1 FROM job_deposits WHERE job_id = ? AND status = 'paid'").get(j.id)))
+    throw new HttpError(409, 'This job has money in escrow. Close it and ask for a refund of the unused balance instead.');
   db.prepare('DELETE FROM jobs WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });

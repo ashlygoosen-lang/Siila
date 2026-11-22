@@ -385,6 +385,12 @@ const { outbox } = require('../src/mailer');
     assert.equal(job.critical_skill, true); assert.equal(job.long_term, true); assert.equal(job.open_to_international, false);
     const short = (await call('POST', '/jobs', { title: 'Fix a leaking geyser', description: 'Geyser is leaking from the valve, needs replacing.', category: 'Trades & Repairs', type: 'Short-Term', province: 'Gauteng', city: 'Sandton', pay_min: 800, pay_max: 1500, pay_unit: 'project' }, client)).body.data;
     const remote = (await call('POST', '/jobs', { title: 'Design a logo for a bakery', description: 'Logo and colours for a small bakery brand, delivered as files.', category: 'Creative & Digital', type: 'Freelance', province: 'Gauteng', city: 'Sandton', pay_min: 1500, pay_max: 3000, pay_unit: 'project', remote: true }, client)).body.data;
+    // Remote jobs are escrow-first: hidden until the client has paid the budget into escrow
+    assert.equal(remote.status, 'awaiting_funding');
+    assert.equal((await call('GET', '/jobs/' + remote.id, null, ft)).status, 404);
+    const dep = await call('POST', `/jobs/${remote.id}/escrow`, {}, client);
+    assert.equal(dep.status, 200, JSON.stringify(dep.body)); assert.equal(dep.body.amount_cents, 300000);
+    assert.equal((await call('POST', `/jobs/${remote.id}/escrow/simulate`, { reference: dep.body.reference }, client)).body.data.status, 'open');
     // Foreign professional without work rights: sees remote jobs only, can't bid on local jobs
     const seen = (await call('GET', '/jobs?limit=50', null, ft)).body.data.map(j => j.id);
     assert.ok(!seen.includes(job.id) && !seen.includes(short.id) && seen.includes(remote.id));
@@ -428,6 +434,101 @@ const { outbox } = require('../src/mailer');
     const pub = (await call('GET', '/talent/' + fid)).body.data;
     assert.equal(pub.international, true); assert.equal(pub.occupation, 'Software Developer'); assert.equal(pub.country, 'Nigeria');
   });
+  await step('remote work: international companies, escrow-first remote jobs, partner feeds and suggestions', async () => {
+    const dbx = require('../src/db'); const PF = require('../src/payfast'); const F = require('../src/remotefeed');
+    const pw = 'TalentBridge#2026';
+    // A company from another country signs up and sees prices in its own currency
+    const reg = await call('POST', '/auth/register', { name: 'Lena Fischer', email: 'lena@firma.test', password: 'Passw0rdOK', role: 'client', country: 'Germany', company: 'Firma GmbH', accept_terms: true });
+    assert.equal(reg.status, 201); assert.equal(reg.body.user.country, 'Germany'); assert.equal(reg.body.user.currency, 'EUR'); assert.equal(reg.body.user.company, 'Firma GmbH');
+    assert.equal((await call('PUT', '/me/preferences', { country: 'Germany', currency: 'GBP', company: 'Firma GmbH' }, reg.body.token)).status, 200);
+    assert.equal((await call('PUT', '/me/preferences', { country: 'Atlantis', currency: 'GBP' }, reg.body.token)).status, 400);
+    const fx = (await call('GET', '/fx')).body; assert.equal(fx.base, 'ZAR'); assert.ok(fx.rates.USD > 0 && fx.currencies.EUR);
+    const meta = (await call('GET', '/meta')).body; assert.ok(meta.countries.some(c => c[0] === 'Kenya')); assert.ok(meta.remote_categories.includes('Software & IT'));
+
+    const cl = (await call('POST', '/auth/login', { email: 'client@talentbridge.test', password: pw })).body.token;
+    const tt = (await call('POST', '/auth/login', { email: 'talent5@talentbridge.test', password: pw })).body.token;
+    const t2 = (await call('POST', '/auth/login', { email: 'talent1@talentbridge.test', password: pw })).body.token;
+    const tid = (await call('GET', '/auth/me', null, tt)).body.user.id, t2id = (await call('GET', '/auth/me', null, t2)).body.user.id;
+    const adm = (await call('POST', '/auth/login', { email: 'admin@talentbridge.test', password: pw })).body.token;
+    await call('PUT', '/me/preferences', { country: 'United Kingdom', currency: 'GBP', company: 'Demo Ltd' }, cl);
+
+    // Remote job: no province needed, hidden until escrow is paid; minimum escrow is one 40-hour week at the top rate
+    const rj = await call('POST', '/jobs', { title: 'Remote React developer for a booking app', description: 'Build booking screens in React and connect them to our API. Remote, flexible hours.', category: 'IT & Software', type: 'Freelance', pay_min: 300, pay_max: 400, pay_unit: 'hour', remote: true, escrow_amount: 100 }, cl);
+    assert.equal(rj.status, 201, JSON.stringify(rj.body)); const job = rj.body.data;
+    assert.equal(job.status, 'awaiting_funding'); assert.equal(job.escrow.minimum_cents, 1600000); assert.equal(job.escrow.due_cents, 1600000);
+    assert.ok(job.location.includes('United Kingdom'));
+    assert.ok(!(await call('GET', '/jobs?remote=true&limit=50')).body.data.some(j => j.id === job.id));
+    assert.ok(!(await call('GET', '/remote')).body.talentbridge.some(j => j.id === job.id));
+    assert.equal((await call('PATCH', '/jobs/' + job.id, { status: 'open' }, cl)).status, 409);
+    assert.equal((await call('POST', '/jobs', { title: 'On-site job without a town', description: 'This should need a province and a city.', category: 'IT & Software', type: 'Freelance', pay_min: 1, pay_max: 2, pay_unit: 'project' }, cl)).status, 400);
+
+    // Pay the escrow through PayFast; the ITN puts the job live
+    Object.assign(process.env, { PAYMENTS_MODE: 'payfast', PAYFAST_MERCHANT_ID: '10000100', PAYFAST_MERCHANT_KEY: '46f0cd694581a', PAYFAST_PASSPHRASE: 'jt7NOE43FZPn', PAYFAST_SKIP_IP_CHECK: 'true', PAYFAST_SKIP_VALIDATE: 'true' });
+    try {
+      const pay = (await call('POST', `/jobs/${job.id}/escrow`, {}, cl)).body;
+      assert.equal(pay.mode, 'payfast'); assert.equal(pay.fields.amount, '16000.00'); assert.ok(pay.fields.return_url.endsWith('#job/' + job.id));
+      const d = { m_payment_id: pay.reference, pf_payment_id: '2200001', payment_status: 'COMPLETE', item_name: pay.fields.item_name, amount_gross: '16000.00', amount_fee: '-368.00', amount_net: '15632.00', merchant_id: '10000100' };
+      const pairs = Object.entries(d); const body = pairs.map(([k, v]) => `${k}=${PF.enc(v)}`).join('&') + '&signature=' + PF.md5(PF.itnParamString(pairs) + '&passphrase=jt7NOE43FZPn');
+      assert.equal((await fetch(base + '/webhooks/payfast', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body })).status, 200);
+      assert.equal((await fetch(base + '/webhooks/payfast', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body })).status, 200); // repeat is harmless
+    } finally { for (const k of ['PAYMENTS_MODE', 'PAYFAST_MERCHANT_ID', 'PAYFAST_MERCHANT_KEY', 'PAYFAST_PASSPHRASE', 'PAYFAST_SKIP_IP_CHECK', 'PAYFAST_SKIP_VALIDATE']) delete process.env[k]; }
+    let live = (await call('GET', '/jobs/' + job.id, null, cl)).body.data;
+    assert.equal(live.status, 'open'); assert.equal(live.escrow_funded, true); assert.equal(live.escrow.balance_cents, 1600000);
+    assert.ok((await call('GET', '/remote')).body.talentbridge.some(j => j.id === job.id && j.escrow_funded));
+    assert.equal((await call('GET', '/jobs/' + job.id, null, tt)).body.data.escrow, undefined); // only the owner sees the balance
+
+    // Offers must fit inside the escrow; accepting pays the contract straight from it
+    const big = await call('POST', '/contracts', { job_id: job.id, talent_id: tid, amount: 20000, description: 'Booking screens' }, cl);
+    assert.equal(big.status, 409); assert.equal(big.body.details[0].message, '400000');
+    const c = (await call('POST', '/contracts', { job_id: job.id, talent_id: tid, amount: 12000, description: 'Booking screens, 30 hours' }, cl)).body.data;
+    assert.equal((await call('POST', '/contracts', { job_id: job.id, talent_id: t2id, amount: 5000, description: 'Second developer' }, cl)).status, 409);
+    const acc = await call('POST', `/contracts/${c.id}/accept`, null, tt);
+    assert.equal(acc.status, 200); assert.equal(acc.body.funded, true);
+    assert.equal((await call('GET', `/contracts/${c.id}`, null, cl)).body.data.status, 'funded');
+    live = (await call('GET', '/jobs/' + job.id, null, cl)).body.data; assert.equal(live.escrow.balance_cents, 400000);
+    assert.equal((await call('DELETE', '/jobs/' + job.id, null, cl)).status, 409);
+
+    // Unused escrow is refunded on request; admin records the refund
+    const rf = await call('POST', `/jobs/${job.id}/escrow/refund`, null, cl);
+    assert.equal(rf.status, 200); assert.equal(rf.body.amount_cents, 400000);
+    assert.equal((await call('GET', '/jobs/' + job.id, null, cl)).body.data.status, 'closed');
+    const esc = (await call('GET', '/admin/escrow', null, adm)).body;
+    const due = esc.refunds.find(r => r.job_id === job.id && r.status === 'due'); assert.ok(due);
+    assert.equal((await call('POST', `/admin/escrow/refunds/${due.id}/done`, { reference: 'PF-REFUND-1' }, adm)).status, 200);
+    assert.equal(dbx.prepare('SELECT status FROM escrow_refunds WHERE id = ?').get(due.id).status, 'refunded');
+
+    // EFT: the admin confirms the deposit and the job goes live
+    process.env.PAYMENTS_MODE = 'manual';
+    try {
+      const j2 = (await call('POST', '/jobs', { title: 'Remote bookkeeper (Xero)', description: 'Monthly bookkeeping in Xero for a small UK agency.', category: 'Finance & Accounting', type: 'Part-Time', pay_min: 6000, pay_max: 8000, pay_unit: 'month', remote: true }, cl)).body.data;
+      const m = (await call('POST', `/jobs/${j2.id}/escrow`, {}, cl)).body; assert.equal(m.mode, 'manual'); assert.ok(m.instructions.includes(m.reference));
+      const pend = (await call('GET', '/admin/escrow', null, adm)).body.deposits.find(x => x.reference === m.reference);
+      assert.equal((await call('POST', `/admin/escrow/deposits/${pend.id}/confirm`, null, adm)).status, 200);
+      assert.equal((await call('GET', '/jobs/' + j2.id, null, cl)).body.data.status, 'open');
+    } finally { delete process.env.PAYMENTS_MODE; }
+
+    // Partner job boards: stored, credited, filtered by whether South Africans can apply
+    const now = new Date().toISOString();
+    assert.equal(F.store('remotive', [
+      { id: 'remotive:1', url: 'https://remotive.com/remote-jobs/software-dev/senior-react-developer-1', title: 'Senior React Developer', company: 'Acme', category: F.groupOf('Software Development'), region: 'Worldwide', tags: ['react', 'typescript'], excerpt: F.text('<p>Build <b>React</b> apps &amp; more</p>'), published_at: now },
+      { id: 'remotive:2', url: 'https://remotive.com/remote-jobs/sales/account-executive-2', title: 'Account Executive', company: 'Beta', category: F.groupOf('Sales'), region: 'USA Only', tags: [], excerpt: 'Sell', published_at: now },
+      { id: 'remotive:3', url: 'javascript:alert(1)', title: 'Bad link', company: 'X', region: 'Worldwide', published_at: now },
+    ]), 2);
+    const sa = (await call('GET', '/remote?source=partners')).body.partners;
+    assert.equal(sa.meta.total, 1); assert.equal(sa.data[0].source_name, 'Remotive'); assert.equal(sa.data[0].excerpt, 'Build React apps & more'); assert.equal(sa.data[0].category, 'Software & IT');
+    assert.equal((await call('GET', '/remote?source=partners&region=all')).body.partners.meta.total, 2);
+    assert.equal((await call('GET', '/remote?source=partners&region=all&q=account')).body.partners.data[0].title, 'Account Executive');
+    assert.equal(F.openToSA('EMEA'), 1); assert.equal(F.openToSA('USA, Canada'), 0);
+
+    // Suggested remote jobs for a professional, from their skills
+    await call('PUT', '/me/profile', { headline: 'React and WordPress developer', skills: ['React', 'WordPress', 'SEO'] }, tt);
+    const sg = (await call('GET', '/remote/suggestions', null, tt)).body;
+    assert.ok(sg.partners.some(p => p.id === 'remotive:1' && p.why.includes('react')), JSON.stringify(sg));
+    assert.ok(!sg.partners.some(p => p.id === 'remotive:2'));
+    assert.equal((await call('GET', '/remote/suggestions', null, cl)).status, 403);
+    assert.equal((await call('GET', '/admin/remote-feeds', null, adm)).body.data.remotive.live, 2);
+  });
+
   await step('PayFast: signed checkout, verified ITN funds escrow, forged or wrong-amount ITNs are ignored', async () => {
     const PF = require('../src/payfast');
     // PHP urlencode compatibility

@@ -116,6 +116,16 @@ a.row:hover{box-shadow:inset 0 0 0 1.5px var(--jac),var(--shadow)}
 .row .meta{color:var(--mut);font-size:14px;display:flex;gap:4px 14px;flex-wrap:wrap;margin-top:4px}
 .row .amt{text-align:right;font-weight:750;font-size:17px}
 .row .amt span{display:block;font-weight:500;font-size:13px;color:var(--mut)}
+/* remote jobs and upfront escrow */
+.remrow{align-items:flex-start}.remrow .grow{min-width:240px}.remrow .amt{display:flex;flex-direction:column;align-items:flex-end;gap:8px;font-size:15px;max-width:220px}
+.remrow .amt .st{display:inline-block}.remrow .ex{margin:6px 0 0;font-size:14px;line-height:1.5;max-width:68ch}
+.remrow .why{margin-top:6px;font-size:13px;font-weight:650;color:var(--moss)}.remrow .src{display:block;margin-top:6px;color:var(--mut);font-size:12.5px}.remrow .src a{color:inherit}
+.remh{font-size:22px;margin:22px 0 2px}.remsub{margin:0 0 12px;font-size:14px}
+.pager{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:16px}
+.escbox{border-left:4px solid var(--jac);background:linear-gradient(180deg,var(--jac-s),var(--paper) 70%)}
+#escBox{padding:14px 16px;border-radius:var(--r-md);margin:6px 0 12px}#escBox p{margin:6px 0}
+.escok{display:flex;gap:8px;align-items:flex-start;margin:14px 0 0;padding:10px 12px;border-radius:10px;background:var(--moss-s);color:var(--moss);font-size:14px;font-weight:600}
+@media (max-width:640px){.remrow .amt{align-items:flex-start;max-width:none;text-align:left}}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
 .toolbar input,.toolbar select{width:auto;min-width:160px;flex:1;max-width:320px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
@@ -252,7 +262,9 @@ td .btn{margin:2px 4px 2px 0}
       <div class="roles"><button type="button" data-role="client">I want to hire<span>Post jobs, compare bids</span></button><button type="button" data-role="talent" class="on">I want to work<span>Find jobs, send bids</span></button></div>
       <label>Full name<input name="name" required minlength="2" autocomplete="name"></label>
       <label>Email<input name="email" type="email" required autocomplete="email"></label>
-      <div class="field-row"><label>Mobile (optional)<input name="phone" type="tel" placeholder="082 000 0000" autocomplete="tel"></label><label>Province<select name="province"></select></label></div>
+      <div class="field-row"><label>Country<select name="country" autocomplete="country-name"><option>South Africa</option></select></label><label id="frProv">Province<select name="province"></select></label></div>
+      <label id="frCo" hidden>Company name (optional)<input name="company" autocomplete="organization" maxlength="120"></label>
+      <label>Mobile (optional)<input name="phone" type="tel" placeholder="082 000 0000" autocomplete="tel"></label>
       <label>Password<input name="password" type="password" minlength="8" required autocomplete="new-password"><span class="hint">8 or more characters, with letters and a number.</span></label>
       <label class="check"><input type="checkbox" name="accept_terms" required><span>I accept the <a href="/terms.html" target="_blank" rel="noopener">Terms</a>, <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/refunds.html" target="_blank" rel="noopener">Refund Policy</a>, and consent to TalentBridge processing my personal information (POPIA).</span></label>
       <button class="btn wide">Create account</button>
@@ -289,7 +301,7 @@ const dayLabel=s=>{const d=dt(s),t=new Date();const y=new Date(t-864e5);if(d.toD
 const initials=n=>String(n||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
 const av=(name,color,cls='',online)=>`<span class="av ${cls}" style="--c:${esc(color||'#6a4bd8')}" aria-hidden="true">${initials(name)}${online?'<i class="on"></i>':''}</span>`;
 const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
-const SVG={globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/>',home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',users:'<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 9M22 21a7 7 0 0 0-4-6.3"/>',chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/>',file:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',coin:'<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2.2 0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2-1.4 0-2.6-.6-3-1.6M12 6v2M12 16v2"/>',flag:'<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>',inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',clip:'<path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',send:'<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',check:'<path d="M20 6 9 17l-5-5"/>',star:'<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>'};
+const SVG={laptop:'<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/>',globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/>',home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',users:'<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 9M22 21a7 7 0 0 0-4-6.3"/>',chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/>',file:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',coin:'<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2.2 0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2-1.4 0-2.6-.6-3-1.6M12 6v2M12 16v2"/>',flag:'<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>',inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',clip:'<path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',send:'<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',check:'<path d="M20 6 9 17l-5-5"/>',star:'<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>'};
 const ic=(k,size=20)=>`<svg viewBox="0 0 24 24" width="${size}" height="${size}" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SVG[k]||''}</svg>`;
 
 /* contract status, in plain words for each side */
@@ -301,7 +313,7 @@ const ast=s=>{const v=AST[s]||['',s];return`<span class="st ${v[0]}">${v[1]}</sp
 const gst=s=>{const m={open:'ok',pending:'wait',new:'wait',reviewing:'go',contacted:'go',approved:'ok',resolved:'ok',active:'ok',handled:'ok',closed:'',rejected:'bad',dismissed:'',suspended:'bad',deleted:'bad',paid:'ok',payout_due:'wait',refund_due:'wait',void:''};return`<span class="st ${m[s]??''}">${esc(String(s).replace(/_/g,' '))}</span>`};
 
 /* ===== api ===== */
-let token=null,me=null,META=null,COUNTS={notifications:0,inbox:0};
+let token=null,me=null,META=null,FX=null,COUNTS={notifications:0,inbox:0};
 try{token=localStorage.getItem('tb_token')||localStorage.getItem('siira_token');localStorage.removeItem('siira_token');if(token)localStorage.setItem('tb_token',token)}catch{}
 async function api(p,o={}){
   const r=await fetch('/api'+p,{method:o.method||((o.body||o.form)?'POST':'GET'),headers:{...(!o.form&&{'content-type':'application/json'}),...(token&&{authorization:'Bearer '+token})},body:o.form||(o.body?JSON.stringify(o.body):undefined)});
@@ -346,7 +358,8 @@ function showForm(id){FORMS.forEach(f=>$('#'+f).hidden=f!==id);$('#aerr').textCo
 const okMsg=t=>{$('#aerr').style.color='var(--moss)';$('#aerr').textContent=t};
 const tab=reg=>{showForm(reg?'fr':'fl');$('#tl').classList.toggle('on',!reg);$('#tr').classList.toggle('on',reg)};
 $('#tl').onclick=()=>tab(false);$('#tr').onclick=()=>tab(true);$('#tf').onclick=()=>showForm('ff');$('#tb').onclick=()=>tab(false);
-$$('.roles button').forEach(b=>b.onclick=()=>{role=b.dataset.role;$$('.roles button').forEach(x=>x.classList.toggle('on',x===b))});
+$$('.roles button').forEach(b=>b.onclick=()=>{role=b.dataset.role;$$('.roles button').forEach(x=>x.classList.toggle('on',x===b));$('#frCo').hidden=role!=='client'});
+$('#fr [name=country]').onchange=e=>{const sa=e.target.value==='South Africa';$('#frProv').hidden=!sa;if(!sa)$('#fr [name=province]').value=''};
 let after=null;const h0=location.hash;
 if(h0==='#register')tab(true);else if(h0.startsWith('#reset='))showForm('fz');
 else if(h0==='#verified'&&!token)okMsg('Email verified. Log in to continue.');
@@ -357,13 +370,13 @@ $('#fz').onsubmit=async e=>{e.preventDefault();try{await api('/auth/reset',{body
 async function authSubmit(e,path,body){e.preventDefault();const b=e.target.querySelector('.btn');b.disabled=true;$('#aerr').textContent='';
   try{const j=await api(path,{body});token=j.token;try{localStorage.setItem('tb_token',token)}catch{}if(!after||h0==='#register')after=null;start()}catch(err){$('#aerr').textContent=err.message}finally{b.disabled=false}}
 $('#fl').onsubmit=e=>authSubmit(e,'/auth/login',Object.fromEntries(new FormData(e.target)));
-$('#fr').onsubmit=e=>{const f=Object.fromEntries(new FormData(e.target));if(!f.phone)delete f.phone;authSubmit(e,'/auth/register',{...f,role,accept_terms:f.accept_terms==='on'})};
+$('#fr').onsubmit=e=>{const f=Object.fromEntries(new FormData(e.target));for(const k of['phone','province','company'])if(!f[k])delete f[k];authSubmit(e,'/auth/register',{...f,role,accept_terms:f.accept_terms==='on'})};
 function logout(){stopStream();token=null;me=null;try{localStorage.removeItem('tb_token')}catch{}$('#app').style.display='none';$('#auth').style.display='grid';tab(false);history.replaceState(null,'','/app.html')}
 
 /* ===== shell ===== */
 const NAV={
  client:[['home','Home','home'],['myjobs','My jobs','brief'],['talent','Find talent','users'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['sponsorships','International hiring','globe'],['notifications','Notifications','bell','notifications'],['verify','Verification','shield'],['account','Account','gear']],
- talent:[['home','Home','home'],['find','Find work','search'],['bids','My bids','list'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['profile','Profile','user'],['sponsorships','Visa sponsorship','globe'],['notifications','Notifications','bell','notifications'],['verify','Verification','shield'],['account','Account','gear']],
+ talent:[['home','Home','home'],['find','Find work','search'],['remote','Remote jobs','laptop'],['bids','My bids','list'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['profile','Profile','user'],['sponsorships','Visa sponsorship','globe'],['notifications','Notifications','bell','notifications'],['verify','Verification','shield'],['account','Account','gear']],
  admin:[['admin','Overview','home'],['admin/kyc','Identity checks','shield'],['admin/risk','Fraud & risk flags','flag'],['admin/international','International hiring','globe'],['admin/payments','Payments & escrow','coin'],['admin/reports','Disputes & reports','flag'],['admin/jobs','Jobs','brief'],['admin/users','Members','users'],['admin/leads','Hire enquiries','inbox'],['admin/enquiries','Contact messages','chat'],['admin/settings','Fees','gear'],['admin/audit','Audit log','list'],['notifications','Notifications','bell','notifications'],['account','Account','user']]};
 const ROLE_LABEL={client:'Hiring',talent:'Professional',admin:'Administrator'};
 function drawSide(){const cur=location.hash.slice(1).split('/')[0]||'home';const full=location.hash.slice(1);
@@ -379,6 +392,7 @@ $('#side').addEventListener('click',e=>{if(e.target.closest('a'))$('#side').clas
 async function start(){
   try{me=(await api('/auth/me')).user}catch{return logout()}
   META=await api('/meta').catch(()=>({provinces:[],types:[],categories:[],pay_units:['hour','day','month','project']}));
+  FX=await api('/fx').catch(()=>null);
   $('#auth').style.display='none';$('#app').style.display='block';
   if(me.role==='talent'){try{me.avatar_color=(await api('/talent/'+me.id)).data.avatar_color}catch{}}
   const h=location.hash;
@@ -485,7 +499,9 @@ V.home=async()=>{
   `<div class="figs"><div><small>Earned</small><b>${R(o.earned_cents)}</b><span>paid out to you</span></div><div><small>In escrow for you</small><b>${R(o.pending_cents)}</b><span>funded or awaiting payout</span></div><div><small>Active contracts</small><b>${o.active_contracts}</b></div><div><small>Rating</small><b>${o.rating?'★ '+o.rating.toFixed(1):'New'}</b><span>${plural(o.jobs_done||0,'job')} done</span></div><div><small>Profile</small><b>${o.profile_pct}%</b><div class="bar"><i style="width:${o.profile_pct}%"></i></div></div></div>
   <div class="cols"><div class="stack"><div class="panel"><h2>Needs your attention</h2>${todo}${o.profile_pct<100?`<a class="todo" href="#profile"><span class="ico other">${ic('user')}</span><b>Complete your profile to win more bids</b><span class="go">Edit →</span></a>`:''}${!o.verified&&o.verification!=='pending'?`<a class="todo" href="#profile"><span class="ico other">${ic('shield')}</span><b>Get your verified badge</b><span class="go">Start →</span></a>`:''}</div>
   <div class="panel"><h2>Activity<a class="link" href="#notifications">See all</a></h2><div id="feed">${posts}</div></div></div>
-  <div class="stack"><div class="panel"><h2>Jobs for you<a class="link" href="#find">Browse all</a></h2>${rec}</div></div></div>`};
+  <div class="stack"><div class="panel"><h2>Jobs for you<a class="link" href="#find">Browse all</a></h2>${rec}</div><div class="panel" id="remSug"><h2>Remote jobs for you<a class="link" href="#remote">See all</a></h2><p class="mut">Finding remote work that fits your skills…</p></div></div></div>`};
+afterRender.home=()=>{const box=$('#remSug');if(!box)return;api('/remote/suggestions').then(sg=>{const xs=[...sg.talentbridge,...sg.partners].slice(0,4);
+  box.innerHTML=`<h2>Remote jobs for you<a class="link" href="#remote">See all</a></h2>`+(xs.length?xs.map(x=>`<a class="post" href="${x.kind==='talentbridge'?'#job/'+x.id:esc(x.url)}"${x.kind==='talentbridge'?'':' target="_blank" rel="noopener nofollow"'} style="text-decoration:none"><span class="ico bid">${ic('laptop')}</span><div class="txt"><p><b>${esc(x.title)}</b></p><small>${x.kind==='talentbridge'?(x.escrow_funded?'Escrow funded · ':'')+esc(x.pay_label):esc(x.company)+' · via '+esc(x.source_name)}</small></div></a>`).join(''):`<p class="mut">${esc(sg.hint||'No matches yet. Add more skills to your profile, or browse all remote jobs.')}</p>`)}).catch(()=>{box.remove()})};
 
 V.notifications=async()=>{const j=await api('/me/notifications?limit=100');
   const groups={};j.data.forEach(n=>{(groups[dayLabel(n.created_at)]??=[]).push(n)});
@@ -494,7 +510,8 @@ V.notifications=async()=>{const j=await api('/me/notifications?limit=100');
 
 V.account=async()=>ph('Account')+`<div class="panel" style="max-width:680px"><div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">${av(me.name,me.avatar_color,'lg')}<div><h2 style="margin:0">${esc(me.name)}</h2><span class="mut">${esc(me.email)} · ${ROLE_LABEL[me.role]}</span></div></div>
   <p>Under POPIA you can download everything TalentBridge holds about you, or delete your account. Financial records are kept for tax purposes but anonymised.</p>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">${B('chpw','','Change password')}${B('export','','Download my data')}${me.role!=='admin'?B('delacc','','Delete account','danger'):''}</div></div>`;
+  ${me.role!=='admin'?`<p><b>Country:</b> ${esc(me.country||'South Africa')} · <b>Prices shown in:</b> ${esc(me.currency||'ZAR')}${me.company?` · <b>Company:</b> ${esc(me.company)}`:''}</p>`:''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${me.role!=='admin'?B('prefs','','Country and currency'):''}${B('chpw','','Change password')}${B('export','','Download my data')}${me.role!=='admin'?B('delacc','','Delete account','danger'):''}</div></div>`;
 
 /* ===== jobs ===== */
 const metaOpts=k=>(META[k]||[]).map(x=>typeof x==='string'?x:x.name);
@@ -503,7 +520,7 @@ let findState={q:'',category:'',province:'',type:'',international:'',remote:'',p
 V.find=async()=>{const p=new URLSearchParams({limit:20,page:findState.page});for(const k of['q','category','province','type','international','remote'])if(findState[k])p.set(k,findState[k]);
   const j=await api('/jobs?'+p);
   const sel=(k,label,opts)=>`<select data-filter="${k}" aria-label="${label}"><option value="">${label}</option>${opts.map(o=>`<option${o===findState[k]?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
-  return ph('Find work',`${plural(j.meta.total,'open job')}. Bid with your price and timeline.`)+
+  return ph('Find work',`${plural(j.meta.total,'open job')}. Bid with your price and timeline.`,me.role==='talent'?`<a class="btn ghost" href="#remote">${ic('laptop',18)} Remote jobs worldwide</a>`:'')+
   `<form class="toolbar" id="findForm"><input name="q" placeholder="Search jobs" value="${esc(findState.q)}" type="search">${sel('category','All categories',metaOpts('categories'))}${sel('province','All provinces',META.provinces)}${sel('type','Any type',META.types)}<button class="btn sm">Search</button></form>
   <div class="tabs"><button class="chip" data-act="fintl" aria-pressed="${!!findState.international}">${ic('globe',16)} Visa sponsorship</button><button class="chip" data-act="fremote" aria-pressed="${!!findState.remote}">Remote</button></div>
   ${me.needs_visa?`<div class="banner"><span class="ico bid" style="width:34px;height:34px">${ic('globe',18)}</span><b>You’re seeing remote jobs and jobs with visa sponsorship.</b><span class="mut">South African employers open long-term jobs to international applicants when they can’t find a local candidate.</span></div>`:''}
@@ -517,12 +534,32 @@ V.myjobs=async()=>{const j=await api('/me/jobs');
   :empty('You haven’t posted a job yet','Describe what you need and professionals will start bidding.',`<button class="btn" data-act="postjob">Post your first job</button>`))};
 
 let bidSort='';
+/* ===== remote jobs: TalentBridge escrow-funded jobs plus credited partner listings ===== */
+let remState={q:'',category:'',region:'sa',page:1};
+const remCard=x=>x.kind==='talentbridge'
+  ?`<a class="row remrow" href="#job/${x.id}"><div class="grow"><h3>${esc(x.title)}</h3><div class="meta"><span>${x.company_country?'Company in '+esc(x.company_country):'Remote'}</span><span>${esc(x.category)}</span><span>${plural(x.bids,'bid')}</span></div>${x.why?.length?`<div class="why">Matches ${x.why.map(esc).join(', ')}</div>`:''}</div><div class="amt">${esc(x.pay_label)}${x.escrow_funded?'<span class="st ok">Escrow funded</span>':''}</div></a>`
+  :`<div class="row remrow"><div class="grow"><h3>${esc(x.title)}</h3><div class="meta"><span>${esc(x.company)}</span><span>${esc(x.region||'Remote')}</span>${x.job_type?`<span>${esc(x.job_type)}</span>`:''}<span>${ago(x.published_at)}</span></div>${x.excerpt?`<p class="mut ex">${esc(x.excerpt)}</p>`:''}${x.why?.length?`<div class="why">Matches ${x.why.map(esc).join(', ')}</div>`:''}<small class="src">Listed on <a href="${esc(x.source_site)}" target="_blank" rel="noopener">${esc(x.source_name)}</a></small></div>
+    <div class="amt">${x.salary?esc(x.salary):''}<a class="btn sm" href="${esc(x.url)}" target="_blank" rel="noopener nofollow">Apply on ${esc(x.source_name)} ↗</a></div></div>`;
+V.remote=async()=>{const p=new URLSearchParams({region:remState.region,page:remState.page});if(remState.q)p.set('q',remState.q);if(remState.category)p.set('category',remState.category);
+  const [j,sg]=await Promise.all([api('/remote?'+p),me.role==='talent'&&remState.page===1&&!remState.q&&!remState.category?api('/remote/suggestions').catch(()=>null):null]);
+  const sug=sg?[...sg.talentbridge,...sg.partners].slice(0,6):[];
+  const P=j.partners.meta;
+  return ph('Remote jobs','Work from home for companies in South Africa and around the world.')+
+  (sug.length?`<div class="panel" style="margin-bottom:18px"><h2>Suggested for you</h2><div class="rows">${sug.map(remCard).join('')}</div></div>`:sg?.hint?`<div class="banner"><span class="ico bid" style="width:34px;height:34px">${ic('user',18)}</span><b>${esc(sg.hint)}</b><a class="btn sm" href="#profile">Edit profile</a></div>`:'')+
+  `<form class="toolbar" id="remForm"><input name="q" type="search" placeholder="Skill or job title, e.g. React, bookkeeping" value="${esc(remState.q)}"><select name="category" aria-label="Category"><option value="">All categories</option>${(META.remote_categories||[]).map(c=>`<option${c===remState.category?' selected':''}>${esc(c)}</option>`).join('')}</select><button class="btn sm">Search</button></form>
+  <div class="tabs" style="margin-bottom:16px"><button class="chip" data-act="remregion" data-id="sa" aria-pressed="${remState.region==='sa'}">Open to South Africa</button><button class="chip" data-act="remregion" data-id="all" aria-pressed="${remState.region==='all'}">All locations</button></div>
+  ${remState.page===1&&j.talentbridge.length?`<h2 class="remh">Paid upfront on TalentBridge</h2><p class="mut remsub">The client has paid the budget into escrow before you start. Bid here and get paid through TalentBridge.</p><div class="rows">${j.talentbridge.map(remCard).join('')}</div>`:''}
+  <h2 class="remh">From partner job boards</h2><p class="mut remsub">${P.total?`${plural(P.total,'remote job')}${remState.region==='sa'?' open to people in South Africa':''}. You apply on the company’s job board; TalentBridge isn’t part of these hires.`:'No partner listings match yet. They refresh a few times a day.'}</p>
+  <div class="rows">${j.partners.data.map(remCard).join('')}</div>
+  ${P.pages>1?`<div class="pager">${remState.page>1?B('rempage',remState.page-1,'← Newer'):''}<span class="mut">Page ${remState.page} of ${P.pages}</span>${remState.page<P.pages?B('rempage',remState.page+1,'Older →'):''}</div>`:''}
+  <p class="hint" style="margin-top:18px">Partner listings come from ${j.sources.map(s=>`<a href="${esc(s.site)}" target="_blank" rel="noopener">${esc(s.name)}</a>`).join(', ')}. Always check a job on the original site before sharing personal details.</p>`};
+afterRender.remote=()=>{const f=$('#remForm');if(f)f.onsubmit=e=>{e.preventDefault();remState.q=f.q.value.trim();remState.category=f.category.value;remState.page=1;route(true)}};
 V.job=async(id)=>{
   const {data:j}=await api('/jobs/'+id);
   const c=j.client||{};
   const owner=me.role==='client'&&j.client_id===me.id||me.role==='admin';
   const head=`${ph(j.title,`${esc(j.location)} · ${esc(j.type)} · ${esc(j.category)} · posted ${ago(j.created_at)}`,'',owner?['#myjobs','My jobs']:['#find','Find work'])}`;
-  const details=`<div class="panel"><div class="figs" style="box-shadow:none;background:var(--mist);margin-bottom:16px"><div><small>Budget</small><b style="font-size:19px">${esc(j.pay_label)}</b></div><div><small>Bids</small><b style="font-size:22px">${j.bids}</b><span>${j.avg_bid?'avg '+RR(j.avg_bid):''}</span></div><div><small>Status</small><b style="font-size:22px">${j.status==='open'?'Open':'Closed'}</b></div></div><p style="white-space:pre-line;margin:0">${esc(j.description)}</p></div>`;
+  const details=`<div class="panel"><div class="figs" style="box-shadow:none;background:var(--mist);margin-bottom:16px"><div><small>Budget</small><b style="font-size:19px">${esc(j.pay_label)}</b></div><div><small>Bids</small><b style="font-size:22px">${j.bids}</b><span>${j.avg_bid?'avg '+RR(j.avg_bid):''}</span></div><div><small>Status</small><b style="font-size:22px">${j.status==='open'?'Open':j.status==='awaiting_funding'?'Awaiting escrow':'Closed'}</b></div></div><p style="white-space:pre-line;margin:0">${esc(j.description)}</p></div>`;
   if(owner){
     const bids=(await api(`/jobs/${id}/applications${bidSort?'?sort='+bidSort:''}`)).data;
     return head+`<div class="cols"><div class="stack"><div><div class="ph" style="margin:0 0 12px"><h2 style="font-size:26px">${plural(bids.length,'bid')}</h2><div class="acts tabs" style="margin:0">${[['','Newest'],['price','Lowest price'],['rating','Top rated'],['fast','Fastest']].map(([v,l])=>`<button class="chip" data-act="bidsort" data-id="${v}" aria-pressed="${v===bidSort}">${l}</button>`).join('')}</div></div>
@@ -532,7 +569,7 @@ V.job=async(id)=>{
       <div class="acts">${ast(b.status)}<span class="mut" style="font-size:13px;align-self:center">${ago(b.updated_at||b.created_at)}</span><span style="flex:1"></span>
         ${b.sponsorship?`<a class="btn sm" href="#sponsorships/${b.sponsorship.split(':')[0]}">Sponsorship: ${esc(SPS[b.sponsorship.split(':')[1]]?.[1]||'')}</a>`:''}${b.status!=='hired'?(b.needs_visa&&!j.remote?(j.open_to_international&&!b.sponsorship?B('sponsor',b.id+':'+j.id+':'+esc(b.name),'Offer sponsored job',''):''):B('award',b.id+':'+(b.bid_amount||'')+':'+esc(b.name),'Award job',''))+B('bidchat',id+':'+b.id,b.conversation_id?'Open chat':'Chat')+(b.status==='shortlisted'?B('bidstatus',id+':'+b.id+':submitted','Unshortlist'):B('bidstatus',id+':'+b.id+':shortlisted','Shortlist'))+(b.status!=='rejected'?B('bidstatus',id+':'+b.id+':rejected','Decline','danger'):''):`<a class="btn sm soft" href="#contracts">View contract</a>${B('bidchat',id+':'+b.id,'Open chat')}`}
         <a class="btn sm ghost" href="#talent/${b.talent_id}">Profile</a></div></div>`).join(''):empty('No bids yet','You’ll get a notification the moment a professional bids.')}</div></div></div>
-      <div class="stack">${details}${intlPanel(j)}<div class="panel">${B('jclose',j.id+':'+j.status,j.status==='open'?'Close this job':'Reopen this job')}</div></div></div>`}
+      <div class="stack">${escrowPanel(j)}${details}${intlPanel(j)}${j.status!=='awaiting_funding'?`<div class="panel">${B('jclose',j.id+':'+j.status,j.status==='open'?'Close this job':'Reopen this job')}</div>`:''}</div></div>`}
   // professional view
   const mb=j.my_bid;
   const LT=j.long_term;
@@ -543,7 +580,7 @@ V.job=async(id)=>{
   const side=me.role!=='talent'?'':(!j.can_bid&&!mb)?`${intlInfo}<div class="panel"><h2>Not open to you yet</h2><p class="mut">${esc(j.bid_block)}</p><a class="btn sm" href="#find">Find sponsored and remote jobs</a></div>`:j.status!=='open'&&!mb?`<div class="panel"><h2>This job is closed</h2><p class="mut">It’s no longer taking bids.</p></div>`
     :mb&&!['submitted','shortlisted'].includes(mb.status)?`<div class="panel"><h2>Your bid</h2>${ast(mb.status)}<p style="margin-top:10px"><b>${mb.bid_amount?RR(mb.bid_amount):''}</b> ${mb.delivery_days?'in '+plural(mb.delivery_days,'day'):''}</p>${mb.status==='hired'?'<a class="btn" href="#contracts">Go to contracts</a>':''}</div>`
     :`${intlInfo}<div class="panel"><h2>${mb?'Your bid':'Place a bid'}${mb?' '+ast(mb.status):''}</h2>${bidForm}${mb?`<div style="display:flex;gap:8px;margin-top:10px">${B('withdraw',j.id,'Withdraw bid','danger')}${B('msgclient',j.id+':'+j.client_id,'Message client')}</div>`:''}</div>`;
-  return head+`<div class="cols"><div class="stack">${details}<div class="panel"><h2>About the client</h2><div class="post" style="padding:0">${av(c.name)}<div class="txt"><p><b>${esc(c.name||'Client')}</b>${c.email_verified?' <span class="verified">✓ Email verified</span>':''}</p><small>Member since ${c.created_at?dt(c.created_at).toLocaleDateString('en-ZA',{month:'long',year:'numeric'}):''} · ${plural(c.jobs_posted||0,'job')} posted · ${c.hires||0} paid through escrow</small></div></div></div></div><div class="stack">${side}</div></div>`};
+  return head+`<div class="cols"><div class="stack">${details}<div class="panel"><h2>About the client</h2><div class="post" style="padding:0">${av(c.name)}<div class="txt"><p><b>${esc(c.name||'Client')}</b>${c.email_verified?' <span class="verified">✓ Email verified</span>':''}</p><small>${c.country?esc(c.country)+' · ':''}Member since ${c.created_at?dt(c.created_at).toLocaleDateString('en-ZA',{month:'long',year:'numeric'}):''} · ${plural(c.jobs_posted||0,'job')} posted · ${c.hires||0} paid through escrow</small></div></div>${j.escrow_funded?`<p class="escok">${ic('shield',16)} The client has already paid this job’s budget into escrow. You’re paid from it when the work is approved.</p>`:''}</div></div><div class="stack">${side}</div></div>`};
 afterRender.job=id=>{const f=$('#bidForm');if(!f)return;
   const upd=()=>{const a=+f.bid_amount.value||0;if(!a||!META.commission_pct){$('#youGet').textContent='';return}const fee=a*META.commission_pct/100,vat=fee*(META.vat_pct||0)/100;$('#youGet').textContent=`You’ll receive about ${RR(a-fee-vat)} after the ${META.commission_pct}% service fee and VAT.`};
   f.bid_amount.oninput=upd;upd();
@@ -701,7 +738,7 @@ const table=(h,rows)=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>
 const D=s=>s?dt(s).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}):'';
 const A_V={
  async overview(){const [o,rd]=await Promise.all([api('/admin/overview'),api('/admin/readiness').catch(()=>null)]);
-  const todo=[['admin/kyc',o.kyc_pending,'identity checks to review','shield'],['admin/international',o.intl_requests,'requests to open jobs to international applicants','globe'],['admin/international',o.visa_cases_active,'visa cases in progress','globe'],['admin/risk',o.risk_high,'high-risk fraud flags','flag'],['admin/risk',o.risk_open-o.risk_high,'other risk flags','flag'],['admin/kyc',o.quals_pending,'qualifications to confirm with institutions','file'],['admin/verifications',o.pending_verifications,'older document verifications','shield'],['admin/payments',o.payments_to_confirm,'EFT payments to confirm','coin'],['admin/payments',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`,'coin'],['admin/reports',o.open_reports,'open disputes and reports','flag'],['admin/leads',o.new_leads,'new hire enquiries','inbox'],['admin/enquiries',o.new_messages,'new contact messages','chat']].filter(t=>t[1]);
+  const todo=[['admin/kyc',o.kyc_pending,'identity checks to review','shield'],['admin/international',o.intl_requests,'requests to open jobs to international applicants','globe'],['admin/international',o.visa_cases_active,'visa cases in progress','globe'],['admin/risk',o.risk_high,'high-risk fraud flags','flag'],['admin/risk',o.risk_open-o.risk_high,'other risk flags','flag'],['admin/kyc',o.quals_pending,'qualifications to confirm with institutions','file'],['admin/verifications',o.pending_verifications,'older document verifications','shield'],['admin/payments',o.payments_to_confirm,'EFT payments to confirm','coin'],['admin/payments',o.escrow_deposits_to_confirm,'remote-job escrow EFTs to confirm','coin'],['admin/payments',o.escrow_refunds_due,'escrow refunds to pay back','coin'],['admin/payments',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`,'coin'],['admin/reports',o.open_reports,'open disputes and reports','flag'],['admin/leads',o.new_leads,'new hire enquiries','inbox'],['admin/enquiries',o.new_messages,'new contact messages','chat']].filter(t=>t[1]);
   return ph('Overview','The marketplace at a glance.')+`<div class="figs"><div><small>Gross volume</small><b>${R(o.gmv_cents)}</b><span>funded and completed</span></div><div><small>Revenue</small><b>${R(o.revenue_cents)}</b><span>fees, excl. VAT</span></div><div><small>VAT on fees</small><b>${R(o.vat_cents)}</b></div><div><small>Held in escrow</small><b>${R(o.escrow_cents)}</b></div></div>
   <div class="figs"><div><small>Professionals</small><b>${o.talent}</b></div><div><small>Clients</small><b>${o.clients}</b></div><div><small>Sign-ups, 30 days</small><b>${o.signups_30d}</b></div><div><small>Open jobs</small><b>${o.jobs_open}</b></div><div><small>Active contracts</small><b>${o.contracts_active}</b></div></div>
   <div class="panel"><h2>To do</h2>${todo.length?todo.map(([k,n,l,i])=>`<a class="todo" href="#${k}"><span class="ico bid">${ic(i)}</span><b>${n} ${l}</b><span class="go">Open →</span></a>`).join(''):'<p class="mut">All clear.</p>'}</div>
@@ -710,7 +747,12 @@ const A_V={
    ${[...new Set(rd.data.checks.map(c=>c.group))].map(g=>`<h3 class="ksub">${esc(g)}</h3>${rd.data.checks.filter(c=>c.group===g).map(c=>`<div class="kdoc"><span class="ico ${c.ok?'accepted':'bid'}">${ic(c.ok?'check':'flag')}</span><div class="grow"><b>${esc(c.label)}</b>${c.ok?'':`<small class="mut">${esc(c.fix)}</small>`}</div></div>`).join('')}`).join('')}
    ${rd.data.checks.some(c=>c.key==='payfast_live'&&!c.ok)?`<p class="hint" style="margin-top:14px">Testing PayFast? While PAYFAST_SANDBOX is on, open <a href="/api/payfast/selftest" target="_blank" rel="noopener">the PayFast self-test</a> to send a R5 sandbox payment and confirm notifications are verified on this server.</p>`:''}</div>`:''}`},
  async verifications(){const j=await api('/admin/verifications');return ph('Verifications','Check the document, then approve or reject. Files are deleted once reviewed.')+table(['Person','Role','Document','Ref (last 4)','Note','Submitted',''],j.data.map(v=>[`<b>${esc(v.name)}</b><br><small class="mut">${esc(v.email)}</small>`,v.role,esc(v.id_type),esc(v.ref_last4),esc(v.note),D(v.created_at),(v.doc_path?B('vdoc',v.id,'View document'):'<small class="mut">No file</small> ')+B('vapprove',v.id,'Approve','moss')+B('vreject',v.id,'Reject','danger')]))},
- async payments(){const j=await api('/admin/contracts');return ph('Payments & escrow','',B('csv','','Export CSV for your accountant'))+table(['#','Contract','Parties','Amount','Fee + VAT','Status','Payment',''],j.data.map(c=>[c.id,`<a href="#contracts/${c.id}">${esc(c.job_title)}</a>`,`${esc(c.client_name)} → ${esc(c.talent_name)}`,R(c.amount_cents),`${R(c.commission_cents)} + ${R(c.vat_cents)}`,cst(c.status),c.payment_status?`${gst(c.payment_status)}<br><small class="mut">${esc(c.provider)} · ${esc(c.reference)}</small>`:'',
+ async payments(){const [j,e,fd]=await Promise.all([api('/admin/contracts'),api('/admin/escrow'),api('/admin/remote-feeds')]);
+  const escrow=`<div class="panel" style="margin-bottom:16px"><div class="kh"><h2>Upfront escrow for remote jobs</h2><span class="st">${R(e.held_cents)} held</span></div>
+   ${e.deposits.length?table(['Job','Client','Amount','Method','Reference','Status',''],e.deposits.map(d=>[`<a href="#job/${d.job_id}">${esc(d.job_title)}</a>`,`${esc(d.client_name)}<br><small class="mut">${esc(d.client_email)}</small>`,R(d.amount_cents),esc(d.provider),esc(d.reference),gst(d.status),d.status==='pending'&&d.provider==='manual'?B('escconfirm',d.id,'Confirm EFT received','moss'):''])):'<p class="mut">No escrow payments in the last 30 days.</p>'}
+   ${e.refunds.length?`<h3 class="ksub">Refunds of unused escrow</h3>${table(['Job','Client','Amount','Status','Reference',''],e.refunds.map(r=>[`<a href="#job/${r.job_id}">${esc(r.job_title)}</a>`,`${esc(r.client_name)}<br><small class="mut">${esc(r.client_email)}</small>`,R(r.amount_cents),r.status==='due'?'<span class="st wait">Refund due</span>':'<span class="st ok">Refunded</span>',esc(r.reference),r.status==='due'?B('escrefunded',r.id,'Record refund'):'']))}`:''}</div>
+   <div class="panel" style="margin-bottom:16px"><div class="kh"><h2>Partner job boards</h2>${B('feedsync','','Refresh now')}</div>${table(['Board','Live listings','Last fetch','Result'],Object.values(fd.data).map(s=>[`<a href="${esc(s.site)}" target="_blank" rel="noopener">${esc(s.name)}</a>`,s.live,s.at?ago(s.at):'Not yet',s.at?(s.ok===false?`<span class="st bad">Failed</span> <small class="mut">${esc(s.error||'')}</small>`:'<span class="st ok">OK</span>'):'']))}<p class="hint">Each board is checked at most every six hours, as their terms ask.</p></div>`;
+  return ph('Payments & escrow','',B('csv','','Export CSV for your accountant'))+escrow+table(['#','Contract','Parties','Amount','Fee + VAT','Status','Payment',''],j.data.map(c=>[c.id,`<a href="#contracts/${c.id}">${esc(c.job_title)}</a>`,`${esc(c.client_name)} → ${esc(c.talent_name)}`,R(c.amount_cents),`${R(c.commission_cents)} + ${R(c.vat_cents)}`,cst(c.status),c.payment_status?`${gst(c.payment_status)}<br><small class="mut">${esc(c.provider)} · ${esc(c.reference)}</small>`:'',
    (c.status==='accepted'&&c.payment_status==='pending'&&c.provider==='manual'?B('confirmpay',c.id,'Confirm EFT received','moss'):'')+(c.status==='disputed'?B('resolve',c.id,'Resolve','danger'):'')+(c.payout_blockers?.length&&c.status==='released'?`<div class="kwarn" style="margin-bottom:6px">On hold: ${c.payout_blockers.map(esc).join('; ')}</div>`:'')+(['released','refunded'].includes(c.status)?B('payout',c.id,c.status==='released'?'Record payout':'Record refund'):'')+(['released','paid_out'].includes(c.status)?B('invoice',c.id,'Invoice'):'')]))},
  async reports(){const j=await api('/admin/reports');return ph('Disputes & reports')+table(['#','About','Reporter','Reason','Status','Note',''],j.data.map(r=>[r.id,r.target_type==='contract'?`<a href="#contracts/${r.target_id}">Contract #${r.target_id}</a>`:`${esc(r.target_type)} #${r.target_id}`,esc(r.reporter),esc(r.reason),gst(r.status),esc(r.admin_note),B('rstatus',r.id,'Update')]))},
  async jobs(){const j=await api('/admin/jobs');return ph('Jobs')+table(['Job','Client','Where','Type','Bids','Status',''],j.data.map(x=>[`<a href="#job/${x.id}">${esc(x.title)}</a>${x.featured?' <span class="st wait">Featured</span>':''}`,esc(x.client_name),esc(x.city),esc(x.type),x.applicants,gst(x.status),B('feature',x.id+':'+x.featured,x.featured?'Unfeature':'Feature')+B('jstatus',x.id+':'+x.status,x.status==='open'?'Close':'Reopen',x.status==='open'?'danger':'ghost')]))},
@@ -764,10 +806,21 @@ const A={
  async dm(x){const[t,name]=x.split(':');const v=await ask(`Message ${name}`,[{label:'Message',name:'body',type:'textarea',req:true,ph:'Hi, are you available for…'}],'Send');if(!v)return;const r=await api(`/talent/${t}/message`,{body:v});location.hash='#inbox/'+r.data.conversation_id},
  async msgclient(x){const[job,client]=x.split(':');const r=await api('/inbox',{body:{user_id:+client,job_id:+job}});location.hash='#inbox/'+r.data.id},
  async withdraw(id){if(!await confirmBox('Withdraw your bid?','The client will no longer see it. You can bid again while the job is open.','Withdraw',true))return;await api(`/jobs/${id}/apply`,{method:'DELETE'});toast('Bid withdrawn');route(true)},
- async accept(id){await api(`/contracts/${id}/accept`,{method:'POST'});toast('Offer accepted. The client will fund escrow next.');route(true)},
+ async accept(id){const r=await api(`/contracts/${id}/accept`,{method:'POST'});toast(r.funded?'Offer accepted. The money was already in escrow, so you can start now.':'Offer accepted. The client will fund escrow next.');route(true)},
+ async escpay(id){await escrowPay(id)},
+ async escadd(id){const v=await ask('Add money to the escrow',[{label:'Amount (R)',name:'amount',type:'number',req:true,min:50}],'Continue','Use this to hire more people or make a bigger offer on this job.');if(!v)return;await escrowPay(id,+v.amount)},
+ async escrefund(x){const[id,c]=x.split(':');if(!await confirmBox('Close the job and get a refund?',`We’ll close this job and refund the unused ${R(+c)} to your original payment method, usually within 5 working days.`,'Close and refund',true))return;await api(`/jobs/${id}/escrow/refund`,{method:'POST'});toast('Refund requested. We’ll email you when it’s paid.');route(true)},
+ async escconfirm(id){if(!await confirmBox('Confirm EFT received?','Only confirm once the money shows in the bank account. The job goes live straight away.','Confirm'))return;await api(`/admin/escrow/deposits/${id}/confirm`,{method:'POST'});toast('Escrow confirmed. The job is live.');route(true)},
+ async escrefunded(id){const v=await ask('Record the refund',[{label:'Refund reference',name:'reference',req:true,ph:'PayFast refund ID or bank reference'}],'Save');if(!v)return;await api(`/admin/escrow/refunds/${id}/done`,{body:v});toast('Refund recorded. The client has been told.');route(true)},
+ async feedsync(){toast('Refreshing partner job boards…');await api('/admin/remote-feeds/refresh',{method:'POST'});toast('Partner job boards refreshed');route(true)},
+ async remregion(r){remState.region=r;remState.page=1;route(true)},
+ async rempage(n){remState.page=+n;route(true)},
+ async prefs(){const v=await ask('Country and currency',[{label:'Country',name:'country',type:'select',options:(META.countries||[]).map(c=>c[0]),value:me.country||'South Africa'},{label:'Show prices in',name:'currency',type:'select',options:Object.entries(META.currencies||{ZAR:['South African rand']}).map(([k,v])=>[k,`${k} · ${v[0]}`]),value:me.currency||'ZAR'},...(me.role==='client'?[{label:'Company name',name:'company',value:me.company||''}]:[])],'Save','Payments are always charged in South African rand. Other currencies are shown for reference.');if(!v)return;
+  await api('/me/preferences',{method:'PUT',body:{country:v.country,currency:v.currency,company:v.company||''}});Object.assign(me,{country:v.country,currency:v.currency,company:v.company||me.company});toast('Saved');route(true)},
  async decline(id){if(!await confirmBox('Decline this offer?','The client will be told you declined.','Decline',true))return;await api(`/contracts/${id}/decline`,{method:'POST'});route(true)},
  async cwithdraw(id){if(!await confirmBox('Withdraw this offer?','The professional will be told.','Withdraw',true))return;await api(`/contracts/${id}/withdraw`,{method:'POST'});route(true)},
  async fund(id){const f=await api(`/contracts/${id}/fund`,{method:'POST'});
+  if(f.mode==='job_escrow'){toast('Paid from the job’s escrow. Work can start.');return route(true)}
   if(f.mode==='paystack')return location.href=f.checkout_url;
   if(f.mode==='payfast'){const c=(await api('/contracts/'+id)).data;
     const m=modal(`<span class="ico funded" style="width:48px;height:48px;margin-bottom:12px">${ic('coin',24)}</span><h3>Pay into escrow</h3>
@@ -1006,10 +1059,14 @@ afterRender.admin=(id=>{const prev=afterRender.admin;return x=>{prev(x);$$('.kfi
 const CSL=()=>META.critical_skills||[];
 const occName=o=>CSL().find(c=>c.ofo===o)?.name||'';
 const occOptions=(v='',blank='Not on the Critical Skills List')=>`<option value="">${esc(blank)}</option>`+[...new Set(CSL().map(c=>c.field))].map(f=>`<optgroup label="${esc(f)}">${CSL().filter(c=>c.field===f).map(c=>`<option value="${c.ofo}"${c.ofo===v?' selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
-const jobTags=j=>(j.open_to_international?' <span class="st go">Visa sponsorship</span>':'')+(j.remote?' <span class="st">Remote</span>':'')+(j.long_term&&!j.open_to_international?' <span class="st">Long term</span>':'');
+const jobTags=j=>(j.open_to_international?' <span class="st go">Visa sponsorship</span>':'')+(j.remote?' <span class="st">Remote</span>':'')+(j.escrow_funded?' <span class="st ok">Escrow funded</span>':'')+(j.long_term&&!j.open_to_international?' <span class="st">Long term</span>':'');
 const SPS={offered:['wait','Offer sent'],accepted:['go','Offer accepted'],declined:['bad','Declined'],withdrawn:['','Withdrawn'],documents:['go','Collecting documents'],submitted:['go','Visa applied for'],approved:['ok','Visa approved'],refused:['bad','Visa refused'],arrived:['ok','Started work'],closed:['','Closed']};
 const sps=s=>{const v=SPS[s]||['',s];return`<span class="st ${v[0]}">${v[1]}</span>`};
 const money=n=>'R'+Number(n||0).toLocaleString('en-ZA');
+// Rand amount in the member's own currency, for reference only (we always charge in rand).
+const fxAmt=(cents,cur=me?.currency)=>{if(!FX||!cur||cur==='ZAR'||!FX.rates[cur])return'';const v=cents/100*FX.rates[cur];
+  try{return new Intl.NumberFormat('en',{style:'currency',currency:cur,maximumFractionDigits:v<100?2:0}).format(v)}catch{return cur+' '+Math.round(v).toLocaleString('en')}};
+const fxNote=(cents,cur)=>{const a=fxAmt(cents,cur);return a?` <span class="mut" title="${esc(FX.live?'Exchange rate from '+FX.source.name:'Approximate exchange rate')}">≈ ${a}</span>`:''};
 
 async function postJob(){
   const m=modal(`<h3>Post a job</h3><p class="mut">Matching professionals are alerted straight away.</p><form id="pj">
@@ -1018,17 +1075,49 @@ async function postJob(){
    <div class="field-row">${field({label:'Category',name:'category',type:'select',options:metaOpts('categories')})}${field({label:'Job type',name:'type',type:'select',options:META.types,value:'Freelance'})}</div>
    <div id="ltBox" hidden><div class="field-row"><label>Contract<select name="contract_term"><option value="">Choose</option><option value="permanent">Permanent</option><option value="fixed">Fixed term</option></select></label><label id="durBox" hidden>Length (months)<input name="duration_months" type="number" min="1" max="120" inputmode="numeric"></label></div>
      <label>Occupation on the Critical Skills List <small class="mut">(optional)</small><select name="occupation_ofo">${occOptions()}</select><span class="hint">Long-term jobs can be opened to international applicants if no suitable South African is found within ${META.sponsorship?.wait_days||90} days. Critical skills have a faster visa route.</span></label></div>
-   <div class="field-row">${field({label:'Province',name:'province',type:'select',options:META.provinces,value:'Gauteng'})}${field({label:'City or town',name:'city',req:true})}</div>
+   <label class="check"><input type="checkbox" name="remote"${me.country&&me.country!=='South Africa'?' checked':''}><span>This work can be done remotely, from anywhere</span></label>
+   <div class="field-row" id="locBox">${field({label:'Province',name:'province',type:'select',options:META.provinces,value:'Gauteng'})}${field({label:'City or town',name:'city'})}</div>
    <div class="field-row">${field({label:'Budget or salary from (R)',name:'pay_min',type:'number',min:0,req:true})}${field({label:'Up to (R)',name:'pay_max',type:'number',min:0,req:true})}</div>
    ${field({label:'Paid per',name:'pay_unit',type:'select',options:META.pay_units.map(u=>[u,{hour:'Hour',day:'Day',month:'Month',project:'Whole project'}[u]||u]),value:'project'})}
-   <label class="check"><input type="checkbox" name="remote"><span>This work can be done remotely, from anywhere</span></label>
+   <div class="escbox" id="escBox" hidden><b>Remote jobs are paid upfront</b><p class="mut">Your job goes live once the budget is in escrow, so professionals anywhere can see the money is already there. Each hire is paid from this balance, and you can ask for anything you don’t use back.</p>
+     <p class="hint" id="escMin"></p><label>Amount to put in escrow (R) <small class="mut">(optional, at least the minimum)</small><input name="escrow_amount" type="number" min="50" inputmode="numeric"></label></div>
    <div class="actions"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn">Post job</button></div></form>`,{wide:true});
-  const f=$('#pj',m);const sync=()=>{const ft=f.type.value==='Full-Time';$('#ltBox',m).hidden=!ft;$('#durBox',m).hidden=f.contract_term.value!=='fixed';if(ft&&f.pay_unit.value==='project')f.pay_unit.value='month'};
-  f.type.onchange=sync;f.contract_term.onchange=sync;
+  const f=$('#pj',m);const PER={project:1,month:1,day:5,hour:40};
+  const sync=()=>{const ft=f.type.value==='Full-Time';$('#ltBox',m).hidden=!ft;$('#durBox',m).hidden=f.contract_term.value!=='fixed';if(ft&&f.pay_unit.value==='project')f.pay_unit.value='month';
+    const rm=f.remote.checked;$('#locBox',m).hidden=rm;$('#escBox',m).hidden=!rm;f.city.required=!rm;$('.btn:not(.ghost)',f).textContent=rm?'Save and pay escrow':'Post job';
+    const top=Math.max(50,+f.pay_max.value||0),min=top*(PER[f.pay_unit.value]||1);
+    $('#escMin',m).innerHTML=+f.pay_max.value?`Minimum in escrow: <b>${money(min)}</b>${fxNote(min*100)}, which is ${esc(META.escrow_periods?.[f.pay_unit.value]||'one pay period')} at your top rate.`:'Enter your budget to see the minimum.'};
+  f.type.onchange=sync;f.contract_term.onchange=sync;f.remote.onchange=sync;f.pay_max.oninput=sync;f.pay_unit.onchange=sync;sync();
   f.onsubmit=async e=>{e.preventDefault();const v=Object.fromEntries(new FormData(f));const ft=v.type==='Full-Time';
-    const body={title:v.title,description:v.description,category:v.category,type:v.type,province:v.province,city:v.city,pay_min:+v.pay_min,pay_max:+v.pay_max,pay_unit:v.pay_unit,remote:!!v.remote,
-      contract_term:ft?v.contract_term:'',occupation_ofo:ft?v.occupation_ofo:'',...(ft&&v.contract_term==='fixed'&&{duration_months:+v.duration_months})};
-    try{const r=await api('/jobs',{body});m.close();toast('Job posted. Matching professionals have been alerted.');location.hash='#job/'+r.data.id}catch(err){fail(err)}}}
+    const rm=!!v.remote;
+    const body={title:v.title,description:v.description,category:v.category,type:v.type,...(!rm&&{province:v.province,city:v.city}),pay_min:+v.pay_min,pay_max:+v.pay_max,pay_unit:v.pay_unit,remote:rm,
+      ...(rm&&+v.escrow_amount&&{escrow_amount:+v.escrow_amount}),contract_term:ft?v.contract_term:'',occupation_ofo:ft?v.occupation_ofo:'',...(ft&&v.contract_term==='fixed'&&{duration_months:+v.duration_months})};
+    try{const r=await api('/jobs',{body});m.close();location.hash='#job/'+r.data.id;
+      if(rm){toast('Job saved. Pay the escrow to put it live.');setTimeout(()=>escrowPay(r.data.id),400)}else toast('Job posted. Matching professionals have been alerted.')}catch(err){fail(err)}}}
+
+/* ===== upfront escrow for remote jobs ===== */
+function payModal(f,{title,what,amount,note}){
+  if(f.mode==='payfast'){const m=modal(`<span class="ico funded" style="width:48px;height:48px;margin-bottom:12px">${ic('coin',24)}</span><h3>${esc(title)}</h3>
+     <p class="mut">${note}</p>
+     <dl class="money kdl"><dt>For</dt><dd>${esc(what)}</dd><dt>Amount</dt><dd><b>${R(amount)}</b>${fxNote(amount)}</dd><dt>Pay with</dt><dd>Visa or Mastercard from any country, Instant EFT and other PayFast methods. You’re charged in rand; your bank converts it.</dd></dl>
+     ${f.sandbox?'<p class="kwarn">Test mode: this uses the PayFast sandbox. No real money moves.</p>':''}
+     <form method="post" action="${esc(f.action)}" id="pfForm">${Object.entries(f.fields).map(([k,v])=>`<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('')}
+     <div class="actions"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn">Continue to PayFast</button></div></form>`);
+    $('#pfForm',m).onsubmit=()=>{const b=$('#pfForm .btn:not(.ghost)',m);b.textContent='Opening PayFast…';b.disabled=true};return true}
+  if(f.mode==='manual'){modal(`<h3>Pay by EFT</h3><p>${esc(f.instructions)}</p>${fxAmt(amount)?`<p class="mut">${R(amount)} is about ${fxAmt(amount)}. International transfers must arrive as the full rand amount.</p>`:''}<div class="actions"><button class="btn" data-close>Done</button></div>`);return true}
+  return false}
+async function escrowPay(id,amount){
+  const f=await api(`/jobs/${id}/escrow`,{body:amount?{amount}:{}});
+  const {data:j}=await api('/jobs/'+id);
+  if(payModal(f,{title:'Pay the escrow for this job',what:`Job #${j.id} · ${j.title}`,amount:f.amount_cents,note:'TalentBridge holds this money in escrow. Your job goes live as soon as it arrives, each hire is paid from it, and you can ask for whatever you don’t use back.'}))return;
+  if(await confirmBox('Test payment',`Payments are in sandbox mode. Simulate paying ${R(f.amount_cents)} into this job’s escrow?`,'Simulate payment')){await api(`/jobs/${id}/escrow/simulate`,{body:{reference:f.reference}});toast('Escrow funded. Your job is live.');route(true)}}
+const escrowPanel=j=>{const e=j.escrow;if(!e)return'';
+  const refunds=e.refunds.length?`<h3 class="ksub">Refunds</h3>${e.refunds.map(r=>`<p class="mut" style="margin:4px 0">${R(r.amount_cents)} · ${r.status==='refunded'?'refunded '+D(r.refunded_at):'being processed'}</p>`).join('')}`:'';
+  if(!e.funded)return`<div class="panel escbox"><h2>Escrow</h2><p><span class="st wait">Not live yet</span></p><p class="mut">This remote job goes live as soon as <b>${R(e.due_cents)}</b>${fxNote(e.due_cents)} is in escrow. That’s ${esc(e.minimum_label)} at your top rate${e.required_cents>e.minimum_cents?', plus the extra you chose':''}.</p>
+    ${e.pending&&e.pending.provider==='manual'?`<p class="kwarn">Waiting for your EFT of ${R(e.pending.amount_cents)} with reference <b>${esc(e.pending.reference)}</b>.</p>`:''}${B('escpay',j.id,'Pay '+R(e.due_cents)+' into escrow','')}${refunds}</div>`;
+  return`<div class="panel escbox"><h2>Escrow</h2><p><span class="st ok">Funded</span></p><dl class="money kdl"><dt>Available</dt><dd><b>${R(e.balance_cents-e.reserved_cents)}</b>${fxNote(e.balance_cents-e.reserved_cents)}</dd>${e.reserved_cents?`<dt>Held for open offers</dt><dd>${R(e.reserved_cents)}</dd>`:''}<dt>Paid in</dt><dd>${R(e.paid_cents)}</dd></dl>
+    <p class="hint">When a professional accepts your offer, their contract is paid from this balance straight away.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${B('escadd',j.id,'Add money')}${e.balance_cents>0&&!e.reserved_cents?B('escrefund',j.id+':'+e.balance_cents,'Close job and refund '+R(e.balance_cents),'danger'):''}</div>${refunds}</div>`};
 
 const intlPanel=j=>{const i=j.international;if(!i)return'';const w=META.sponsorship?.wait_days||90;
   const head='<h2>International applicants</h2>';
@@ -1115,7 +1204,8 @@ Object.assign(A_V,{
 
 /* boot */
 $('#fr [name=province]').innerHTML='<option value="">Choose</option>';
-fetch('/api/meta').then(r=>r.json()).then(m=>{$('#fr [name=province]').innerHTML='<option value="">Choose</option>'+m.provinces.map(p=>`<option>${esc(p)}</option>`).join('')}).catch(()=>{});
+fetch('/api/meta').then(r=>r.json()).then(m=>{$('#fr [name=province]').innerHTML='<option value="">Choose</option>'+m.provinces.map(p=>`<option>${esc(p)}</option>`).join('');
+  if(m.countries)$('#fr [name=country]').innerHTML=m.countries.map(([c])=>`<option${c==='South Africa'?' selected':''}>${esc(c)}</option>`).join('')}).catch(()=>{});
 if(token)start();else $('#auth').style.display='grid';
 </script>
 </body>

@@ -357,4 +357,65 @@ CREATE INDEX IF NOT EXISTS idx_flags_user ON risk_flags(user_id, status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_flags_unique ON risk_flags(IFNULL(user_id,0), IFNULL(contract_id,0), kind, detail);
 `);
 
+// Remote work: escrow-first remote jobs, international companies, partner job feeds, cached lookups.
+for (const [c, d] of [['escrow_required', 'INTEGER NOT NULL DEFAULT 0'], ['escrow_cents', 'INTEGER NOT NULL DEFAULT 0'], ['escrow_balance_cents', 'INTEGER NOT NULL DEFAULT 0'],
+  ['escrow_refund_cents', 'INTEGER NOT NULL DEFAULT 0'], ['funded_at', 'TEXT'], ['company_country', "TEXT NOT NULL DEFAULT ''"]]) addCol('jobs', c, d);
+for (const [c, d] of [['country', "TEXT NOT NULL DEFAULT ''"], ['currency', "TEXT NOT NULL DEFAULT 'ZAR'"], ['company', "TEXT NOT NULL DEFAULT ''"]]) addCol('users', c, d);
+// Remote jobs wait in 'awaiting_funding' until their escrow is paid. SQLite can't alter a CHECK, so rebuild the table once.
+if (!/awaiting_funding/.test(db.prepare("SELECT sql FROM sqlite_master WHERE name = 'jobs'").get().sql)) {
+  db.pragma('foreign_keys = OFF');
+  db.transaction(() => {
+    const sql = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'jobs'").get().sql;
+    const next = sql.replace(/status IN \('open',\s*'closed'\)/, "status IN ('open','closed','awaiting_funding')").replace(/CREATE TABLE (IF NOT EXISTS )?"?jobs"?/, 'CREATE TABLE jobs_new');
+    if (next === sql || !/awaiting_funding/.test(next)) throw new Error('jobs table migration: status check not found');
+    db.exec(next);
+    const cols = db.prepare('PRAGMA table_info(jobs)').all().map(c => `"${c.name}"`).join(',');
+    db.exec(`INSERT INTO jobs_new (${cols}) SELECT ${cols} FROM jobs; DROP TABLE jobs; ALTER TABLE jobs_new RENAME TO jobs;`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_jobs_filter ON jobs(status, type, category, province);');
+  })();
+  db.pragma('foreign_keys = ON');
+}
+db.exec(`CREATE TABLE IF NOT EXISTS job_deposits (
+  id INTEGER PRIMARY KEY,
+  job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  client_id INTEGER NOT NULL REFERENCES users(id),
+  provider TEXT NOT NULL,
+  reference TEXT NOT NULL UNIQUE,
+  amount_cents INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','void','cancelled')),
+  provider_ref TEXT NOT NULL DEFAULT '',
+  paid_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_deposits_job ON job_deposits(job_id, status);
+CREATE TABLE IF NOT EXISTS escrow_refunds (
+  id INTEGER PRIMARY KEY,
+  job_id INTEGER NOT NULL REFERENCES jobs(id),
+  client_id INTEGER NOT NULL REFERENCES users(id),
+  amount_cents INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'due' CHECK (status IN ('due','refunded')),
+  reference TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  refunded_at TEXT
+);
+CREATE TABLE IF NOT EXISTS feed_jobs (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  url TEXT NOT NULL,
+  title TEXT NOT NULL,
+  company TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT '',
+  job_type TEXT NOT NULL DEFAULT '',
+  region TEXT NOT NULL DEFAULT '',
+  open_to_sa INTEGER NOT NULL DEFAULT 0,
+  salary TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '',
+  excerpt TEXT NOT NULL DEFAULT '',
+  published_at TEXT NOT NULL,
+  seen_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_feed_pub ON feed_jobs(published_at);
+CREATE TABLE IF NOT EXISTS cache_kv (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')));
+`);
+
 module.exports = db;
