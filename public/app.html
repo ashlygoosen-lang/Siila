@@ -199,6 +199,34 @@ td .btn{margin:2px 4px 2px 0}
 .banner{background:var(--sun-s);border-radius:var(--r-md);padding:14px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
 .port-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border-radius:var(--r-sm);background:var(--mist);margin-bottom:8px}
 .port-row textarea{grid-column:1/-1;min-height:60px}
+.kgrid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+.ksticky{position:sticky;top:84px}
+.kh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.kh h2{margin-bottom:6px}
+.ksub{font-size:15px;margin:18px 0 8px;color:var(--ink)}
+.kdoc{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line2)}.kdoc .grow{min-width:0;flex:1}.kdoc small{display:block;margin-top:2px}
+.kdoc .ico{flex:none;width:40px;height:40px}
+.kacts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.kwarn{margin-top:6px;padding:8px 10px;border-radius:10px;background:#fdeceb;color:#8a2a22;font-size:13px}
+.kqual{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}.kqual .kdoc{border-top:1px dashed var(--line2);padding-bottom:0;margin-top:10px}
+.kchk{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:8px;font-size:14px;color:var(--ink2)}.kchk li.on{color:var(--ink)}.kchk li.on::first-letter{color:#1f7a4d}
+.kbul{margin:0;padding-left:18px;display:grid;gap:8px;font-size:14px;color:var(--ink2)}
+.ksubmit{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.kcam{position:relative;background:#111;border-radius:16px;overflow:hidden;aspect-ratio:4/3;display:grid;place-items:center;color:#ddd}
+.kcam video,.kcam img{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.kcam img{transform:none}
+.kguide{position:absolute;inset:0;pointer-events:none}.kguide i{position:absolute;left:16%;top:12%;width:34%;height:70%;border:2px dashed rgba(255,255,255,.7);border-radius:50%}.kguide b{position:absolute;right:10%;top:34%;width:30%;height:34%;border:2px dashed rgba(255,255,255,.7);border-radius:10px}
+.kdocs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:12px}
+.kfig{margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--paper)}
+.kprev{height:150px;display:grid;place-items:center;background:var(--mist);gap:4px}.kprev img{width:100%;height:150px;object-fit:cover;cursor:zoom-in}
+.kfig figcaption{padding:10px 12px;font-size:14px}.kfig .kacts{justify-content:flex-start;margin-top:8px}
+.kflag{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--mist);margin:8px 0;border-left:4px solid #d9a400}.kflag.high{border-left-color:#c0392b;background:#fdf1f0}.kflag.low{border-left-color:var(--line)}.kflag .grow{flex:1;min-width:0}
+.kfrow{padding:6px 0;border-bottom:1px solid var(--line2)}.kfrow:last-child{border:0}
+.kmono{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.02em}
+.kdl dd{text-align:right}
+.khist{font-size:13px;color:var(--ink2);padding:4px 0}
+.kchecks{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}.kchecks .tag.ok{background:#e6f4ec;color:#1f6b45}
+.qbadge{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line2)}.qbadge:first-of-type{border:0}
+@media(max-width:600px){.kqual .kh,.kdoc{flex-wrap:wrap}.kqual .kh .kacts{justify-content:flex-start}}
+@media(max-width:1000px){.kgrid{grid-template-columns:1fr}.ksticky{position:static}.kgrid>aside{order:-1}}
 </style>
 </head>
 <body>
@@ -272,7 +300,7 @@ async function api(p,o={}){
   const r=await fetch('/api'+p,{method:o.method||((o.body||o.form)?'POST':'GET'),headers:{...(!o.form&&{'content-type':'application/json'}),...(token&&{authorization:'Bearer '+token})},body:o.form||(o.body?JSON.stringify(o.body):undefined)});
   if(r.status===204)return null;
   const j=await r.json().catch(()=>({}));
-  if(!r.ok){if(r.status===401&&token&&!p.startsWith('/auth/login'))logout();const d=j.details?.[0];throw new Error(d?d.message:j.error||'Something went wrong. Please try again.')}
+  if(!r.ok){if(r.status===401&&token&&!p.startsWith('/auth/login'))logout();const d=j.details?.[0];if(d?.message==='kyc_required'){const e=new Error(j.error);e.kyc=true;throw e}throw new Error(d?d.message:j.error||'Something went wrong. Please try again.')}
   return j}
 async function blob(p){const r=await fetch('/api'+p,{headers:{authorization:'Bearer '+token}});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not load the file');return r.blob()}
 async function openBlob(p){const w=window.open('','_blank');try{const u=URL.createObjectURL(await blob(p));w?w.location=u:location.href=u}catch(e){w&&w.close();throw e}}
@@ -282,7 +310,7 @@ async function download(p,name){const u=URL.createObjectURL(await blob(p));Objec
 function toast(msg,o={}){const t=document.createElement('div');t.className='toast'+(o.err?' err':'');
   t.innerHTML=`${o.icon?`<span class="ico ${esc(o.icon)}" style="width:32px;height:32px">${ic(o.iconKey||'bell',16)}</span>`:''}<div style="flex:1">${esc(msg)}${o.link?`<br><a href="${esc(o.link)}" style="font-weight:700">View</a>`:''}</div><button class="x" aria-label="Dismiss">×</button>`;
   t.querySelector('.x').onclick=()=>t.remove();t.querySelector('a')?.addEventListener('click',()=>t.remove());$('#toasts').append(t);const all=$$('#toasts .toast');if(all.length>3)all.slice(0,all.length-3).forEach(x=>x.remove());setTimeout(()=>t.remove(),o.link?7000:4200)}
-const fail=e=>toast(e.message||String(e),{err:true});
+const fail=e=>e?.kyc?kycGate(e.message):toast(e.message||String(e),{err:true});
 function modal(html,{wide}={}){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" style="${wide?'width:min(720px,100%)':''}">${html}</div>`;
   const close=()=>{m.remove();document.removeEventListener('keydown',k)};const k=e=>{if(e.key==='Escape')close()};
   m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))close()});document.addEventListener('keydown',k);document.body.append(m);
@@ -327,13 +355,13 @@ function logout(){stopStream();token=null;me=null;try{localStorage.removeItem('t
 
 /* ===== shell ===== */
 const NAV={
- client:[['home','Home','home'],['myjobs','My jobs','brief'],['talent','Find talent','users'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['notifications','Notifications','bell','notifications'],['account','Account','gear']],
- talent:[['home','Home','home'],['find','Find work','search'],['bids','My bids','list'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['profile','Profile','user'],['notifications','Notifications','bell','notifications'],['account','Account','gear']],
- admin:[['admin','Overview','home'],['admin/verifications','Verifications','shield'],['admin/payments','Payments & escrow','coin'],['admin/reports','Disputes & reports','flag'],['admin/jobs','Jobs','brief'],['admin/users','Members','users'],['admin/leads','Hire enquiries','inbox'],['admin/enquiries','Contact messages','chat'],['admin/settings','Fees','gear'],['admin/audit','Audit log','list'],['notifications','Notifications','bell','notifications'],['account','Account','user']]};
+ client:[['home','Home','home'],['myjobs','My jobs','brief'],['talent','Find talent','users'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['notifications','Notifications','bell','notifications'],['verify','Verification','shield'],['account','Account','gear']],
+ talent:[['home','Home','home'],['find','Find work','search'],['bids','My bids','list'],['inbox','Inbox','chat','inbox'],['contracts','Contracts','file'],['profile','Profile','user'],['notifications','Notifications','bell','notifications'],['verify','Verification','shield'],['account','Account','gear']],
+ admin:[['admin','Overview','home'],['admin/kyc','Identity checks','shield'],['admin/risk','Fraud & risk flags','flag'],['admin/payments','Payments & escrow','coin'],['admin/reports','Disputes & reports','flag'],['admin/jobs','Jobs','brief'],['admin/users','Members','users'],['admin/leads','Hire enquiries','inbox'],['admin/enquiries','Contact messages','chat'],['admin/settings','Fees','gear'],['admin/audit','Audit log','list'],['notifications','Notifications','bell','notifications'],['account','Account','user']]};
 const ROLE_LABEL={client:'Hiring',talent:'Professional',admin:'Administrator'};
 function drawSide(){const cur=location.hash.slice(1).split('/')[0]||'home';const full=location.hash.slice(1);
   $('#side').innerHTML=`<a class="brand" href="/" style="padding:0;background:none"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#6a4bd8"/><path d="M10 40c7-12 14-17 22-17s15 5 22 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M20 30v17M44 30v17" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M9 47h46" stroke="#f5b935" stroke-width="5" stroke-linecap="round"/></svg>TalentBridge</a>`+
-  NAV[me.role].map(([k,l,i,c])=>{const on=me.role==='admin'&&k.startsWith('admin')?(full===k||(k==='admin'&&full==='admin')):k===cur||(k==='myjobs'&&cur==='job'&&me.role==='client')||(k==='find'&&cur==='job')||(k==='contracts'&&cur==='contracts');
+  NAV[me.role].map(([k,l,i,c])=>{const on=me.role==='admin'&&k.startsWith('admin')?(full===k||full.startsWith(k+'/')&&k!=='admin'||(k==='admin'&&full==='admin')):k===cur||(k==='myjobs'&&cur==='job'&&me.role==='client')||(k==='find'&&cur==='job')||(k==='contracts'&&cur==='contracts');
     const n=c?COUNTS[c]:0;return`<a href="#${k}" class="${on?'on':''}">${ic(i)}<span>${l}</span>${n?`<span class="n" data-count="${c}">${n>99?'99+':n}</span>`:''}</a>`}).join('')+
   `<div class="me-card">${av(me.name,me.avatar_color)}<div style="min-width:0"><b>${esc(me.name)}</b><span>${ROLE_LABEL[me.role]}</span></div><button data-act="logout" aria-label="Log out" title="Log out">${ic('out')}</button></div>`}
 function setCounts(c){if(!c)return;COUNTS=c;drawSide();const b=$('#bellN');b.hidden=!c.notifications;b.textContent=c.notifications>99?'99+':c.notifications;
@@ -348,7 +376,7 @@ async function start(){
   if(me.role==='talent'){try{me.avatar_color=(await api('/talent/'+me.id)).data.avatar_color}catch{}}
   const h=location.hash;
   if(h==='#verified'){toast('Email verified. Thank you!');location.hash=''}
-  if(after){const a=after;after=null;location.hash=a}else if(['#register','#verified','#link-expired',''].includes(h)||h.startsWith('#reset='))history.replaceState(null,'',`/app.html#${me.role==='admin'?'admin':'home'}`);
+  if(after){const a=after;after=null;location.hash=a}else if(['#register','#login','#verified','#link-expired',''].includes(h)||h.startsWith('#reset='))history.replaceState(null,'',`/app.html#${me.role==='admin'?'admin':'home'}`);
   setCounts(await api('/me/counts').catch(()=>COUNTS));
   connectStream();route();
 }
@@ -375,7 +403,7 @@ async function connectStream(){
 function stopStream(){streamCtl?.abort();streamCtl=null;clearInterval(pollTimer)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&token&&!streamCtl)connectStream()});
 
-const NOTE_ICON={offer:'file',accepted:'check',funded:'coin',payment:'coin',bid:'list',job_match:'search',shortlisted:'star',declined:'x',bid_rejected:'x',dispute:'flag',delivered:'send',milestone:'check',review:'star',message:'chat',verification:'shield'};
+const NOTE_ICON={offer:'file',accepted:'check',funded:'coin',payment:'coin',bid:'list',job_match:'search',shortlisted:'star',declined:'x',bid_rejected:'x',dispute:'flag',delivered:'send',milestone:'check',review:'star',message:'chat',verification:'shield',kyc:'shield',security:'shield'};
 const noteIco=t=>{const cls=['offer','accepted','funded','payment','bid','job_match','shortlisted','declined','dispute','bid_rejected'].includes(t)?t:(t==='delivered'||t==='milestone'?'accepted':t==='review'?'shortlisted':'other');return`<span class="ico ${cls}">${ic(NOTE_ICON[t]||'bell')}</span>`};
 let refreshTimer=null;const softRefresh=()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>route(true),250)};
 function onEvent(ev,d){
@@ -386,6 +414,8 @@ function onEvent(ev,d){
     const inThread=d.type==='message'&&location.hash===d.link;
     if(!inThread&&!(d.type==='message'&&r==='inbox'))toast(d.text,{link:d.link&&d.link!==location.hash?d.link:'',icon:noteIco(d.type).match(/ico (\w+)/)[1],iconKey:NOTE_ICON[d.type]});
     if($('#notesPop').hidden===false)loadNotesPop();
+    if(d.type==='verification')api('/auth/me').then(x=>{me={...me,...x.user};if(r==='verify'||r==='profile')softRefresh()}).catch(()=>{});
+    if(me.role==='admin'&&d.type==='kyc'&&r==='admin')softRefresh();
     if(['home','notifications','contracts','bids','myjobs'].includes(r)||(r==='job'&&d.type!=='message'))softRefresh();
     return}
   if(ev==='message')return Inbox.onMessage(d);
@@ -412,15 +442,17 @@ async function route(soft){
   if(r!=='inbox')Inbox.leave();
   const view=$('#view');
   let fn;
-  if(r==='admin')fn=()=>A_V[id||'overview']?.();
+  if(r==='admin')fn=()=>A_V[id||'overview']?.(sub);
   else fn=V[r];
   if(!fn||(r==='admin'&&me.role!=='admin')){view.innerHTML=empty('Page not found','That page doesn’t exist.',`<a class="btn" href="#">Go home</a>`);return}
   if(first&&!soft&&r!=='inbox'){view.innerHTML=skel(4);scrollTo(0,0)}
-  try{const html=await fn(id,sub,soft);if(html!==undefined&&location.hash===key){view.innerHTML=(me.email_verified||me.role==='admin'?'':BANNER)+html;afterRender[r]?.(id)}}
+  try{const html=await fn(id,sub,soft);if(html!==undefined&&location.hash===key){view.innerHTML=(me.email_verified||me.role==='admin'?'':BANNER)+(me.role!=='admin'&&me.email_verified&&r!=='verify'&&me.kyc_status!=='approved'?kycBanner():'')+html;afterRender[r]?.(id)}}
   catch(e){if(location.hash===key)view.innerHTML=empty('Something went wrong',esc(e.message),`<button class="btn" data-act="reload">Try again</button>`)}
 }
 addEventListener('hashchange',()=>route());
 const afterRender={};
+const kycBanner=()=>{const s=me.kyc_status;const t={pending:['Your identity check is under review.','We’ll notify you when it’s done.',''],needs_info:['Your identity check needs more information.','See the reviewer’s note.','Fix it now'],rejected:['Your identity check was not approved.','See why and try again.','See details']}[s]||['Verify your identity to start working safely.',me.role==='client'?'You need this to send offers and pay into escrow.':'You need this to accept offers and get paid.','Verify now'];
+  return`<div class="banner kyc"><span class="ico bid" style="width:34px;height:34px">${ic('shield',18)}</span><b>${t[0]}</b><span class="mut">${t[1]}</span>${t[2]?`<a class="btn sm" style="margin-left:auto" href="#verify">${t[2]}</a>`:''}</div>`};
 const BANNER='<div class="banner"><b>Please verify your email.</b><span class="mut">You need this to post jobs, bid and send offers. Check your inbox for the link.</span><button class="btn sm" style="margin-left:auto" data-act="resend">Resend email</button></div>';
 
 /* ===== shared views ===== */
@@ -520,14 +552,15 @@ afterRender.talent=()=>{const f=$('#talForm');if(!f)return;f.onsubmit=e=>{e.prev
 async function talentProfile(id){const {data:t}=await api('/talent/'+id);const cl=me.role==='client';
   return ph(t.name,`${esc(t.headline||'Professional')}${t.city?' · '+esc(t.city):''}`,cl?`${B('dm',t.id+':'+esc(t.name),'Message')}${B('offer',t.id+':'+esc(t.name),'Send an offer','')}`:'',me.role==='talent'&&t.id===me.id?['#profile','Edit profile']:['#talent','Find talent'])+
   `<div class="cols"><div class="stack"><div class="panel"><div style="display:flex;gap:16px;align-items:center">${av(t.name,t.avatar_color,'lg')}<div><h2 style="margin:0">${esc(t.name)}</h2>${t.verified?'<span class="verified">✓ ID verified</span>':'<span class="mut">Not verified yet</span>'}</div></div>
+   ${t.checks?`<div class="kchecks">${[['identity','Identity'],['address','Address'],['has_cv','CV on file']].map(([k,l])=>`<span class="tag ${t.checks[k]?'ok':''}">${t.checks[k]?'✓':'·'} ${l}</span>`).join('')}${t.qualifications?.some(q=>q.verified)?'<span class="tag ok">✓ Qualifications confirmed</span>':''}</div>`:''}
    ${t.bio?`<p style="white-space:pre-line;margin-top:16px">${esc(t.bio)}</p>`:''}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${t.skills.map(s=>`<span class="tag">${esc(s)}</span>`).join('')}</div></div>
    ${t.portfolio.length?`<div class="panel"><h2>Past work</h2>${t.portfolio.map(p=>`<div class="post"><span class="ico other">${ic('brief')}</span><div class="txt"><p><b>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener nofollow">${esc(p.title)}</a>`:esc(p.title)}</b></p><small>${esc(p.description)}</small></div></div>`).join('')}</div>`:''}
+   ${t.qualifications?.length?`<div class="panel"><h2>Qualifications</h2>${t.qualifications.map(q=>`<div class="qbadge"><span class="ico ${q.verified?'accepted':'other'}" style="width:36px;height:36px">${ic(q.verified?'check':'file',18)}</span><div><b>${esc(q.qualification)}</b><br><small class="mut">${esc(q.institution)}${q.year?' · '+q.year:''}</small><br>${q.verified?'<span class="st ok">Confirmed with the institution</span>':'<span class="st wait">Being confirmed</span>'}</div></div>`).join('')}${t.checks?.has_cv&&(me.role!=='talent'||t.id===me.id)?`<div style="margin-top:12px">${B('kcv',t.id,'Download CV')}</div>`:''}</div>`:''}
    <div class="panel"><h2>Reviews</h2>${t.reviews.length?t.reviews.map(r=>`<div class="post"><span class="ico shortlisted">${ic('star')}</span><div class="txt"><p><span class="stars">${'★'.repeat(r.rating)}</span> <b>${esc(r.job_title)}</b></p><p style="margin:4px 0">${esc(r.comment||'No comment.')}</p><small>${esc(r.client_name)} · ${ago(r.created_at)}</small></div></div>`).join(''):'<p class="mut">No reviews yet.</p>'}</div></div>
    <div class="stack"><div class="panel"><dl class="money"><dt>Rating</dt><dd class="stars">★ ${t.rating?t.rating.toFixed(1):'New'}</dd><dt>Jobs done</dt><dd>${t.jobs_done}</dd><dt>Rate</dt><dd>${t.hourly_rate?'R'+t.hourly_rate+' per hour':'Quote'}</dd><dt>Location</dt><dd>${esc([t.city,t.province].filter(Boolean).join(', ')||'—')}</dd>${t.languages?`<dt>Languages</dt><dd>${esc(t.languages)}</dd>`:''}<dt>Member since</dt><dd>${t.member_since?dt(t.member_since).toLocaleDateString('en-ZA',{month:'short',year:'numeric'}):''}</dd></dl></div></div></div>`}
 
 /* ===== profile (professional) ===== */
 V.profile=async()=>{const [p,o]=await Promise.all([api('/talent/'+me.id),api('/me/overview')]);const t=p.data;
-  const vst=o.verified?'<span class="st ok">Verified</span>':o.verification==='pending'?'<span class="st wait">Under review</span>':o.verification==='rejected'?'<span class="st bad">Not approved</span>':'<span class="st">Not verified</span>';
   return ph('Your profile','Clients see this when you bid.',`<a class="btn ghost" href="#talent/${me.id}">Preview</a>`)+
   `<div class="cols"><form class="panel" id="pf"><h2>Details</h2>
    <label>Headline<input name="headline" value="${esc(t.headline)}" maxlength="120" placeholder="e.g. Qualified electrician, COC certified"></label>
@@ -538,7 +571,7 @@ V.profile=async()=>{const [p,o]=await Promise.all([api('/talent/'+me.id),api('/m
    <h2 style="margin-top:12px">Past work</h2><div id="port">${t.portfolio.map(portRow).join('')}</div><button type="button" class="btn sm ghost" data-act="addport">Add a project</button>
    <div style="margin-top:20px"><button class="btn">Save profile</button></div></form>
    <div class="stack"><div class="panel"><h2>Profile strength</h2><b style="font:400 34px var(--serif)">${o.profile_pct}%</b><div class="bar"><i style="width:${o.profile_pct}%"></i></div></div>
-   <div class="panel"><h2>Verification ${vst}</h2><p class="mut">Upload an ID, passport, trade certificate or CIPC document. We keep only the last 4 characters of the number and delete the file after review.</p>${!o.verified&&o.verification!=='pending'?B('verify','','Request verification',''):''}</div></div></div>`};
+   <div class="panel"><h2>Verification ${kst(me.kyc_status)}</h2><p class="mut">${me.kyc_status==='approved'?'Your identity is verified. Confirmed qualifications show on your profile.':'Clients hire verified professionals first. Verify your ID, address, CV and qualifications to accept offers and get paid.'}</p><a class="btn ${me.kyc_status==='approved'?'ghost':''} sm" href="#verify">${me.kyc_status==='approved'?'View verification':'Verify now'}</a></div></div></div></div>`};
 const portRow=(p={})=>`<div class="port-row"><input name="pt" placeholder="Project title" value="${esc(p.title||'')}" maxlength="80"><input name="pu" type="url" placeholder="Link (optional)" value="${esc(p.url||'')}"><textarea name="pd" placeholder="What you did" maxlength="300">${esc(p.description||'')}</textarea><button type="button" class="btn sm danger" data-act="rmport" style="grid-column:1/-1;justify-self:start">Remove</button></div>`;
 afterRender.profile=()=>{$('#pf').onsubmit=async e=>{e.preventDefault();const f=e.target;const v=Object.fromEntries(new FormData(f));
   const portfolio=$$('.port-row',f).map(r=>({title:r.querySelector('[name=pt]').value.trim(),url:r.querySelector('[name=pu]').value.trim(),description:r.querySelector('[name=pd]').value.trim()})).filter(p=>p.title);
@@ -642,13 +675,13 @@ const table=(h,rows)=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>
 const D=s=>s?dt(s).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}):'';
 const A_V={
  async overview(){const o=await api('/admin/overview');
-  const todo=[['admin/verifications',o.pending_verifications,'ID verifications to review','shield'],['admin/payments',o.payments_to_confirm,'EFT payments to confirm','coin'],['admin/payments',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`,'coin'],['admin/reports',o.open_reports,'open disputes and reports','flag'],['admin/leads',o.new_leads,'new hire enquiries','inbox'],['admin/enquiries',o.new_messages,'new contact messages','chat']].filter(t=>t[1]);
+  const todo=[['admin/kyc',o.kyc_pending,'identity checks to review','shield'],['admin/risk',o.risk_high,'high-risk fraud flags','flag'],['admin/risk',o.risk_open-o.risk_high,'other risk flags','flag'],['admin/kyc',o.quals_pending,'qualifications to confirm with institutions','file'],['admin/verifications',o.pending_verifications,'older document verifications','shield'],['admin/payments',o.payments_to_confirm,'EFT payments to confirm','coin'],['admin/payments',o.payouts_due,`payouts due (${R(o.payouts_due_cents)})`,'coin'],['admin/reports',o.open_reports,'open disputes and reports','flag'],['admin/leads',o.new_leads,'new hire enquiries','inbox'],['admin/enquiries',o.new_messages,'new contact messages','chat']].filter(t=>t[1]);
   return ph('Overview','The marketplace at a glance.')+`<div class="figs"><div><small>Gross volume</small><b>${R(o.gmv_cents)}</b><span>funded and completed</span></div><div><small>Revenue</small><b>${R(o.revenue_cents)}</b><span>fees, excl. VAT</span></div><div><small>VAT on fees</small><b>${R(o.vat_cents)}</b></div><div><small>Held in escrow</small><b>${R(o.escrow_cents)}</b></div></div>
   <div class="figs"><div><small>Professionals</small><b>${o.talent}</b></div><div><small>Clients</small><b>${o.clients}</b></div><div><small>Sign-ups, 30 days</small><b>${o.signups_30d}</b></div><div><small>Open jobs</small><b>${o.jobs_open}</b></div><div><small>Active contracts</small><b>${o.contracts_active}</b></div></div>
   <div class="panel"><h2>To do</h2>${todo.length?todo.map(([k,n,l,i])=>`<a class="todo" href="#${k}"><span class="ico bid">${ic(i)}</span><b>${n} ${l}</b><span class="go">Open →</span></a>`).join(''):'<p class="mut">All clear.</p>'}</div>`},
  async verifications(){const j=await api('/admin/verifications');return ph('Verifications','Check the document, then approve or reject. Files are deleted once reviewed.')+table(['Person','Role','Document','Ref (last 4)','Note','Submitted',''],j.data.map(v=>[`<b>${esc(v.name)}</b><br><small class="mut">${esc(v.email)}</small>`,v.role,esc(v.id_type),esc(v.ref_last4),esc(v.note),D(v.created_at),(v.doc_path?B('vdoc',v.id,'View document'):'<small class="mut">No file</small> ')+B('vapprove',v.id,'Approve','moss')+B('vreject',v.id,'Reject','danger')]))},
  async payments(){const j=await api('/admin/contracts');return ph('Payments & escrow','',B('csv','','Export CSV for your accountant'))+table(['#','Contract','Parties','Amount','Fee + VAT','Status','Payment',''],j.data.map(c=>[c.id,`<a href="#contracts/${c.id}">${esc(c.job_title)}</a>`,`${esc(c.client_name)} → ${esc(c.talent_name)}`,R(c.amount_cents),`${R(c.commission_cents)} + ${R(c.vat_cents)}`,cst(c.status),c.payment_status?`${gst(c.payment_status)}<br><small class="mut">${esc(c.provider)} · ${esc(c.reference)}</small>`:'',
-   (c.status==='accepted'&&c.payment_status==='pending'&&c.provider==='manual'?B('confirmpay',c.id,'Confirm EFT received','moss'):'')+(c.status==='disputed'?B('resolve',c.id,'Resolve','danger'):'')+(['released','refunded'].includes(c.status)?B('payout',c.id,c.status==='released'?'Record payout':'Record refund'):'')+(['released','paid_out'].includes(c.status)?B('invoice',c.id,'Invoice'):'')]))},
+   (c.status==='accepted'&&c.payment_status==='pending'&&c.provider==='manual'?B('confirmpay',c.id,'Confirm EFT received','moss'):'')+(c.status==='disputed'?B('resolve',c.id,'Resolve','danger'):'')+(c.payout_blockers?.length&&c.status==='released'?`<div class="kwarn" style="margin-bottom:6px">On hold: ${c.payout_blockers.map(esc).join('; ')}</div>`:'')+(['released','refunded'].includes(c.status)?B('payout',c.id,c.status==='released'?'Record payout':'Record refund'):'')+(['released','paid_out'].includes(c.status)?B('invoice',c.id,'Invoice'):'')]))},
  async reports(){const j=await api('/admin/reports');return ph('Disputes & reports')+table(['#','About','Reporter','Reason','Status','Note',''],j.data.map(r=>[r.id,r.target_type==='contract'?`<a href="#contracts/${r.target_id}">Contract #${r.target_id}</a>`:`${esc(r.target_type)} #${r.target_id}`,esc(r.reporter),esc(r.reason),gst(r.status),esc(r.admin_note),B('rstatus',r.id,'Update')]))},
  async jobs(){const j=await api('/admin/jobs');return ph('Jobs')+table(['Job','Client','Where','Type','Bids','Status',''],j.data.map(x=>[`<a href="#job/${x.id}">${esc(x.title)}</a>${x.featured?' <span class="st wait">Featured</span>':''}`,esc(x.client_name),esc(x.city),esc(x.type),x.applicants,gst(x.status),B('feature',x.id+':'+x.featured,x.featured?'Unfeature':'Feature')+B('jstatus',x.id+':'+x.status,x.status==='open'?'Close':'Reopen',x.status==='open'?'danger':'ghost')]))},
  async users(){const j=await api('/admin/users');return ph('Members')+table(['Name','Email','Role','Verified','Joined','Status',''],j.data.map(u=>[esc(u.name),esc(u.email),u.role,u.verified?'<span class="verified">✓</span>':'',D(u.created_at),gst(u.status),u.role==='admin'||u.status==='deleted'?'':B('ustatus',u.id+':'+u.status,u.status==='active'?'Suspend':'Reactivate',u.status==='active'?'danger':'ghost')]))},
@@ -735,6 +768,201 @@ const A={
 };
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-act]');if(!b||!A[b.dataset.act])return;e.preventDefault();
   if(b.disabled)return;b.disabled=true;try{await A[b.dataset.act](b.dataset.id,b)}catch(err){fail(err)}finally{if(b.isConnected)b.disabled=false}});
+
+/* ===== identity verification (KYC) ===== */
+const KST={none:['','Not started'],draft:['','Not submitted'],pending:['wait','Under review'],needs_info:['wait','More information needed'],approved:['ok','Verified'],rejected:['bad','Not approved']};
+const kst=s=>{const v=KST[s]||['',s];return`<span class="st ${v[0]}">${v[1]}</span>`};
+const DST={pending:['wait','Waiting for review'],approved:['ok','Accepted'],rejected:['bad','Rejected'],replaced:['','Replaced']};
+const dst=s=>{const v=DST[s]||['',s];return`<span class="st ${v[0]}">${v[1]}</span>`};
+const QST={pending:['wait','Waiting'],in_progress:['go','Checking with institution'],verified:['ok','Confirmed by institution'],rejected:['bad','Not confirmed'],unverifiable:['bad','Could not be checked']};
+const qst=s=>{const v=QST[s]||['',s];return`<span class="st ${v[0]}">${v[1]}</span>`};
+const KIND_L={id_front:'ID (front)',id_back:'ID (back)',proof_of_address:'Proof of address',selfie:'Selfie holding ID',company_reg:'Company registration (CIPC)',cv:'CV',qualification:'Certificate'};
+const KIND_HINT={id_front:'Green ID book photo page, smart ID card front, or passport photo page. All four corners visible, no glare.',id_back:'Only for smart ID cards.',proof_of_address:'Utility bill, bank statement, lease or municipal account in your name, not older than 3 months.',selfie:'Hold your ID next to your face. Face and ID must both be clear. We compare it to your ID photo by hand.',company_reg:'CIPC registration certificate (CoR 14.3) showing the company and directors.',cv:'PDF or Word document.'};
+const KIND_ACCEPT={selfie:'image/jpeg,image/png,image/webp',cv:'.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document'};
+const BANKS=['ABSA','African Bank','Bidvest Bank','Capitec','Discovery Bank','FNB','Investec','Nedbank','Old Mutual','Standard Bank','TymeBank','Other'];
+const kb=b=>b<1048576?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(1)+' MB';
+
+V.verify=async()=>{
+  if(me.role==='admin'){location.hash='#admin/kyc';return}
+  const {data:k}=await api('/kyc');if(me.kyc_status!==k.status){me.kyc_status=k.status}
+  const T=me.role==='talent',d=k.details||{},lock=['pending','approved'].includes(k.status),biz=d.account_type==='business';
+  const doc=(kind,qid)=>k.docs.find(x=>x.kind===kind&&(qid==null||x.qualification_id===qid));
+  const docRow=(kind,label,o={})=>{const x=doc(kind,o.qid);const ico=x?x.status==='approved'?'accepted':x.status==='rejected'?'declined':'bid':'other';
+    return`<div class="kdoc"><span class="ico ${ico}">${ic(x?.status==='rejected'?'x':x?'check':'file')}</span><div class="grow"><b>${esc(label)}</b>${o.optional?' <small class="mut">(optional)</small>':''}
+      <small class="mut">${x?`${esc(x.file_name)} · ${kb(x.size)}`:esc(KIND_HINT[kind]||'Photo or PDF of the certificate.')}</small>${x?`<div style="margin-top:4px">${dst(x.status)}</div>`:''}${x?.status==='rejected'&&x.note?`<div class="kwarn">${esc(x.note)}</div>`:''}</div>
+      <div class="kacts">${x?B('kview',x.id,'View'):''}${lock?'':(kind==='selfie'?B('kcam','',x?'Retake selfie':'Take selfie',x?'ghost':''):'')+B('kup',kind+':'+(o.qid??''),x?'Replace':'Upload',x||kind==='selfie'?'ghost':'')}</div></div>`};
+  const reqs=k.requirements,doneN=reqs.filter(r=>r.done).length;
+  const intro={none:'Before you send offers, pay into escrow or accept work, we confirm who you are. It protects both sides from fraud, fake accounts and money laundering.',
+    draft:'Finish the steps below, then submit. A person on our team checks every application, usually within 1 working day.',
+    pending:'Thanks. Our team is checking your documents. We’ll notify you as soon as there’s a decision. You can’t change documents while they’re under review.',
+    needs_info:'Our reviewer needs something more from you. Fix the items marked below and submit again.',
+    rejected:'Your verification was not approved. Read the reviewer’s note, correct your details or documents and submit again.',
+    approved:'You’re verified. Your badge shows on your profile and you can use escrow, offers and payouts.'}[k.status];
+  const pep=d.is_pep;
+  const det=`<form class="panel" id="kdet"><div class="kh"><h2>1. Your details</h2>${reqs[0].done?'<span class="st ok">Saved</span>':''}</div>
+   <p class="mut">Use your name exactly as it appears on your ID or passport.</p>
+   <fieldset ${lock?'disabled':''} style="border:0;padding:0;margin:0">
+   <div class="field-row"><label>Account type<select name="account_type"><option value="individual">Individual</option><option value="business"${biz?' selected':''}>Registered business</option></select></label>
+     <label>Full legal name<input name="legal_name" required minlength="3" maxlength="120" value="${esc(d.legal_name||me.name)}" autocomplete="name"></label></div>
+   <div class="field-row"><label>Document<select name="id_type"><option value="sa_id">South African ID</option><option value="passport"${d.id_type==='passport'?' selected':''}>Passport</option></select></label>
+     <label>ID or passport number<input name="id_number" maxlength="30" autocomplete="off" inputmode="text" placeholder="${d.id_number_masked?esc(d.id_number_masked)+' (saved, leave blank to keep)':'13-digit ID number'}" ${d.id_number_masked?'':'required'}></label></div>
+   <div class="field-row"><label>Date of birth<input name="dob" type="date" value="${esc(d.dob||'')}" max="${new Date(Date.now()-18*365.25*864e5).toISOString().slice(0,10)}"><span class="hint">Read from your SA ID number automatically.</span></label>
+     <label>Nationality<input name="nationality" required value="${esc(d.nationality||'South African')}"></label></div>
+   <label>Mobile number<input name="phone" required type="tel" value="${esc(d.phone||me.phone||'')}" placeholder="082 123 4567" autocomplete="tel"></label>
+   <h3 class="ksub">Residential address</h3>
+   <label>Street address<input name="address_line" required value="${esc(d.address_line||'')}" autocomplete="address-line1"></label>
+   <div class="field-row"><label>Suburb<input name="suburb" value="${esc(d.suburb||'')}"></label><label>City or town<input name="city" required value="${esc(d.city||'')}" autocomplete="address-level2"></label></div>
+   <div class="field-row"><label>Province<select name="province" required><option value="">Choose</option>${META.provinces.map(p=>`<option${p===(d.province||me.province)?' selected':''}>${esc(p)}</option>`).join('')}</select></label><label>Postal code<input name="postal_code" required pattern="\\d{4}" maxlength="4" inputmode="numeric" value="${esc(d.postal_code||'')}"></label></div>
+   <div id="bizBox" ${biz?'':'hidden'}><h3 class="ksub">Business</h3>
+     <label>Registered company name<input name="business_name" value="${esc(d.business_name||'')}"></label>
+     <div class="field-row"><label>CIPC registration number<input name="business_reg" value="${esc(d.business_reg||'')}" placeholder="2018/079316/07"></label><label>Your role<input name="business_role" value="${esc(d.business_role||'')}" placeholder="Director"></label></div></div>
+   <h3 class="ksub">Anti-money-laundering questions</h3>
+   <label class="check"><input type="checkbox" name="is_pep" ${pep?'checked':''}><span>I am, or am closely related to, a prominent public official (for example a minister, MP, judge, senior official of a state-owned company or political party)</span></label>
+   <label id="pepBox" ${pep?'':'hidden'}>Tell us the position and your relationship<textarea name="pep_details" rows="2" maxlength="500">${esc(d.pep_details||'')}</textarea></label>
+   <label>${me.role==='client'?'Where does the money you’ll pay with come from?':'Main source of income'} <small class="mut">(optional)</small><input name="source_of_funds" maxlength="300" value="${esc(d.source_of_funds||'')}" placeholder="${me.role==='client'?'e.g. Salary, business income':'e.g. Self-employed trade work'}"></label>
+   <label class="check"><input type="checkbox" name="consent" required ${d.legal_name?'checked':''}><span>I confirm these details are true. I agree that TalentBridge may check my identity, documents${T?', CV and qualifications (including with the institutions that issued them)':''} for fraud prevention and anti-money-laundering, as set out in the <a href="/privacy.html#kyc" target="_blank">Privacy Policy</a>.</span></label>
+   ${lock?'':'<button class="btn">Save details</button>'}</fieldset></form>`;
+  const idRows=k.requirements.filter(r=>r.doc&&!['cv'].includes(r.key)).map(r=>docRow(r.key,r.label,{optional:r.optional})).join('');
+  const docs=`<div class="panel"><div class="kh"><h2>2. Identity documents</h2></div><p class="mut">Clear colour photos or scans, up to 8 MB each. Files are encrypted the moment they arrive and only our verification team can open them.</p>${d.legal_name?idRows:'<p class="mut">Save your details first.</p>'}</div>`;
+  const bank=T?`<form class="panel" id="kbank"><div class="kh"><h2>3. Payout bank account</h2>${k.bank?'<span class="st ok">Saved</span>':''}</div>
+   <p class="mut">The account must be in your own name${biz?' or your company’s name':''}. ${k.bank?`Current account ends in <b>${esc(k.bank.account_last4)}</b>. `:''}For your safety, payouts are held for 72 hours after any change.</p>
+   <div class="field-row"><label>Account holder<input name="holder" required value="${esc(k.bank?.holder||d.legal_name||'')}"></label><label>Bank<select name="bank">${BANKS.map(b=>`<option${b===k.bank?.bank?' selected':''}>${b}</option>`).join('')}</select></label></div>
+   <div class="field-row"><label>Account number<input name="account_number" required inputmode="numeric" pattern="\\d{6,16}" autocomplete="off" placeholder="${k.bank?'•••• '+esc(k.bank.account_last4):''}"></label><label>Branch code<input name="branch_code" required inputmode="numeric" pattern="\\d{6}" value="${esc(k.bank?.branch_code||'')}"></label></div>
+   <label>Account type<select name="account_type">${[['cheque','Cheque / current'],['savings','Savings'],['transmission','Transmission'],['business','Business']].map(([v,l])=>`<option value="${v}"${v===k.bank?.account_type?' selected':''}>${l}</option>`).join('')}</select></label>
+   <button class="btn">${k.bank?'Change bank account':'Save bank account'}</button></form>`:'';
+  const quals=T?`<div class="panel"><div class="kh"><h2>4. CV and qualifications</h2></div>
+   <p class="mut">We contact the university, college, SETA or professional body that issued each qualification to confirm it’s real. Confirmed qualifications show a badge on your profile.</p>
+   ${docRow('cv','CV')}
+   ${k.qualifications.map(q=>`<div class="kqual"><div class="kh"><div><b>${esc(q.qualification)}</b><br><small class="mut">${esc(q.institution)}${q.year?' · '+q.year:''}${q.student_number?' · Student no. '+esc(q.student_number):''}${q.certificate_number?' · Cert. '+esc(q.certificate_number):''}</small></div><div class="kacts">${qst(q.status)}${lock||q.status==='verified'?'':B('kqdel',q.id,'Remove','danger')}</div></div>
+     ${q.status==='rejected'&&q.verify_note?`<div class="kwarn">${esc(q.verify_note)}</div>`:''}${docRow('qualification','Certificate or academic record',{qid:q.id})}</div>`).join('')}
+   ${lock?'':B('kqadd','','Add a qualification','')}</div>`:'';
+  const n=T?5:3;
+  const submit=lock?'':`<div class="panel ksubmit"><div><h2>${n}. Submit for review</h2><p class="mut">${k.complete?'Everything’s ready. A reviewer will check it and get back to you, usually within 1 working day.':'Complete the items marked with a circle first.'}</p></div>${k.complete?B('ksubmit','','Submit for review',''):'<button class="btn" disabled>Submit for review</button>'}</div>`;
+  return ph('Verify your identity',intro,kst(k.status))+
+   (k.details?.review_note&&['needs_info','rejected'].includes(k.status)?`<div class="banner"><b>Reviewer’s note:</b><span>${esc(k.details.review_note)}</span></div>`:'')+
+   `<div class="kgrid"><div class="stack">${det}${docs}${bank}${quals}${submit}</div>
+   <aside class="stack"><div class="panel ksticky"><h2>Checklist</h2><div class="bar"><i style="width:${Math.round(doneN/reqs.length*100)}%"></i></div>
+     <ul class="kchk">${reqs.map(r=>`<li class="${r.done?'on':''}">${r.done?'✓':'○'} ${esc(r.label)}${r.optional?' <small class="mut">(optional)</small>':''}</li>`).join('')}</ul></div>
+    <div class="panel"><h2>How we protect you</h2><ul class="kbul"><li>ID numbers and bank details are encrypted. Staff see them only during a review, and every view is logged.</li><li>We flag duplicate IDs, reused documents and shared bank accounts across accounts.</li><li>Large payments and bank account changes get an extra manual check before money moves.</li><li>We never ask for your password, PIN or OTP. Report anyone who does.</li></ul></div></aside></div>`};
+afterRender.verify=()=>{
+  const f=$('#kdet');if(f){f.account_type.onchange=()=>$('#bizBox').hidden=f.account_type.value!=='business';f.is_pep.onchange=()=>$('#pepBox').hidden=!f.is_pep.checked;
+    f.id_type.onchange=()=>{f.id_number.placeholder=f.id_type.value==='passport'?'Passport number':'13-digit ID number'};
+    f.onsubmit=async e=>{e.preventDefault();const v=Object.fromEntries(new FormData(f));const btn=f.querySelector('button.btn');btn.disabled=true;
+      const body={account_type:v.account_type,legal_name:v.legal_name,id_type:v.id_type,nationality:v.nationality,phone:v.phone,address_line:v.address_line,suburb:v.suburb,city:v.city,province:v.province,postal_code:v.postal_code,
+        is_pep:!!v.is_pep,pep_details:v.pep_details||'',source_of_funds:v.source_of_funds||'',business_name:v.business_name||'',business_reg:v.business_reg||'',business_role:v.business_role||'',consent:!!v.consent};
+      if(v.id_number.trim())body.id_number=v.id_number.replace(/\s/g,'');if(v.dob)body.dob=v.dob;
+      if(body.is_pep&&body.pep_details.length<5){btn.disabled=false;return toast('Tell us the public position and your relationship',{err:true})}
+      try{await api('/kyc/details',{method:'PUT',body});toast('Details saved');route(true)}catch(err){fail(err);btn.disabled=false}}}
+  const b=$('#kbank');if(b)b.onsubmit=async e=>{e.preventDefault();const v=Object.fromEntries(new FormData(b));
+    if(me.kyc_status==='approved'&&!await confirmBox('Change your payout account?','For your safety, payouts are held for 72 hours and our team checks the new account before money is paid into it.','Change account'))return;
+    try{await api('/kyc/bank',{method:'PUT',body:v});toast('Bank account saved');route(true)}catch(err){fail(err)}}};
+async function kUpload(kind,qid,file){
+  if(file.size>8*1048576)return toast('That file is larger than 8 MB. Upload a smaller photo or scan.',{err:true});
+  const fd=new FormData();fd.append('kind',kind);if(qid)fd.append('qualification_id',qid);fd.append('file',file,file.name||kind+'.jpg');
+  const t=document.createElement('div');t.className='toast';t.textContent='Uploading securely…';$('#toasts').append(t);
+  try{await api('/kyc/documents',{form:fd});toast(`${KIND_L[kind]} uploaded`);route(true)}finally{t.remove()}}
+function kPick(kind,qid,capture){return new Promise((res,rej)=>{const i=document.createElement('input');i.type='file';i.accept=KIND_ACCEPT[kind]||'image/jpeg,image/png,image/webp,application/pdf';if(capture)i.capture=capture;
+  i.onchange=()=>i.files[0]?kUpload(kind,qid,i.files[0]).then(res,rej):res();i.click()})}
+function kCamera(){
+  if(!navigator.mediaDevices?.getUserMedia)return kPick('selfie',null,'user');
+  const m=modal(`<h3>Take a selfie with your ID</h3><p class="mut">Hold your ID card or passport photo page next to your face. Make sure both are sharp and well lit.</p>
+    <div class="kcam"><video autoplay playsinline muted></video><canvas hidden></canvas><img alt="Your selfie" hidden><div class="kguide" aria-hidden="true"><i></i><b></b></div></div>
+    <div class="actions"><button type="button" class="btn ghost" id="kcFile">Upload a photo instead</button><span style="flex:1"></span><button type="button" class="btn ghost" id="kcRetake" hidden>Retake</button><button type="button" class="btn" id="kcSnap" disabled>Capture</button><button type="button" class="btn" id="kcUse" hidden>Use this photo</button></div>`,{wide:true});
+  const v=$('video',m),c=$('canvas',m),img=$('img',m);let stream,blobv;
+  const stop=()=>stream?.getTracks().forEach(t=>t.stop());const close=m.close;m.close=()=>{stop();close()};
+  new MutationObserver((_,o)=>{if(!m.isConnected){stop();o.disconnect()}}).observe(document.body,{childList:true});
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:960}},audio:false}).then(s=>{stream=s;v.srcObject=s;$('#kcSnap',m).disabled=false})
+    .catch(()=>{$('.kcam',m).innerHTML='<p class="mut" style="padding:40px 20px;text-align:center">We couldn’t open your camera. Allow camera access in your browser, or upload a photo instead.</p>'});
+  $('#kcSnap',m).onclick=()=>{c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);c.toBlob(b=>{blobv=b;img.src=URL.createObjectURL(b);img.hidden=false;v.hidden=true;$('#kcSnap',m).hidden=true;$('#kcUse',m).hidden=false;$('#kcRetake',m).hidden=false},'image/jpeg',0.92)};
+  $('#kcRetake',m).onclick=()=>{img.hidden=true;v.hidden=false;$('#kcSnap',m).hidden=false;$('#kcUse',m).hidden=true;$('#kcRetake',m).hidden=true};
+  $('#kcUse',m).onclick=async()=>{$('#kcUse',m).disabled=true;try{await kUpload('selfie',null,new File([blobv],'selfie.jpg',{type:'image/jpeg'}));m.close()}catch(e){fail(e);$('#kcUse',m).disabled=false}};
+  $('#kcFile',m).onclick=()=>{m.close();kPick('selfie',null,'user').catch(fail)}}
+function kycGate(msg){const st=me.kyc_status;
+  modal(`<span class="ico bid" style="width:48px;height:48px;margin-bottom:12px">${ic('shield',24)}</span><h3>Verify your identity first</h3><p class="mut">${esc(msg||'')} ${st==='pending'?'Your documents are being reviewed. We’ll notify you as soon as you’re approved.':'It takes about 5 minutes: your details, a photo of your ID, proof of address and a selfie'+(me.role==='talent'?', plus your CV, qualifications and bank account.':'.')}</p>
+   <div class="actions"><button class="btn ghost" data-close>Not now</button>${st==='pending'?'':'<a class="btn" href="#verify" data-close>Start verification</a>'}</div>`)}
+Object.assign(A,{
+  kup(x){const[kind,q]=x.split(':');return kPick(kind,q||null)},
+  kcam:()=>kCamera(),
+  kview:id=>openBlob(`/kyc/documents/${id}/file`),
+  async kqadd(){const y=new Date().getFullYear();const v=await ask('Add a qualification',[{label:'Qualification',name:'qualification',req:true,ph:'e.g. N3 Electrical Engineering, BCom Accounting, Red Seal Plumber'},{label:'Institution that issued it',name:'institution',req:true,ph:'e.g. University of Johannesburg, Ekurhuleni East TVET, merSETA'},
+    [{label:'Year completed',name:'year',type:'number',min:1950,max:y+1,req:true},{label:'Field (optional)',name:'field'}],[{label:'Student number',name:'student_number',hint:'Helps the institution find your record.'},{label:'Certificate number',name:'certificate_number'}],
+    {label:'Institution contact, if you know it (optional)',name:'institution_contact',ph:'e.g. records@uj.ac.za'}],'Add qualification','We confirm every qualification directly with the institution, or through SAQA for South African qualifications. Tick below to give us permission.');
+    if(!v)return;if(!await confirmBox('Allow us to contact the institution?',`We’ll ask ${esc(v.institution)} to confirm that you hold this qualification. We share only your name, ID number and the details above.`,'Yes, allow'))return;
+    await api('/kyc/qualifications',{body:{...v,year:+v.year,consent_to_contact:true}});toast('Qualification added. Upload its certificate next.');route(true)},
+  async kqdel(id){if(!await confirmBox('Remove this qualification?','Its certificate will be removed from your application too.','Remove',true))return;await api('/kyc/qualifications/'+id,{method:'DELETE'});route(true)},
+  async ksubmit(){if(!await confirmBox('Submit for review?','You can’t change your documents while they’re being reviewed. Make sure everything is clear and correct.','Submit'))return;
+    await api('/kyc/submit',{method:'POST'});me.kyc_status='pending';toast('Submitted. We’ll notify you when your review is done.');route(true)},
+  kgo:()=>{location.hash='#verify'},
+  /* admin */
+  kqueue(s){kycQ=s;route(true)},
+  kfilter(s){riskQ=s;route(true)},
+  async kdoc(x){const[id,dec]=x.split(':');let note='';if(dec==='rejected'){const v=await ask('Reject this document',[{label:'What should the member fix? (they’ll see this)',name:'note',type:'textarea',req:true,min:5,ph:'e.g. The photo is blurry. Upload a sharper photo with all four corners visible.'}],'Reject document');if(!v)return;note=v.note}
+    await api(`/admin/kyc/documents/${id}/decision`,{body:{decision:dec,note}});route(true)},
+  async kdecide(x){const[uid,dec]=x.split(':');const L={approved:['Approve this member?','They’ll get the verified badge and full access to escrow, offers and payouts.','Approve'],needs_info:['Ask for more information','Tell the member exactly what to fix or upload.','Send request'],rejected:['Reject this application','Tell the member why. Confirmed fraud should be handled under Risk flags.','Reject']}[dec];
+    let note='';if(dec==='approved'){if(!await confirmBox(L[0],L[1],L[2]))return}else{const v=await ask(L[0],[{label:'Note to the member',name:'note',type:'textarea',req:true,min:5}],L[2],L[1]);if(!v)return;note=v.note}
+    await api(`/admin/kyc/${uid}/decision`,{body:{decision:dec,note}});toast('Decision saved and the member has been notified');route(true)},
+  async kqver(id){const v=await ask('Record institution check',[{label:'Outcome',name:'outcome',type:'select',options:[['in_progress','Request sent, waiting for reply'],['verified','Confirmed by the institution'],['rejected','Institution says it is not genuine'],['unverifiable','Could not be checked']]},
+    {label:'How you checked',name:'method',type:'select',options:[['institution_email','Email to the institution'],['institution_phone','Phone call to the institution'],['institution_portal','Institution’s online verification portal'],['saqa','SAQA verification'],['third_party','Verification agency (e.g. MIE)'],['other','Other']]},
+    {label:'Who confirmed it',name:'contact',ph:'Name, office or email at the institution'},{label:'Reference (required when confirmed)',name:'reference',ph:'e.g. SAQA ref, email date and subject, portal receipt'},{label:'Note',name:'note',type:'textarea',hint:'Shown to the member if the qualification is not confirmed.'}],'Save check',
+    'Only mark a qualification as confirmed after the institution itself (or SAQA or an accredited agency) has confirmed it. Keep the evidence.');
+    if(!v)return;await api(`/admin/qualifications/${id}/verify`,{body:v});toast('Check recorded');route(true)},
+  async kflag(x){const[id,out]=x.split(':');const v=await ask(out==='cleared'?'Clear this flag':'Confirm fraud or risk',[{label:'What did you find?',name:'note',type:'textarea',req:true,min:5}],out==='cleared'?'Clear flag':'Confirm',out==='confirmed'?'Confirming a high-risk flag suspends the member’s account. Report suspected money laundering to the FIC as required.':'Explain why this is not a concern. This is kept in the audit log.');
+    if(!v)return;await api(`/admin/risk-flags/${id}/resolve`,{body:{outcome:out,note:v.note}});toast(out==='cleared'?'Flag cleared':'Flag confirmed');route(true)},
+  kdocview:id=>openBlob(`/admin/kyc/documents/${id}/file`),
+  async kcv(id){try{await download(`/talent/${id}/cv`,'cv')}catch(e){toast(e.message,{err:true})}},
+});
+let kycQ='pending',riskQ='open';
+const FLAG_L={duplicate_id:'Same ID number on another account',underage:'Under 18',pep:'Politically exposed person',duplicate_document:'Same document file used on another account',duplicate_bank:'Bank account used by another member',bank_name_mismatch:'Bank account holder doesn’t match ID name',bank_changed:'Payout bank account changed',self_dealing:'Client and professional look like the same person',high_value:'High-value payment needs AML review',qualification_rejected:'Qualification not confirmed by institution'};
+const sev=s=>`<span class="st ${s==='high'?'bad':s==='medium'?'wait':''}">${s}</span>`;
+const flagRow=f=>`<div class="kflag ${f.severity}"><div class="grow"><b>${esc(FLAG_L[f.kind]||f.kind)}</b> ${sev(f.severity)}${f.status==='cleared'?' <span class="st ok">Cleared</span>':f.status==='confirmed'?' <span class="st bad">Confirmed</span>':''}<br><small class="mut">${esc(f.detail)}${f.contract_id?` · <a href="#contracts/${f.contract_id}">Contract #${f.contract_id}</a>`:''} · ${D(f.created_at)}</small>${f.note?`<br><small>Resolution: ${esc(f.note)}</small>`:''}</div>${f.status==='open'?`<div class="kacts">${B('kflag',f.id+':cleared','Clear')}${B('kflag',f.id+':confirmed','Confirm','danger')}</div>`:''}</div>`;
+Object.assign(A_V,{
+  async kyc(uid){if(uid)return kycDetail(uid);const j=await api('/admin/kyc?status='+kycQ);
+    const tabs=[['pending','Waiting for review'],['needs_info','Waiting on member'],['approved','Approved'],['rejected','Rejected'],['draft','Started'],['all','All']];
+    return ph('Identity checks','Every member who sends offers, pays or gets paid must pass these checks. High-risk applications are listed first.')+
+    `<div class="tabs">${tabs.map(([k,l])=>`<button class="chip" data-act="kqueue" data-id="${k}" aria-pressed="${k===kycQ}">${l}</button>`).join('')}</div>`+
+    table(['Member','Role','Type','Submitted','Checks','Status',''],j.data.map(u=>[`<b>${esc(u.legal_name||u.name)}</b><br><small class="mut">${esc(u.email)}</small>`,u.role==='talent'?'Professional':'Client',`${u.account_type==='business'?'Business':'Individual'}<br><small class="mut">${u.id_type==='passport'?'Passport':u.id_type?'SA ID':''}</small>`,D(u.submitted_at),
+      [u.high_flags?`<span class="st bad">${u.high_flags} high risk</span>`:'',u.open_flags-u.high_flags>0?`<span class="st wait">${u.open_flags-u.high_flags} flag${u.open_flags-u.high_flags>1?'s':''}</span>`:'',u.is_pep?'<span class="st wait">PEP</span>':'',u.quals_pending?`<span class="st go">${u.quals_pending} qualification${u.quals_pending>1?'s':''} to confirm</span>`:''].filter(Boolean).join(' ')||'<small class="mut">No flags</small>',
+      kst(u.kyc_status),`<a class="btn sm" href="#admin/kyc/${u.id}">Review</a>`]))},
+  async risk(){const j=await api('/admin/risk-flags?status='+riskQ);
+    return ph('Fraud & risk flags','Raised automatically by duplicate and anti-money-laundering checks. Payouts for members with open high-risk flags are held.')+
+    `<div class="tabs">${[['open','Open'],['cleared','Cleared'],['confirmed','Confirmed'],['all','All']].map(([k,l])=>`<button class="chip" data-act="kfilter" data-id="${k}" aria-pressed="${k===riskQ}">${l}</button>`).join('')}</div>`+
+    (j.data.length?`<div class="panel">${j.data.map(f=>`<div class="kfrow"><a href="#admin/kyc/${f.user_id}"><b>${esc(f.name||'Member #'+f.user_id)}</b></a> <small class="mut">${esc(f.email||'')}</small>${flagRow(f)}</div>`).join('')}</div>`:empty('No flags','Nothing needs attention.'))},
+});
+async function kycDetail(uid){const {data:k}=await api('/admin/kyc/'+uid);const d=k.details||{},u=k.user,T=u.role==='talent';
+  const highOpen=k.flags.filter(f=>f.severity==='high'&&f.status==='open').length;
+  const docsOk=k.requirements.filter(r=>r.doc&&!r.optional).every(r=>k.docs.some(x=>x.kind===r.key&&x.status==='approved'));
+  const docCard=x=>`<figure class="kfig" data-doc="${x.id}" data-mime="${esc(x.mime)}"><div class="kprev">${x.mime.startsWith('image/')?'<span class="mut">Loading…</span>':`<span class="ico other">${ic('file',22)}</span><small>${esc(x.mime==='application/pdf'?'PDF':'Word')}</small>`}</div>
+    <figcaption><b>${esc(KIND_L[x.kind])}</b>${x.qualification_id?` <small class="mut">for ${esc(k.qualifications.find(q=>q.id===x.qualification_id)?.qualification||'')}</small>`:''}<br><small class="mut">${esc(x.file_name)} · ${kb(x.size)} · ${D(x.uploaded_at)}</small><div style="margin:6px 0">${dst(x.status)}</div>${x.note?`<small class="kwarn">${esc(x.note)}</small>`:''}
+    <div class="kacts">${B('kdocview',x.id,'Open')}${x.status!=='approved'?B('kdoc',x.id+':approved','Accept','moss'):''}${x.status!=='rejected'?B('kdoc',x.id+':rejected','Reject','danger'):''}</div></figcaption></figure>`;
+  const dl=(rows)=>`<dl class="money kdl">${rows.filter(r=>r).map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`;
+  const sa=d.sa_id_check;
+  return ph(d.legal_name||u.name,`${T?'Professional':'Client'} · ${esc(u.email?.email||'')} · member since ${D(u.email?.created_at)}`,kst(k.status),['#admin/kyc','Identity checks'])+
+  (k.flags.filter(f=>f.status==='open').length?`<div class="panel"><h2>Risk flags</h2>${k.flags.filter(f=>f.status==='open').map(flagRow).join('')}</div>`:'')+
+  `<div class="cols"><div class="stack">
+   <div class="panel"><h2>Identity</h2>${d.legal_name?dl([
+     ['Legal name',esc(d.legal_name)+(d.legal_name.toLowerCase()!==u.name.toLowerCase()?` <small class="mut">(account name: ${esc(u.name)})</small>`:'')],
+     ['Document',d.id_type==='passport'?'Passport':'South African ID'],
+     ['Number',`<span class="kmono">${esc(d.id_number)}</span>${sa?(sa.ok?` <span class="st ok">Checksum valid · ${sa.gender==='M'?'male':'female'} · ${sa.citizen?'SA citizen':'permanent resident'}</span>`:` <span class="st bad">${esc(sa.error)}</span>`):''}`],
+     ['Date of birth',`${esc(d.dob||'')}${d.age!=null?` <span class="st ${d.age<18?'bad':''}">${d.age} years</span>`:''}`],
+     ['Nationality',esc(d.nationality)],['Phone',esc(d.phone)],
+     ['Address',esc([d.address_line,d.suburb,d.city,d.province,d.postal_code].filter(Boolean).join(', '))],
+     d.account_type==='business'&&['Business',`${esc(d.business_name)}<br><span class="kmono">${esc(d.business_reg)}</span> · ${esc(d.business_role)}`],
+     ['Public official (PEP)',d.is_pep?`<span class="st wait">Yes</span> ${esc(d.pep_details)}`:'No'],
+     d.source_of_funds&&['Source of funds',esc(d.source_of_funds)],
+     ['Consent',d.consent_at?D(d.consent_at):'—'],['Submitted',D(d.submitted_at)]]):'<p class="mut">No details yet.</p>'}</div>
+   <div class="panel"><h2>Documents</h2><p class="mut">Compare the selfie with the ID photo, check the name and address match, and look for signs of editing. Every view is logged.</p><div class="kdocs">${k.docs.filter(x=>x.kind!=='qualification').map(docCard).join('')||'<p class="mut">Nothing uploaded.</p>'}</div></div>
+   ${T?`<div class="panel"><h2>Qualifications</h2>${k.qualifications.length?k.qualifications.map(q=>`<div class="kqual"><div class="kh"><div><b>${esc(q.qualification)}</b>${q.field?` <small class="mut">${esc(q.field)}</small>`:''}<br><small class="mut">${esc(q.institution)} · ${q.year}${q.student_number?' · Student no. <span class="kmono">'+esc(q.student_number)+'</span>':''}${q.certificate_number?' · Cert. <span class="kmono">'+esc(q.certificate_number)+'</span>':''}${q.institution_contact?' · Contact: '+esc(q.institution_contact):''}</small>
+     ${q.verify_method?`<br><small>Checked by ${esc(q.verify_method.replace(/_/g,' '))}${q.verify_contact?' with '+esc(q.verify_contact):''}${q.verify_reference?' · Ref: '+esc(q.verify_reference):''}${q.verified_at?' · '+D(q.verified_at):''}</small>`:''}</div><div class="kacts">${qst(q.status)}${B('kqver',q.id,'Record check','')}</div></div>
+     <div class="kdocs">${k.docs.filter(x=>x.qualification_id===q.id).map(docCard).join('')||'<p class="mut">No certificate uploaded.</p>'}</div></div>`).join(''):'<p class="mut">None added.</p>'}</div>`:''}
+  </div><div class="stack">
+   <div class="panel"><h2>Decision</h2>${k.status==='pending'?`<p class="mut">${highOpen?`<b>${highOpen} high-risk flag${highOpen>1?'s':''}</b> must be cleared before approval.`:docsOk?'All required documents are accepted.':'Accept each required document before approving.'}</p>`:`<p class="mut">Current status: ${kst(k.status)}</p>`}
+    <div class="kacts" style="flex-wrap:wrap">${k.status!=='approved'?(highOpen||!docsOk?'<button class="btn sm" disabled>Approve</button>':B('kdecide',uid+':approved','Approve','moss')):''}${B('kdecide',uid+':needs_info','Ask for more')}${k.status!=='rejected'?B('kdecide',uid+':rejected','Reject','danger'):''}</div></div>
+   <div class="panel"><h2>Checklist</h2><ul class="kchk">${k.requirements.map(r=>`<li class="${r.done?'on':''}">${r.done?'✓':'○'} ${esc(r.label)}</li>`).join('')}</ul></div>
+   ${T?`<div class="panel"><h2>Payout account</h2>${k.bank?dl([['Holder',`${esc(k.bank.holder)} ${k.bank.holder_matches?'<span class="st ok">Matches ID</span>':'<span class="st bad">Doesn’t match ID</span>'}`],['Bank',esc(k.bank.bank)],['Account',`<span class="kmono">${esc(k.bank.account_number)}</span> · ${esc(k.bank.account_type)}`],['Branch',`<span class="kmono">${esc(k.bank.branch_code)}</span>`],['Last changed',D(k.bank.changed_at)]]):'<p class="mut">Not added.</p>'}</div>`:''}
+   ${k.flags.some(f=>f.status!=='open')?`<div class="panel"><h2>Past flags</h2>${k.flags.filter(f=>f.status!=='open').map(flagRow).join('')}</div>`:''}
+   <div class="panel"><h2>History</h2>${k.history.length?k.history.map(h=>`<div class="khist"><small>${D(h.created_at)}</small> ${esc(h.actor||'System')}: ${esc(h.action.replace('kyc.','').replace(/_/g,' '))}</div>`).join(''):'<p class="mut">No activity.</p>'}</div>
+  </div></div>`}
+afterRender.admin=(id=>{const prev=afterRender.admin;return x=>{prev(x);$$('.kfig[data-doc]').forEach(async f=>{if(!f.dataset.mime.startsWith('image/'))return;try{const u=URL.createObjectURL(await blob(`/admin/kyc/documents/${f.dataset.doc}/file`));f.querySelector('.kprev').innerHTML=`<img src="${u}" alt="">`;f.querySelector('img').onclick=()=>A.kdocview(f.dataset.doc)}catch{f.querySelector('.kprev').innerHTML='<span class="mut">Could not load</span>'}})}})();
 
 /* boot */
 $('#fr [name=province]').innerHTML='<option value="">Choose</option>';

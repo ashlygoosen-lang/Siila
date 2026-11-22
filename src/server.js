@@ -28,7 +28,8 @@ app.use(helmet({
       'script-src': ["'self'", "'unsafe-inline'"],
       'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       'font-src': ["'self'", 'https://fonts.gstatic.com'],
-      'img-src': ["'self'", 'data:'],
+      'img-src': ["'self'", 'data:', 'blob:'],
+      'media-src': ["'self'", 'blob:'],
     },
   },
 }));
@@ -86,6 +87,8 @@ app.use('/api/talent', require('./routes/talent'));
 app.use('/api/me', require('./routes/me'));
 app.use('/api/contracts', require('./routes/contracts'));
 app.use('/api/inbox', require('./routes/inbox'));
+app.use('/api/kyc', require('./routes/kyc'));
+app.use('/api/admin', require('./routes/kyc-admin'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Endpoint not found')));
 
@@ -102,8 +105,8 @@ app.use((_req, res) => res.status(404).sendFile(path.join(__dirname, '..', 'publ
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
-  if (req.file) fs.unlink(req.file.path, () => {}); // drop uploads from failed requests
-  if (err.name === 'MulterError') return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 5 MB)' : 'Upload failed' });
+  if (req.file?.path) fs.unlink(req.file.path, () => {}); // drop uploads from failed requests (memory uploads have no path)
+  if (err.name === 'MulterError') return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'File too large. Upload a smaller file' : 'Upload failed' });
   if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, details: err.details });
   if (err instanceof ZodError) return res.status(400).json({ error: 'Validation failed' });
   if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Malformed JSON body' });

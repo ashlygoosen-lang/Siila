@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const { requireEmailVerified, HttpError, auth, requireRole, validate, z } = require('../util');
 const { company, notify, calcFees, paymentsMode, markFunded, contractEvent, getOrCreateConversation } = require('../services');
+const K = require('../kyc');
 const L = (id) => `#contracts/${id}`;
 const milestones = (id) => db.prepare('SELECT * FROM contract_milestones WHERE contract_id = ? ORDER BY position').all(id);
 
@@ -35,6 +36,7 @@ router.post('/', requireRole('client'), requireEmailVerified, validate(z.object(
   amount: z.number().int().min(50).max(1000000).optional(), description: z.string().trim().min(5).max(2000),
   milestones: z.array(z.object({ title: z.string().trim().min(2).max(120), amount: z.number().int().min(50).max(1000000) })).max(10).optional(),
 })), (req, res) => {
+  K.requireVerified(req.user.id, 'send offers');
   let { job_id, talent_id, amount, description, milestones: ms, application_id } = req.body;
   if (application_id) {
     const a = db.prepare('SELECT a.*, j.client_id FROM applications a JOIN jobs j ON j.id = a.job_id WHERE a.id = ?').get(application_id);
@@ -106,6 +108,9 @@ router.post('/:id/withdraw', requireRole('client'), (req, res) => {
 
 router.post('/:id/accept', requireRole('talent'), (req, res) => {
   const c = load(req, req.params.id, 'talent'); need(c, 'offered');
+  K.requireVerified(req.user.id, 'accept offers');
+  if (!db.prepare('SELECT 1 FROM bank_accounts WHERE user_id = ?').get(req.user.id)) throw new HttpError(403, 'Add your bank account under Verification before accepting offers, so we can pay you.');
+  K.checkContract(c);
   setStatus(c.id, 'accepted');
   notify(c.client_id, 'accepted', `${c.talent_name} accepted your offer for "${c.job_title}". Fund escrow to start the work.`, L(c.id), c.talent_id);
   contractEvent(c, 'Offer accepted', c.talent_id);
@@ -121,6 +126,7 @@ router.post('/:id/decline', requireRole('talent'), (req, res) => {
 
 router.post('/:id/fund', requireRole('client'), async (req, res) => {
   const c = load(req, req.params.id, 'client'); need(c, 'accepted');
+  K.requireVerified(req.user.id, 'pay into escrow');
   const mode = paymentsMode();
   const reference = `TB-${c.id}-${crypto.randomBytes(4).toString('hex')}`;
   db.prepare("UPDATE payments SET status = 'void' WHERE contract_id = ? AND status = 'pending'").run(c.id);

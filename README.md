@@ -91,6 +91,7 @@ Payouts to professionals are paid by you (EFT) and then recorded in the dashboar
 
 ## Before launch
 - Set `NODE_ENV=production`, a strong `JWT_SECRET` and `CORS_ORIGIN`; serve behind HTTPS.
+- Set `DATA_KEY` (`openssl rand -hex 32`) and back it up. It encrypts identity documents, ID numbers and bank details; without it they cannot be read. If unset, a key is generated next to the database as `.data_key`, so keep the database volume and that file together.
 - Hire requests are stored but not emailed yet: add your mailer/WhatsApp call in `src/routes/talent.js`.
 - Verification badges are set in the database (`profiles.verified`); build an admin review step for ID checks.
 - Put `data/` on a persistent disk, or move to Postgres if you expect heavy traffic.

@@ -203,4 +203,109 @@ if (!db.prepare("SELECT 1 FROM settings WHERE key = 'inbox_migrated'").get()) {
   })();
 }
 
+// ---- Identity verification (KYC), qualifications, bank details and fraud/AML controls ----
+addCol('users', 'kyc_status', "TEXT NOT NULL DEFAULT 'none'"); // none | draft | pending | needs_info | approved | rejected
+addCol('users', 'failed_logins', 'INTEGER NOT NULL DEFAULT 0');
+addCol('users', 'locked_until', 'TEXT');
+addCol('contracts', 'aml_hold', 'INTEGER NOT NULL DEFAULT 0');
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS kyc_profiles (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  account_type TEXT NOT NULL DEFAULT 'individual' CHECK (account_type IN ('individual','business')),
+  legal_name TEXT NOT NULL DEFAULT '',
+  id_type TEXT NOT NULL DEFAULT 'sa_id' CHECK (id_type IN ('sa_id','passport')),
+  id_number_enc TEXT NOT NULL DEFAULT '',
+  id_number_hash TEXT NOT NULL DEFAULT '',
+  id_last4 TEXT NOT NULL DEFAULT '',
+  id_country TEXT NOT NULL DEFAULT 'South Africa',
+  dob TEXT NOT NULL DEFAULT '',
+  nationality TEXT NOT NULL DEFAULT '',
+  phone TEXT NOT NULL DEFAULT '',
+  address_line TEXT NOT NULL DEFAULT '',
+  suburb TEXT NOT NULL DEFAULT '',
+  city TEXT NOT NULL DEFAULT '',
+  province TEXT NOT NULL DEFAULT '',
+  postal_code TEXT NOT NULL DEFAULT '',
+  is_pep INTEGER NOT NULL DEFAULT 0,
+  pep_details TEXT NOT NULL DEFAULT '',
+  source_of_funds TEXT NOT NULL DEFAULT '',
+  business_name TEXT NOT NULL DEFAULT '',
+  business_reg TEXT NOT NULL DEFAULT '',
+  business_role TEXT NOT NULL DEFAULT '',
+  consent_at TEXT,
+  submitted_at TEXT,
+  reviewed_at TEXT,
+  reviewer_id INTEGER,
+  review_note TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_kyc_idhash ON kyc_profiles(id_number_hash);
+CREATE TABLE IF NOT EXISTS kyc_documents (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('id_front','id_back','proof_of_address','selfie','company_reg','cv','qualification')),
+  qualification_id INTEGER,
+  file_path TEXT NOT NULL,
+  file_name TEXT NOT NULL DEFAULT '',
+  mime TEXT NOT NULL,
+  size INTEGER NOT NULL DEFAULT 0,
+  sha256 TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','replaced')),
+  note TEXT NOT NULL DEFAULT '',
+  uploaded_at TEXT NOT NULL DEFAULT (datetime('now')),
+  reviewed_at TEXT,
+  reviewer_id INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_kyc_docs_user ON kyc_documents(user_id, kind);
+CREATE INDEX IF NOT EXISTS idx_kyc_docs_sha ON kyc_documents(sha256);
+CREATE TABLE IF NOT EXISTS qualifications (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  institution TEXT NOT NULL,
+  qualification TEXT NOT NULL,
+  field TEXT NOT NULL DEFAULT '',
+  year INTEGER,
+  student_number TEXT NOT NULL DEFAULT '',
+  certificate_number TEXT NOT NULL DEFAULT '',
+  institution_contact TEXT NOT NULL DEFAULT '',
+  consent_to_contact INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','verified','rejected','unverifiable')),
+  verify_method TEXT NOT NULL DEFAULT '',
+  verify_contact TEXT NOT NULL DEFAULT '',
+  verify_reference TEXT NOT NULL DEFAULT '',
+  verify_note TEXT NOT NULL DEFAULT '',
+  verified_at TEXT,
+  verifier_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS bank_accounts (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  holder TEXT NOT NULL,
+  bank TEXT NOT NULL,
+  account_enc TEXT NOT NULL,
+  account_hash TEXT NOT NULL,
+  account_last4 TEXT NOT NULL,
+  branch_code TEXT NOT NULL DEFAULT '',
+  account_type TEXT NOT NULL DEFAULT 'cheque',
+  changed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_bank_hash ON bank_accounts(account_hash);
+CREATE TABLE IF NOT EXISTS risk_flags (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  contract_id INTEGER,
+  kind TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'medium' CHECK (severity IN ('low','medium','high')),
+  detail TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','cleared','confirmed')),
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_at TEXT,
+  resolver_id INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_flags_user ON risk_flags(user_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_flags_unique ON risk_flags(IFNULL(user_id,0), IFNULL(contract_id,0), kind, detail);
+`);
+
 module.exports = db;

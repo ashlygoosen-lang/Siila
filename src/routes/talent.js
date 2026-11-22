@@ -33,7 +33,10 @@ router.get('/:id', (req, res) => {
   if (!r) throw new HttpError(404, 'Professional not found');
   const reviews = db.prepare(`SELECT rv.rating, rv.comment, rv.created_at, u.name AS client_name, j.title AS job_title FROM reviews rv
     JOIN users u ON u.id = rv.reviewer_id JOIN contracts c ON c.id = rv.contract_id JOIN jobs j ON j.id = c.job_id WHERE rv.talent_id = ? ORDER BY rv.id DESC LIMIT 20`).all(r.id);
-  res.json({ data: { ...shape(r), reviews } });
+  const quals = db.prepare("SELECT institution, qualification, field, year, status, verified_at FROM qualifications WHERE user_id = ? AND status IN ('verified','pending','in_progress') ORDER BY status = 'verified' DESC, year DESC").all(r.id)
+    .map(q => ({ ...q, verified: q.status === 'verified' }));
+  const k = db.prepare("SELECT u.kyc_status, (SELECT COUNT(*) FROM kyc_documents d WHERE d.user_id = u.id AND d.kind = 'proof_of_address' AND d.status = 'approved') AS addr, (SELECT COUNT(*) FROM kyc_documents d WHERE d.user_id = u.id AND d.kind = 'cv' AND d.status != 'replaced') AS cv FROM users u WHERE u.id = ?").get(r.id);
+  res.json({ data: { ...shape(r), reviews, qualifications: quals, checks: { identity: k.kyc_status === 'approved', address: k.kyc_status === 'approved' && k.addr > 0, has_cv: k.cv > 0 } } });
 });
 
 router.post('/:id/hire-request', validate(z.object({
@@ -47,6 +50,19 @@ router.post('/:id/hire-request', validate(z.object({
   notify(req.params.id, 'lead', `${from_name} would like to hire you. TalentBridge will connect you shortly.`);
   sendMail(process.env.SUPPORT_EMAIL || 'support@talentbridge.co.za', 'New hire enquiry', `${from_name} <${from_email}> wants to hire talent #${req.params.id}:\n\n${message}`);
   res.status(201).json({ data: { id } });
+});
+
+// CV: visible to admins, the professional, and clients who have a bid, conversation or contract with them.
+router.get('/:id/cv', require('../util').auth(), (req, res) => {
+  const tid = Number(req.params.id), me = req.user;
+  const ok = me.role === 'admin' || me.id === tid || (me.role === 'client' && (
+    db.prepare('SELECT 1 FROM applications a JOIN jobs j ON j.id = a.job_id WHERE a.user_id = ? AND j.client_id = ?').get(tid, me.id)
+    || db.prepare('SELECT 1 FROM conversations WHERE talent_id = ? AND client_id = ?').get(tid, me.id)));
+  if (!ok) throw new HttpError(403, 'You can view a CV once this professional bids on your job or you start a conversation');
+  const d = db.prepare("SELECT * FROM kyc_documents WHERE user_id = ? AND kind = 'cv' AND status != 'replaced' ORDER BY id DESC").get(tid);
+  if (!d) throw new HttpError(404, 'No CV uploaded yet');
+  require('../services').audit(me.id, 'cv.viewed', String(tid));
+  require('./kyc').sendDoc(res, d);
 });
 
 // Signed-in client messages a professional directly (before any job or bid).

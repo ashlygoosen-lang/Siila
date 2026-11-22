@@ -99,6 +99,7 @@ function markFunded(contractId, reference) {
     db.prepare("UPDATE contracts SET status = 'funded', updated_at = datetime('now') WHERE id = ?").run(contractId);
   })();
   const link = `#contracts/${c.id}`;
+  try { require('./kyc').checkContract(c); } catch (e) { console.error('AML check failed', e.message); }
   notify(c.talent_id, 'funded', `Contract #${c.id} is funded. Funds are in escrow, so you can start work.`, link, c.client_id);
   notify(c.client_id, 'funded', `Payment received for contract #${c.id}. Funds are held safely until you approve the work.`, link);
   contractEvent(c, 'Escrow funded. Work can start.');

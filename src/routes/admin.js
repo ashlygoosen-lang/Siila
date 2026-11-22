@@ -27,6 +27,10 @@ router.get('/overview', (_req, res) => {
     vat_cents: n("SELECT SUM(vat_cents) n FROM contracts WHERE status IN ('released','paid_out')"),
     new_messages: n("SELECT COUNT(*) n FROM contact_messages WHERE status='new'"),
     contracts_active: n("SELECT COUNT(*) n FROM contracts WHERE status IN ('accepted','funded','delivered')"),
+    kyc_pending: n("SELECT COUNT(*) n FROM users WHERE kyc_status = 'pending'"),
+    quals_pending: n("SELECT COUNT(*) n FROM qualifications q JOIN users u ON u.id = q.user_id WHERE q.status IN ('pending','in_progress') AND u.kyc_status IN ('pending','approved')"),
+    risk_open: n("SELECT COUNT(*) n FROM risk_flags WHERE status = 'open'"),
+    risk_high: n("SELECT COUNT(*) n FROM risk_flags WHERE status = 'open' AND severity = 'high'"),
   });
 });
 
@@ -113,7 +117,8 @@ router.patch('/leads/:id', validate(z.object({ status: z.enum(['new', 'contacted
 router.get('/contracts', (_req, res) => {
   res.json({ data: db.prepare(`SELECT c.*, j.title job_title, cu.name client_name, tu.name talent_name, p.provider, p.reference, p.status payment_status
     FROM contracts c JOIN jobs j ON j.id=c.job_id JOIN users cu ON cu.id=c.client_id JOIN users tu ON tu.id=c.talent_id
-    LEFT JOIN payments p ON p.id = (SELECT MAX(id) FROM payments WHERE contract_id=c.id) ORDER BY c.updated_at DESC LIMIT 200`).all() });
+    LEFT JOIN payments p ON p.id = (SELECT MAX(id) FROM payments WHERE contract_id=c.id) ORDER BY c.updated_at DESC LIMIT 200`).all()
+    .map(c => ({ ...c, payout_blockers: c.status === 'released' ? require('../kyc').payoutBlockers(c) : [] })) });
 });
 router.post('/contracts/:id/mark-funded', (req, res) => {
   const p = db.prepare("SELECT reference FROM payments WHERE contract_id = ? AND status = 'pending' ORDER BY id DESC").get(req.params.id);
@@ -135,6 +140,7 @@ router.post('/contracts/:id/resolve', validate(z.object({ action: z.enum(['relea
 router.post('/contracts/:id/payout', validate(z.object({ payout_ref: z.string().trim().min(3).max(80) })), (req, res) => {
   const c = db.prepare("SELECT * FROM contracts WHERE id = ? AND status IN ('released','refunded')").get(req.params.id);
   if (!c) throw new HttpError(409, 'Nothing to pay out for this contract');
+  if (c.status === 'released') { const blockers = require('../kyc').payoutBlockers(c); if (blockers.length) throw new HttpError(409, `Payout on hold: ${blockers.join('; ')}`); }
   db.transaction(() => {
     db.prepare("UPDATE contracts SET status = CASE WHEN status='released' THEN 'paid_out' ELSE status END, payout_ref=?, updated_at=datetime('now') WHERE id=?").run(req.body.payout_ref, c.id);
     db.prepare("UPDATE payments SET status = CASE WHEN status='payout_due' THEN 'paid_out' WHEN status='refund_due' THEN 'refunded' ELSE status END WHERE contract_id=?").run(c.id);

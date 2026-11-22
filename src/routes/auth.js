@@ -11,7 +11,7 @@ function sendVerify(req, user) {
   sendMail(user.email, 'Verify your TalentBridge email', `Hi ${user.name},\n\nConfirm your email address to start using TalentBridge:\n${baseUrl(req)}/api/auth/verify-email?token=${t}\n\nThe link works for 3 days.`);
 }
 
-const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, email_verified: !!u.email_verified });
+const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, email_verified: !!u.email_verified, kyc_status: u.kyc_status || 'none' });
 
 router.post('/register', validate(z.object({
   name: z.string().trim().min(2).max(80),
@@ -38,8 +38,18 @@ router.post('/register', validate(z.object({
 
 router.post('/login', validate(z.object({ email: z.email(), password: z.string().min(1) })), (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(req.body.email);
+  // Lock the account for 15 minutes after 5 failed attempts (brute-force protection).
+  if (user?.locked_until && new Date(user.locked_until.replace(' ', 'T') + 'Z') > new Date()) throw new HttpError(429, 'Too many failed attempts. Try again in 15 minutes or reset your password.');
   // Same message for unknown email and wrong password to avoid account enumeration
-  if (!user || !bcrypt.compareSync(req.body.password, user.password_hash)) throw new HttpError(401, 'Incorrect email or password');
+  if (!user || !bcrypt.compareSync(req.body.password, user.password_hash)) {
+    if (user) {
+      const fails = user.failed_logins + 1;
+      db.prepare(`UPDATE users SET failed_logins = ?, locked_until = CASE WHEN ? >= 5 THEN datetime('now', '+15 minutes') ELSE locked_until END WHERE id = ?`).run(fails >= 5 ? 0 : fails, fails, user.id);
+      if (fails >= 5) { db.prepare("INSERT INTO audit_log (actor_id, action, target) VALUES (NULL, 'auth.locked', ?)").run(String(user.id)); }
+    }
+    throw new HttpError(401, 'Incorrect email or password');
+  }
+  if (user.failed_logins || user.locked_until) db.prepare('UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?').run(user.id);
   if (user.status !== 'active') throw new HttpError(403, 'This account is not active. Contact support.');
   res.json({ token: signToken(user), user: publicUser(user) });
 });

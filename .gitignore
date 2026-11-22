@@ -4,3 +4,5 @@ data/.jwt_secret
 node_modules/
 data/*.db*
 .env
+data/.data_key
+.data_key

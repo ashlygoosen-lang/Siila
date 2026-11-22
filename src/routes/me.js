@@ -189,6 +189,17 @@ router.get('/export', (req, res) => {
     jobs: all('SELECT * FROM jobs WHERE client_id = ?'), applications: all('SELECT * FROM applications WHERE user_id = ?'),
     contracts: all('SELECT * FROM contracts WHERE client_id = ? OR talent_id = ?'.replace('talent_id = ?', 'talent_id = ' + id)),
     messages: all('SELECT * FROM messages WHERE sender_id = ?'), notifications: all('SELECT * FROM notifications WHERE user_id = ?'),
+    inbox_messages: all('SELECT id, conversation_id, body, attachment_name, created_at FROM chat_messages WHERE sender_id = ?'),
+    identity_verification: (() => {
+      const k = db.prepare('SELECT * FROM kyc_profiles WHERE user_id = ?').get(id);
+      if (!k) return null;
+      const { id_number_enc, id_number_hash, reviewer_id, ...rest } = k;
+      const { decryptText } = require('../vault');
+      return { ...rest, id_number: id_number_enc ? decryptText(id_number_enc) : '', status: db.prepare('SELECT kyc_status FROM users WHERE id = ?').get(id).kyc_status,
+        documents: all("SELECT kind, file_name, mime, size, status, note, uploaded_at, reviewed_at FROM kyc_documents WHERE user_id = ? AND status != 'replaced'"),
+        qualifications: all('SELECT institution, qualification, field, year, student_number, certificate_number, status, verified_at FROM qualifications WHERE user_id = ?'),
+        bank_account: db.prepare('SELECT holder, bank, account_last4, branch_code, account_type, changed_at FROM bank_accounts WHERE user_id = ?').get(id) || null };
+    })(),
   });
 });
 
@@ -204,6 +215,10 @@ router.post('/delete', validate(z.object({ password: z.string().min(1) })), (req
     db.prepare("UPDATE jobs SET status='closed' WHERE client_id=?").run(u.id);
     db.prepare('DELETE FROM saved_jobs WHERE user_id=?').run(u.id);
     db.prepare('DELETE FROM notifications WHERE user_id=?').run(u.id);
+    // Identity records are kept encrypted for the legal retention period (fraud and anti-money-laundering records); the CV is not needed and is removed.
+    const cvs = db.prepare("SELECT file_path FROM kyc_documents WHERE user_id = ? AND kind = 'cv'").all(u.id);
+    db.prepare("DELETE FROM kyc_documents WHERE user_id = ? AND kind = 'cv'").run(u.id);
+    for (const c of cvs) fs.unlink(require('path').join(require('./kyc').KYC_DIR, require('path').basename(c.file_path)), () => {});
   })();
   res.status(204).end();
 });

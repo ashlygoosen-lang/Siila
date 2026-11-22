@@ -12,6 +12,7 @@ const { outbox } = require('../src/mailer');
     return { status: r.status, body: r.status === 204 ? null : await r.json() };
   };
   const raw = async (url, token) => { const r = await fetch(base + url, { headers: { authorization: 'Bearer ' + token } }); return { status: r.status, type: r.headers.get('content-type') || '', text: await r.text() }; };
+  const raw0 = async (url, token) => { const r = await fetch(base + url, { headers: { authorization: 'Bearer ' + token } }); return { status: r.status }; };
   const step = async (name, fn) => { await fn(); console.log('  ok  ' + name); };
 
   await step('health + meta', async () => {
@@ -250,6 +251,121 @@ const { outbox } = require('../src/mailer');
     assert.equal((await call('GET', '/provinces')).body.data.length, 9);
     const rv = (await call('GET', '/reviews')).body.data;
     assert.ok(Array.isArray(rv)); rv.forEach(r => { assert.ok(r.rating >= 4); assert.ok(!r.client_name.includes('Client') || r.client_name.endsWith('.')); });
+  });
+  await step('identity verification (KYC): validation, gates, encryption, review, fraud checks', async () => {
+    const K = require('../src/kyc');
+    const fs = require('fs'), path = require('path');
+    // Build valid SA ID numbers (Luhn check digit)
+    const saId = (first12) => { for (let c = 0; c < 10; c++) { const id = first12 + c; if (K.parseSaId(id).ok) return id; } };
+    const id1 = saId('900101500908'), id2 = saId('850615012308');
+    assert.equal(K.parseSaId(id1).dob, '1990-01-01');
+    assert.equal(K.parseSaId('9001015009081').ok, K.parseSaId('9001015009081').ok && id1 === '9001015009081');
+    assert.equal(K.parseSaId('123').ok, false);
+    assert.equal(K.parseSaId(id1.slice(0, 12) + ((Number(id1[12]) + 1) % 10)).ok, false); // wrong check digit
+    const pw = 'TalentBridge#2026';
+    const adminTok = (await call('POST', '/auth/login', { email: 'admin@talentbridge.test', password: pw })).body.token;
+    const reg = async (email, role) => {
+      const r = await call('POST', '/auth/register', { name: 'Kyc ' + role, email, password: 'Passw0rdOK', role, accept_terms: true, province: 'Gauteng' });
+      const vt = outbox.filter(m => m.to === email).pop().text.match(/token=([a-f0-9]+)/)[1];
+      await fetch(base + '/auth/verify-email?token=' + vt, { redirect: 'manual' });
+      return { tok: r.body.token, id: r.body.user.id };
+    };
+    const cl = await reg('kyc-client@talentbridge.test', 'client');
+    const job = (await call('POST', '/jobs', { title: 'Paint my lounge', description: 'Two coats on four walls, paint supplied.', category: 'Construction', type: 'Short-Term', province: 'Gauteng', city: 'Midrand', pay_min: 1500, pay_max: 3000, pay_unit: 'project' }, cl.tok)).body.data;
+    const t2 = (await call('POST', '/auth/login', { email: 'talent5@talentbridge.test', password: pw })).body.token;
+    const t2id = (await call('GET', '/auth/me', null, t2)).body.user.id;
+    // Unverified client is blocked from offers
+    const blocked = await call('POST', '/contracts', { job_id: job.id, talent_id: t2id, amount: 2000, description: 'Paint lounge' }, cl.tok);
+    assert.equal(blocked.status, 403); assert.ok(blocked.body.error.includes('Verify your identity'));
+    // Details: validation
+    const details = { account_type: 'individual', legal_name: 'Kyc Client Person', id_type: 'sa_id', id_number: id1, nationality: 'South African', phone: '082 555 1234', address_line: '12 Main Road', suburb: 'Halfway House', city: 'Midrand', province: 'Gauteng', postal_code: '1685', is_pep: false, consent: true };
+    assert.equal((await call('PUT', '/kyc/details', { ...details, id_number: '9001015009080' }, cl.tok)).status, 400); // bad checksum
+    assert.equal((await call('PUT', '/kyc/details', { ...details, dob: '1991-01-01' }, cl.tok)).status, 400); // DOB mismatch
+    const d1 = await call('PUT', '/kyc/details', details, cl.tok);
+    assert.equal(d1.status, 200); assert.equal(d1.body.data.details.dob, '1990-01-01'); assert.ok(d1.body.data.details.id_number_masked.endsWith(id1.slice(-4)));
+    // Stored encrypted, not in clear
+    const row = require('../src/db').prepare('SELECT * FROM kyc_profiles WHERE user_id = ?').get(cl.id);
+    assert.ok(!row.id_number_enc.includes(id1) && row.id_number_enc.length > 20);
+    // Documents
+    const jpeg = (n = 1) => Buffer.concat([Buffer.from('ffd8ffe000104a464946', 'hex'), Buffer.alloc(12000, n)]);
+    const up = async (tok, kind, buf, type = 'image/jpeg', extra = {}) => {
+      const fd = new FormData(); fd.append('kind', kind); for (const [k, v] of Object.entries(extra)) fd.append(k, v);
+      fd.append('file', new Blob([buf], { type }), kind + (type === 'application/pdf' ? '.pdf' : '.jpg'));
+      const r = await fetch(base + '/kyc/documents', { method: 'POST', headers: { authorization: 'Bearer ' + tok }, body: fd });
+      return { status: r.status, body: await r.json() };
+    };
+    assert.equal((await up(cl.tok, 'selfie', Buffer.concat([Buffer.from('%PDF-1.4'), Buffer.alloc(12000)]), 'application/pdf')).status, 400); // selfie must be photo
+    assert.equal((await up(cl.tok, 'id_front', Buffer.alloc(12000, 7), 'image/jpeg')).status, 400); // fake jpeg
+    assert.equal((await call('POST', '/kyc/submit', {}, cl.tok)).status, 400); // incomplete
+    for (const [k, n] of [['id_front', 1], ['proof_of_address', 2], ['selfie', 3]]) assert.equal((await up(cl.tok, k, jpeg(n))).status, 201);
+    const files = require('../src/db').prepare('SELECT file_path FROM kyc_documents WHERE user_id = ?').all(cl.id);
+    const raw = fs.readFileSync(path.join(require('../src/routes/kyc').KYC_DIR, files[0].file_path));
+    assert.notEqual(raw.subarray(0, 3).toString('hex'), 'ffd8ff'); // encrypted on disk
+    const sub = await call('POST', '/kyc/submit', {}, cl.tok);
+    assert.equal(sub.status, 200); assert.equal(sub.body.data.status, 'pending');
+    assert.equal((await up(cl.tok, 'selfie', jpeg(9))).status, 409); // locked while under review
+    assert.ok((await call('GET', '/me/notifications', null, adminTok)).body.data.some(n => n.type === 'kyc' && n.link === '#admin/kyc/' + cl.id));
+    // Admin review
+    const queue = (await call('GET', '/admin/kyc?status=pending', null, adminTok)).body.data;
+    assert.ok(queue.some(q => q.id === cl.id));
+    const det = (await call('GET', '/admin/kyc/' + cl.id, null, adminTok)).body.data;
+    assert.equal(det.details.id_number, id1); assert.equal(det.details.sa_id_check.ok, true); assert.equal(det.details.age >= 18, true);
+    const docFile = await raw0(`/admin/kyc/documents/${det.docs[0].id}/file`, adminTok);
+    assert.equal(docFile.status, 200);
+    assert.equal((await call('POST', `/admin/kyc/${cl.id}/decision`, { decision: 'approved' }, adminTok)).status, 409); // docs not approved yet
+    for (const d of det.docs) assert.equal((await call('POST', `/admin/kyc/documents/${d.id}/decision`, { decision: 'approved' }, adminTok)).status, 200);
+    assert.equal((await call('POST', `/admin/kyc/${cl.id}/decision`, { decision: 'approved' }, adminTok)).status, 200);
+    assert.equal((await call('GET', '/auth/me', null, cl.tok)).body.user.kyc_status, 'approved');
+    assert.equal((await call('POST', '/contracts', { job_id: job.id, talent_id: t2id, amount: 2000, description: 'Paint lounge' }, cl.tok)).status, 201); // now allowed
+    assert.ok((await call('GET', '/admin/audit', null, adminTok)).body.data.some(a => a.action === 'kyc.document_viewed'));
+    // Duplicate identity: second account with the same ID number is flagged and cannot be approved
+    const dup = await reg('kyc-dup@talentbridge.test', 'client');
+    assert.equal((await call('PUT', '/kyc/details', { ...details, legal_name: 'Someone Else' }, dup.tok)).status, 200);
+    for (const [k, n] of [['id_front', 1], ['proof_of_address', 5], ['selfie', 6]]) await up(dup.tok, k, jpeg(n)); // id_front is the same file
+    await call('POST', '/kyc/submit', {}, dup.tok);
+    const flags = (await call('GET', '/admin/kyc/' + dup.id, null, adminTok)).body.data.flags;
+    assert.ok(flags.some(f => f.kind === 'duplicate_id' && f.severity === 'high'));
+    assert.ok(flags.some(f => f.kind === 'duplicate_document'));
+    for (const d of (await call('GET', '/admin/kyc/' + dup.id, null, adminTok)).body.data.docs) await call('POST', `/admin/kyc/documents/${d.id}/decision`, { decision: 'approved' }, adminTok);
+    const blockedApprove = await call('POST', `/admin/kyc/${dup.id}/decision`, { decision: 'approved' }, adminTok);
+    assert.equal(blockedApprove.status, 409); assert.ok(blockedApprove.body.error.includes('duplicate_id'));
+    assert.equal((await call('POST', `/admin/kyc/${dup.id}/decision`, { decision: 'rejected', note: 'Identity already used by another account' }, adminTok)).status, 200);
+    // Professional: CV, qualification confirmed with institution, bank details
+    const pro = await reg('kyc-pro@talentbridge.test', 'talent');
+    await call('PUT', '/kyc/details', { ...details, legal_name: 'Kyc Pro Person', id_number: id2 }, pro.tok);
+    for (const [k, n] of [['id_front', 11], ['proof_of_address', 12], ['selfie', 13]]) await up(pro.tok, k, jpeg(n));
+    let st = (await call('GET', '/kyc', null, pro.tok)).body.data;
+    assert.ok(st.requirements.some(r => r.key === 'cv' && !r.done) && st.requirements.some(r => r.key === 'qualifications'));
+    assert.equal((await up(pro.tok, 'cv', jpeg(14))).status, 400); // CV must be PDF/Word
+    assert.equal((await up(pro.tok, 'cv', Buffer.concat([Buffer.from('%PDF-1.4'), Buffer.alloc(3000)]), 'application/pdf')).status, 201);
+    assert.equal((await call('POST', '/kyc/qualifications', { institution: 'Tshwane University of Technology', qualification: 'National Diploma: Electrical Engineering', year: 2015, student_number: '212345678' }, pro.tok)).status, 400); // consent
+    const q = (await call('POST', '/kyc/qualifications', { institution: 'Tshwane University of Technology', qualification: 'National Diploma: Electrical Engineering', year: 2015, student_number: '212345678', consent_to_contact: true }, pro.tok)).body.data;
+    assert.equal((await up(pro.tok, 'qualification', jpeg(15), 'image/jpeg', { qualification_id: String(q.id) })).status, 201);
+    assert.equal((await call('PUT', '/kyc/bank', { holder: 'Mr Someone Different', bank: 'FNB', account_number: '62123456789', branch_code: '250655', account_type: 'cheque' }, pro.tok)).status, 200);
+    assert.equal((await call('POST', '/kyc/submit', {}, pro.tok)).status, 200);
+    const pdet = (await call('GET', '/admin/kyc/' + pro.id, null, adminTok)).body.data;
+    assert.equal(pdet.bank.account_number, '62123456789'); assert.equal(pdet.bank.holder_matches, false);
+    assert.ok(pdet.flags.some(f => f.kind === 'bank_name_mismatch'));
+    assert.equal((await call('POST', `/admin/qualifications/${q.id}/verify`, { outcome: 'verified', method: 'institution_email', contact: 'records@tut.ac.za' }, adminTok)).status, 400); // reference required
+    assert.equal((await call('POST', `/admin/qualifications/${q.id}/verify`, { outcome: 'verified', method: 'institution_email', contact: 'records@tut.ac.za', reference: 'TUT confirmation email 21 Nov 2026' }, adminTok)).status, 200);
+    for (const d of pdet.docs) await call('POST', `/admin/kyc/documents/${d.id}/decision`, { decision: 'approved' }, adminTok);
+    assert.equal((await call('POST', `/admin/kyc/${pro.id}/decision`, { decision: 'approved' }, adminTok)).status, 200); // medium flag doesn't block
+    const pub = (await call('GET', '/talent/' + pro.id)).body.data;
+    assert.equal(pub.verified, true); assert.equal(pub.checks.identity, true); assert.equal(pub.checks.address, true);
+    assert.ok(pub.qualifications.some(x => x.verified && x.institution.includes('Tshwane')));
+    // CV access only with a relationship
+    assert.equal((await raw0(`/talent/${pro.id}/cv`, cl.tok)).status, 403);
+    // Bank change after approval: member is warned and a flag is raised
+    await call('PUT', '/kyc/bank', { holder: 'Kyc Pro Person', bank: 'Capitec', account_number: '1234567890', branch_code: '470010', account_type: 'savings' }, pro.tok);
+    assert.ok((await call('GET', '/me/notifications', null, pro.tok)).body.data.some(n => n.type === 'security'));
+    assert.ok((await call('GET', '/admin/risk-flags', null, adminTok)).body.data.some(f => f.kind === 'bank_changed' && f.user_id === pro.id));
+    assert.ok(K.payoutBlockers({ id: 0, client_id: cl.id, talent_id: pro.id, aml_hold: 0 }).some(b => b.includes('72 hours')));
+    // Clear a flag
+    const fl = (await call('GET', '/admin/risk-flags', null, adminTok)).body.data.find(f => f.kind === 'bank_name_mismatch' && f.user_id === pro.id);
+    assert.equal((await call('POST', `/admin/risk-flags/${fl.id}/resolve`, { outcome: 'cleared', note: 'Holder name updated to match ID' }, adminTok)).status, 200);
+    // Brute-force lockout after 5 wrong passwords
+    for (let i = 0; i < 5; i++) await call('POST', '/auth/login', { email: 'kyc-dup@talentbridge.test', password: 'wrong' + i });
+    assert.equal((await call('POST', '/auth/login', { email: 'kyc-dup@talentbridge.test', password: 'Passw0rdOK' })).status, 429);
   });
   await step('unknown API route returns JSON 404', async () => {
     assert.equal((await call('GET', '/nope')).status, 404);

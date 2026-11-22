@@ -58,6 +58,13 @@ function seed() {
     bid.run(byTitle('Plumber'), ids[2], 'Based in Durban with my own tools and bakkie. Geyser installs within 48 hours.', 320, 2);
     bid.run(byTitle('Domestic Cleaner'), ids[5], 'Five years with Atlantic Seaboard families. Flexible mornings.', 70, 1);
     db.prepare('UPDATE users SET email_verified = 1').run();
+    db.prepare("UPDATE users SET kyc_status = 'approved' WHERE role != 'admin'").run(); // demo accounts only
+    const { encryptText, blindHash } = require('./vault');
+    db.prepare("SELECT id, name FROM users WHERE role = 'talent'").all().forEach((t, i) => {
+      const acc = String(62000000000 + t.id * 1013 + i);
+      db.prepare("INSERT OR IGNORE INTO bank_accounts (user_id, holder, bank, account_enc, account_hash, account_last4, branch_code, account_type, changed_at) VALUES (?,?,?,?,?,?,?,?,datetime('now','-30 days'))")
+        .run(t.id, t.name, 'Demo Bank', encryptText(acc), blindHash('bank:' + acc), acc.slice(-4), '250655', 'cheque');
+    });
   })();
   return true;
 }
