@@ -92,7 +92,12 @@ app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Endpoint not foun
 const base = (req) => process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
 app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nDisallow: /api/\nDisallow: /app.html\nSitemap: ${base(req)}/sitemap.xml\n`));
 app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/terms.html', '/privacy.html'].map(p => `<url><loc>${base(req)}${p}</loc></url>`).join('')}</urlset>`));
-app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: isProd ? '1h' : 0 }));
+// Pages, styles and scripts are revalidated on every visit so a new deploy shows at once;
+// photos, fonts and icons are cached for a week.
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  maxAge: isProd ? '7d' : 0,
+  setHeaders: (res, file) => { if (/\.(html|css|js|json)$/.test(file)) res.setHeader('Cache-Control', 'no-cache'); },
+}));
 app.use((_req, res) => res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html')));
 
 // eslint-disable-next-line no-unused-vars
