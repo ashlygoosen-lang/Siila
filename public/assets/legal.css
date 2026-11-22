@@ -1,0 +1,52 @@
+/* TalentBridge legal pages */
+.lh{background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.lh .in{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:16px}
+.lh nav{margin-left:auto;display:flex;gap:4px;align-items:center}
+.lh nav a:not(.btn){text-decoration:none;color:var(--ink2);font-weight:600;font-size:15px;padding:8px 12px;border-radius:999px}
+.lh nav a[aria-current=page]{background:var(--jac-s);color:var(--jac-d)}
+.lh nav .btn{margin-left:8px}
+.hero-l{background:radial-gradient(700px 300px at 85% 0,rgba(139,108,240,.3),transparent 60%),#0f1b16;color:#e9f0ec}
+.hero-l .in{max-width:1200px;margin:0 auto;padding:56px 24px 48px}
+.hero-l h1{color:#fff;font-size:clamp(38px,5vw,60px);letter-spacing:-.02em}
+.hero-l .meta{color:#9fb1a9;font-size:14px;font-weight:600;margin:10px 0 14px}
+.hero-l .intro{max-width:62ch;font-size:18px;color:#cfdad4;margin:0}
+.layout{max-width:1200px;margin:0 auto;padding:40px 24px 80px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:56px;align-items:start}
+.toc{position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto;font-size:14px}
+.toc b{display:block;margin-bottom:10px}
+.toc ol{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:2px}
+.toc a{display:block;padding:6px 10px;border-radius:8px;text-decoration:none;color:var(--ink2)}
+.toc a:hover{background:var(--paper);color:var(--ink)}
+main{max-width:76ch}
+main section{scroll-margin-top:90px;padding-top:8px;margin-top:36px;border-top:1px solid var(--line)}
+main h2{font-size:28px;margin:18px 0 12px}
+main h2 .n{color:var(--jac-d)}
+main h3{font:700 17px var(--sans);margin:22px 0 8px}
+main p,main li,main dd{color:var(--ink2);line-height:1.7}
+main ul,main ol{padding-left:22px}
+main li{margin-bottom:8px}
+main a{color:var(--jac-d)}
+main strong{color:var(--ink)}
+.summary{background:var(--paper);border-radius:var(--r-lg);padding:26px 30px;box-shadow:var(--shadow)}
+.summary h2{margin-top:0;font-size:24px}
+.summary li{color:var(--ink)}
+.summary p{margin:12px 0 0;font-size:14px}
+.callout{background:var(--sun-s);border-radius:var(--r-sm);padding:14px 18px;color:#5b4300!important}
+.draft{background:var(--sun-s);color:#8a5a00;padding:14px 18px;border-radius:16px;margin:0 0 20px;font-size:14px}
+.defs{display:grid;grid-template-columns:150px 1fr;gap:10px 18px;margin:0}
+.defs dt{font-weight:700;color:var(--ink)}
+.defs dd{margin:0}
+ul.cols2{columns:2;column-gap:32px}
+ul.cols2 li{break-inside:avoid}
+ol.steps{list-style:none;padding:0;counter-reset:st}
+ol.steps li{counter-increment:st;position:relative;padding-left:44px;margin-bottom:14px}
+ol.steps li::before{content:counter(st);position:absolute;left:0;top:2px;width:30px;height:30px;border-radius:50%;background:var(--jac-s);color:var(--jac-d);display:grid;place-items:center;font-weight:800;font-size:14px}
+table.info{width:100%;border-collapse:collapse;background:var(--paper);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--shadow);font-size:15px;margin:12px 0}
+table.info th,table.info td{text-align:left;padding:12px 16px;border-top:1px solid var(--line2);vertical-align:top;color:var(--ink2)}
+table.info thead th{border-top:0;background:var(--mist);color:var(--ink);font-weight:700}
+table.info tbody th{color:var(--ink);font-weight:650;width:38%}
+.related{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-weight:600}
+footer.lf{text-align:center;color:var(--mut);font-size:14px;padding:30px 24px 40px;border-top:1px solid var(--line);background:var(--paper)}
+footer.lf a{color:var(--ink2)}
+footer.lf span{display:inline-block;margin-top:8px;font-size:13px}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:24px}.toc{position:static;max-height:none;background:var(--paper);padding:18px;border-radius:var(--r-md)}.toc ol{columns:2}ul.cols2{columns:1}.defs{grid-template-columns:1fr}.defs dd{margin-bottom:8px}.lh nav a:not(.btn):not([aria-current]){display:none}}
+@media print{.lh,.toc,.hero-l .meta+.intro,footer.lf,#printBtn,.draft{display:none!important}.layout{display:block;padding:0}.hero-l{background:none;color:#000}.hero-l h1{color:#000}.summary,table.info{box-shadow:none;border:1px solid #ccc}main{max-width:none}a{color:#000}}

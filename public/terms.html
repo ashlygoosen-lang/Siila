@@ -1,19 +1,187 @@
-<!DOCTYPE html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Terms of Use | TalentBridge</title>
-<link rel="icon" href="/assets/favicon-32.png"><link rel="stylesheet" href="/assets/tb.css">
-<style>header.lh{background:var(--paper);border-bottom:1px solid var(--line)}header.lh div{max-width:760px;margin:0 auto;padding:16px 24px}main{max-width:760px;margin:0 auto;padding:40px 24px 80px}main h1{font-size:44px;margin:0 0 8px}main h2{font-size:24px;margin:32px 0 8px}main p,main li{color:var(--ink2)}main a{color:var(--jac-d)}.m{color:var(--mut);font-size:14px}.draft{background:var(--sun-s);color:#8a5a00;padding:12px 18px;border-radius:16px;margin:18px 0;font-size:14px}footer.lf{text-align:center;color:var(--mut);font-size:14px;padding:30px 24px 40px;border-top:1px solid var(--line)}footer.lf a{color:var(--ink2)}</style></head><body>
-<header class="lh"><div><a class="brand" href="/"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#6a4bd8"/><path d="M10 40c7-12 14-17 22-17s15 5 22 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M20 30v17M44 30v17" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M9 47h46" stroke="#f5b935" stroke-width="5" stroke-linecap="round"/></svg>TalentBridge</a></div></header><main><h1>Terms of Use</h1><p class="m">Last updated: 18 November 2026</p><div class="draft" id="draft" hidden><b>Draft template.</b> Have an attorney review and adapt this document, and set your company details in the server settings, before you launch.</div>
-<p>These terms govern your use of the TalentBridge website and dashboard (the “Platform”), operated by <span data-co="name" data-ph="[Company name]"></span> (registration no. <span data-co="reg" data-ph="[reg no]"></span>), “TalentBridge”, “we”. By creating an account you agree to them.</p>
-<h2>1. What TalentBridge does</h2><p>TalentBridge is an online marketplace where clients post jobs and professionals offer their skills. TalentBridge is not the employer of any professional. Unless we say otherwise in writing, the work agreement is between the client and the professional. TalentBridge provides the Platform, optional identity checks and a payment holding (escrow) service.</p>
-<h2>2. Your account</h2><p>You must be 18 or older and give accurate information. Keep your password secret and tell us if you suspect misuse. You are responsible for what happens under your account. One person may not run multiple accounts to avoid a suspension.</p>
-<h2>3. Verification</h2><p>A verified badge means we checked a document you supplied at a point in time. It is not a guarantee of skill, quality or conduct, and clients must still use their own judgement.</p>
-<h2>4. Jobs, offers and contracts</h2><p>Clients must describe jobs honestly and lawfully. An offer becomes a contract when the professional accepts it. Each contract records the agreed price, TalentBridge’s fee and the VAT on that fee before payment is made.</p>
-<h2>5. Payments, fees and escrow</h2><p>The client pays the full contract price into escrow. TalentBridge releases the money to the professional, less our service fee (currently a percentage of the price, shown on every contract) plus VAT on that fee, once the client approves the work, or as decided under clause 6. Do not pay or be paid outside the Platform for work found through TalentBridge; doing so removes dispute protection and may lead to suspension.</p>
-<h2>6. Disputes</h2><p>If a client or professional opens a dispute, the funds stay in escrow. We review the messages and delivery notes and may release the payment to the professional or refund the client. Our decision is made in good faith and does not limit your legal rights.</p>
-<h2>7. Acceptable use</h2><p>You may not post unlawful, discriminatory, misleading or unsafe content; harass others; collect other users’ data for unrelated purposes; attempt to bypass security; use the Platform for fraud or money laundering; or advertise work that requires a licence you do not hold.</p>
-<h2>8. Reviews and content</h2><p>Reviews must be honest and based on real work. You keep ownership of what you post, and give TalentBridge a licence to display it on the Platform. We may remove content that breaks these terms.</p>
-<h2>9. Suspension and closing accounts</h2><p>We may suspend or close accounts that break these terms or put others at risk. You can ask us to delete your account at any time, subject to finishing active contracts and to the financial records we must keep by law.</p>
-<h2>10. Liability</h2><p>The Platform is provided “as is”. To the extent the law allows, TalentBridge is not liable for the quality or outcome of work, for loss caused by users, or for indirect loss. Nothing in these terms limits liability that cannot lawfully be limited, including under the Consumer Protection Act.</p>
-<h2>11. Changes</h2><p>We may update these terms. We will tell you about material changes, and continued use means you accept them.</p>
-<h2>12. Law and contact</h2><p>These terms are governed by the laws of the Republic of South Africa. Contact us: <span data-co="email" data-ph="[support email]"></span>, <span data-co="address" data-ph="[physical address]"></span>.</p></main>
-<footer class="lf"><a href="/terms.html">Terms of Use</a> · <a href="/privacy.html">Privacy Policy</a> · <a href="/#contact">Contact</a><br><span style="display:inline-block;margin-top:8px;font-size:13px">© 2026 TalentBridge. All rights reserved. TalentBridge is a division of VINK Group (Pty) Ltd, registration number 2018/079316/07.</span></footer>
-<script>fetch('/api/config').then(r=>r.json()).then(c=>{const k=c.company;document.querySelectorAll('[data-co]').forEach(e=>{e.textContent=k[e.dataset.co]||e.dataset.ph});if(c.draft){const d=document.getElementById('draft');if(d)d.hidden=false}}).catch(()=>{})</script></body></html>
+<!DOCTYPE html>
+<html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terms of Use | TalentBridge</title>
+<meta name="description" content="These terms set out the rules for using TalentBridge, how hiring, bidding and Escrow work, and the rights and responsibilities of Clients, Professionals an">
+<link rel="icon" href="/assets/favicon-32.png"><link rel="stylesheet" href="/assets/tb.css"><link rel="stylesheet" href="/assets/legal.css">
+</head><body>
+<header class="lh"><div class="in"><a class="brand" href="/"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#6a4bd8"/><path d="M10 40c7-12 14-17 22-17s15 5 22 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M20 30v17M44 30v17" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M9 47h46" stroke="#f5b935" stroke-width="5" stroke-linecap="round"/></svg>TalentBridge</a><nav><a href="/terms.html" aria-current="page">Terms</a><a href="/privacy.html">Privacy</a><a href="/refunds.html">Refunds</a><a class="btn sm" href="/app.html">Log in</a></nav></div></header>
+<div class="hero-l"><div class="in"><h1>Terms of Use</h1><p class="meta">Last updated 22 November 2026 · Effective 22 November 2026</p><p class="intro">These terms set out the rules for using TalentBridge, how hiring, bidding and Escrow work, and the rights and responsibilities of Clients, Professionals and TalentBridge.</p></div></div>
+<div class="layout">
+<aside class="toc"><b>On this page</b><ol><li><a href="#about">1. About these terms</a></li><li><a href="#definitions">2. Definitions</a></li><li><a href="#eligibility">3. Who may use TalentBridge</a></li><li><a href="#account">4. Your account and security</a></li><li><a href="#role">5. What TalentBridge is, and is not</a></li><li><a href="#verification">6. Verification and badges</a></li><li><a href="#jobs">7. Jobs, Bids, Offers and Contracts</a></li><li><a href="#fees">8. Fees, Escrow and payments</a></li><li><a href="#disputes-users">9. Disputes between Clients and Professionals</a></li><li><a href="#conduct">10. Acceptable use</a></li><li><a href="#content">11. Your Content, reviews and our intellectual property</a></li><li><a href="#privacy">12. Privacy and communications</a></li><li><a href="#third-party">13. Third-party services</a></li><li><a href="#availability">14. Availability and changes to the Platform</a></li><li><a href="#suspension">15. Suspension and closing your account</a></li><li><a href="#warranties">16. Disclaimers</a></li><li><a href="#liability">17. Limitation of liability</a></li><li><a href="#indemnity">18. Indemnity</a></li><li><a href="#complaints">19. Complaints and disputes with TalentBridge</a></li><li><a href="#general">20. General</a></li><li><a href="#ecta">21. Our details (ECTA section 43)</a></li></ol><button class="btn sm ghost" id="printBtn" type="button">Print or save as PDF</button></aside>
+<main>
+<div class="draft" id="draft" hidden><b>Before launch:</b> have a South African attorney review this document, and set the company details (COMPANY_NAME, SUPPORT_EMAIL, COMPANY_ADDRESS, SUPPORT_PHONE, INFO_OFFICER, VAT_NUMBER) in the server settings so the placeholders below are filled in.</div>
+<div class="summary"><h2>The short version</h2><ul><li>TalentBridge is a marketplace run by <span data-co="name" data-ph="VINK Group (Pty) Ltd">VINK Group (Pty) Ltd</span>. Contracts for work are between Clients and Professionals, not with us.</li><li>You must be 18 or older, tell the truth and keep your account secure.</li><li>Posting, bidding and messaging are free. A single service fee (currently <span data-fee>10%</span> plus VAT) comes out of the Professional’s payout.</li><li>Clients pay into Escrow before work starts. Money is released when the Client approves, or decided through our dispute process.</li><li>Keep payments on the Platform. Paying outside it removes your protection and can lead to suspension.</li><li>Our liability is limited as the law allows. Your rights under the Consumer Protection Act are not affected.</li></ul><p class="mut">This summary helps you find your way around. The full text below is what applies.</p></div>
+<section id="about"><h2><span class="n">1.</span> About these terms</h2>
+<p>These Terms of Use (the “Terms”) are a binding agreement between you and <span data-co="name" data-ph="VINK Group (Pty) Ltd">VINK Group (Pty) Ltd</span> (registration number <span data-co="reg" data-ph="2018/079316/07">2018/079316/07</span>), trading as TalentBridge (“TalentBridge”, “we”, “us”, “our”). They govern your access to and use of the TalentBridge website, dashboards, application programming interfaces, emails and related services (together, the “Platform”).</p>
+<p>By creating an account, ticking the acceptance box, or using the Platform, you confirm that you have read, understood and agree to these Terms, our <a href="/privacy.html">Privacy Policy</a> and our <a href="/refunds.html">Refund Policy</a>, which form part of these Terms. If you do not agree, do not use the Platform.</p>
+<p>If you use the Platform on behalf of a company or other organisation, you confirm that you have authority to bind it, and “you” includes that organisation.</p>
+<p class="callout">Important clauses that limit our liability, place risk on you, or require you to indemnify us are shown in <strong>bold</strong>, as section 49 of the Consumer Protection Act 68 of 2008 (“CPA”) requires. Please read them carefully.</p></section><section id="definitions"><h2><span class="n">2.</span> Definitions</h2>
+<dl class="defs">
+<dt>Client</dt><dd>A user who posts a job, invites bids, makes offers and pays for work.</dd>
+<dt>Professional</dt><dd>A user who offers services, places bids and performs work for Clients.</dd>
+<dt>Job</dt><dd>A description of work posted by a Client on the Platform.</dd>
+<dt>Bid</dt><dd>A Professional’s proposal on a Job, stating a price, a delivery time and a proposal.</dd>
+<dt>Offer</dt><dd>A Client’s proposal to a Professional to perform work for a stated price, scope and optional milestones.</dd>
+<dt>Contract</dt><dd>The agreement for services formed between a Client and a Professional when the Professional accepts an Offer (a “Service Contract”).</dd>
+<dt>Escrow</dt><dd>The arrangement under which the Contract price paid by the Client is held by us, or by our payment service provider on our instructions, until it is released or refunded under these Terms.</dd>
+<dt>Milestone</dt><dd>A stage of work within a Contract, used to record and approve progress.</dd>
+<dt>Service Fee</dt><dd>The fee TalentBridge charges for the Platform and Escrow, calculated as a percentage of the Contract price, plus VAT.</dd>
+<dt>Content</dt><dd>Anything you post, upload or send on the Platform, including profiles, Jobs, Bids, messages, files and reviews.</dd>
+</dl></section><section id="eligibility"><h2><span class="n">3.</span> Who may use TalentBridge</h2>
+<ul>
+<li>You must be at least 18 years old and have full legal capacity to enter into contracts.</li>
+<li>You must give true, accurate and complete information, and keep it up to date.</li>
+<li>You may hold only one account per role unless we agree otherwise in writing. You may not create an account for someone else without their authority, or open a new account after we have suspended or closed yours.</li>
+<li>You may not use the Platform if you are prohibited from receiving services or making payments under South African law or applicable sanctions.</li>
+<li>Professionals must hold every licence, registration, certificate or permit that the law requires for the work they offer (for example an electrician’s wireman’s licence or a Certificate of Compliance where applicable) and must provide proof on request.</li>
+</ul></section><section id="account"><h2><span class="n">4.</span> Your account and security</h2>
+<ul>
+<li>You must verify your email address before you can post Jobs, place Bids or send Offers.</li>
+<li>Keep your password confidential and do not share your account. You are responsible for all activity under your account until you tell us that it has been compromised.</li>
+<li>Tell us immediately at <span data-co="email" data-ph="[support email]">[support email]</span> if you suspect unauthorised access. We may suspend access while we investigate.</li>
+<li>We may ask you to verify your identity or business details at any time, including to meet our obligations to prevent fraud and money laundering.</li>
+</ul></section><section id="role"><h2><span class="n">5.</span> What TalentBridge is, and is not</h2>
+<p>TalentBridge is an online marketplace. We provide the technology that lets Clients and Professionals find each other, communicate, agree terms and pay through Escrow.</p>
+<ul>
+<li><strong>We are not a party to Service Contracts.</strong> The Contract for the work is between the Client and the Professional. We do not perform, supervise or control the work, and we are not the Client’s or the Professional’s agent, employer, partner or joint-venturer.</li>
+<li>Professionals act as independent contractors. Nothing on the Platform creates an employment relationship between TalentBridge and any user, or between a Client and a Professional, unless they agree that separately in writing.</li>
+<li>Professionals are responsible for their own income tax, VAT (if registered), UIF and other statutory obligations, tools, insurance and the safety of their work. Clients are responsible for any obligations they have as the party receiving the services, including workplace safety on their premises.</li>
+<li><strong>We do not guarantee</strong> the identity, skill, qualifications, quality, safety, legality or timeliness of any user or work, or that a Job will attract Bids or that a Professional will be hired. You must use your own judgement before entering into a Contract.</li>
+</ul></section><section id="verification"><h2><span class="n">6.</span> Verification and badges</h2>
+<p>Professionals and Clients may submit an identity document, passport, trade certificate or company registration document for review. If we approve it, a verified badge is shown on the profile.</p>
+<ul>
+<li>A badge means only that we reviewed the document supplied at that time and it appeared genuine. It is not a background check, a criminal record check or a guarantee of skill or conduct.</li>
+<li>We keep only the document type and the last four characters of its number. The uploaded file is deleted once it has been reviewed, as explained in the <a href="/privacy.html#retention">Privacy Policy</a>.</li>
+<li>We may remove a badge if information later proves false or out of date.</li>
+</ul></section><section id="jobs"><h2><span class="n">7.</span> Jobs, Bids, Offers and Contracts</h2>
+<h3>Posting Jobs</h3>
+<p>Clients must describe Jobs honestly, completely and lawfully, including the location, budget and any special requirements (such as access, safety equipment or licences). Jobs may not be used to collect contact details, to advertise, or for anything other than genuine work.</p>
+<h3>Bids</h3>
+<p>A Bid is an invitation to deal, not a binding offer. Professionals must bid only on work they are qualified and available to do, and may edit or withdraw a Bid until they are hired. Clients may shortlist, decline or chat with bidders.</p>
+<h3>Offers and acceptance</h3>
+<p>A Client may send an Offer, either by awarding a Bid or directly to a Professional. The Offer states the price, the scope and any Milestones. A Contract is formed when the Professional accepts the Offer on the Platform. The Contract page records the price, the Service Fee and VAT on that fee, and the amount the Professional will receive, before any payment is made.</p>
+<p>A Client may withdraw an Offer before it is accepted. A Professional may decline an Offer.</p>
+<h3>Performing the Contract</h3>
+<ul>
+<li>The Professional must perform the work with reasonable care and skill, in the agreed time, and in line with the scope, the law and any applicable industry standards.</li>
+<li>The Client must provide the information, access and co-operation reasonably needed, and must review delivered work promptly.</li>
+<li>Changes to scope, price or deadlines should be agreed in writing in the Platform inbox. Where the price changes, the parties should complete the current Contract or cancel it and agree a new one.</li>
+</ul>
+<h3>Milestones</h3>
+<p>Milestones record progress. The Professional marks each Milestone complete and the Client approves it. Unless the Contract says otherwise, the Escrow is released once, when the Client approves the whole Contract.</p></section><section id="fees"><h2><span class="n">8.</span> Fees, Escrow and payments</h2>
+<h3>What it costs</h3>
+<ul>
+<li>Creating an account, posting Jobs, bidding, messaging and verification are free.</li>
+<li>Clients pay the agreed Contract price. We do not add a fee on top for Clients.</li>
+<li>The Service Fee (currently <span data-fee>10%</span> of the Contract price) plus VAT at the prevailing rate (currently <span data-vat>15%</span>) on that fee is deducted from the amount paid to the Professional. The exact amounts are shown on each Contract before payment.</li>
+<li>We may change the Service Fee by giving at least 30 days’ notice on the Platform. Changes apply only to Contracts formed after the change takes effect.</li>
+<li>All amounts are in South African rand (ZAR) and include VAT where VAT applies. We issue an invoice for the Service Fee on every completed Contract.</li>
+</ul>
+<h3>Escrow</h3>
+<ul>
+<li>After the Professional accepts an Offer, the Client pays the full Contract price into Escrow by an available payment method (for example card or instant EFT through our payment service provider, or manual EFT using the reference we give you).</li>
+<li>Escrow funds are held by us, or by our payment service provider on our instructions, in an account kept for that purpose. They are not a deposit with a bank in your name and do not earn interest for you.</li>
+<li>Professionals should not begin work until the Contract shows that Escrow is funded.</li>
+<li>Escrow funds are released to the Professional, less the Service Fee and VAT, when the Client approves the work, or refunded to the Client, in each case as set out in these Terms, the <a href="/refunds.html">Refund Policy</a>, or a dispute decision.</li>
+<li>Card details are processed by our payment service provider. TalentBridge does not see or store full card numbers.</li>
+</ul>
+<h3>Payouts</h3>
+<ul>
+<li>Professionals must provide accurate bank details in their own name. We aim to pay out within 5 business days after release, subject to bank processing times and any checks we are legally required to perform.</li>
+<li>We may delay or withhold a payout if we reasonably suspect fraud, a breach of these Terms, a chargeback, or if the law or a court order requires us to.</li>
+<li>If we pay an amount in error, you must repay it, and we may set it off against future payouts.</li>
+</ul>
+<h3>Paying outside the Platform</h3>
+<p><strong>You may not ask for, make or accept payment outside the Platform for work with a user you met through TalentBridge, for 12 months after you first made contact on the Platform.</strong> Off-Platform payments are not protected by Escrow, disputes or reviews, and may lead to suspension.</p></section><section id="disputes-users"><h2><span class="n">9.</span> Disputes between Clients and Professionals</h2>
+<ol class="steps">
+<li><b>Talk first.</b> Use the Platform inbox to raise the problem and try to agree a solution. Keep all communication on the Platform.</li>
+<li><b>Open a dispute.</b> While Escrow is funded or work has been delivered, either party may open a dispute from the Contract page and explain what went wrong. Funds stay in Escrow while the dispute is open.</li>
+<li><b>Evidence.</b> We may ask both parties for evidence, such as photos, files, the scope and messages. Please respond within 5 business days.</li>
+<li><b>Decision.</b> We review the Contract, the messages and the evidence, and decide in good faith whether to release the Escrow to the Professional or refund the Client. We aim to decide within 10 business days of receiving the evidence. If both parties agree a partial settlement, we will give effect to it.</li>
+</ol>
+<p>Our decision determines what happens to the Escrow funds only. It is not a court judgment and does not stop either party from pursuing their legal rights against the other. <strong>TalentBridge is not responsible for any amount awarded by a court or arbitrator against a user.</strong></p></section><section id="conduct"><h2><span class="n">10.</span> Acceptable use</h2>
+<p>You agree not to:</p>
+<ul class="cols2">
+<li>break any law, including labour, health and safety, tax, consumer and anti-discrimination law;</li>
+<li>post false, misleading, defamatory, obscene, hateful or discriminatory Content;</li>
+<li>harass, threaten, exploit or endanger anyone;</li>
+<li>offer or request work that is illegal or requires a licence you do not hold;</li>
+<li>post fake Jobs, Bids or reviews, or manipulate ratings;</li>
+<li>impersonate anyone or misrepresent your qualifications;</li>
+<li>use the Platform for fraud, money laundering or financing of terrorism;</li>
+<li>collect, scrape or misuse other users’ personal information;</li>
+<li>send spam or unsolicited marketing;</li>
+<li>upload malware or interfere with the Platform’s security or operation;</li>
+<li>access the Platform by automated means except through interfaces we publish for that purpose;</li>
+<li>copy, resell or exploit the Platform without our written permission.</li>
+</ul></section><section id="content"><h2><span class="n">11.</span> Your Content, reviews and our intellectual property</h2>
+<h3>Your Content</h3>
+<p>You keep ownership of your Content. You grant TalentBridge a non-exclusive, worldwide, royalty-free licence to host, store, reproduce, display and adapt your Content for the purpose of operating, improving and promoting the Platform, for as long as it is on the Platform and for a reasonable time afterwards for backups and legal records. You confirm that you have the rights to the Content you post.</p>
+<h3>Work produced under a Contract</h3>
+<p>Ownership of work created under a Contract passes from the Professional to the Client when the Client has paid in full and the Escrow has been released, unless the Client and the Professional agree otherwise in writing. Professionals may show completed work in their portfolio unless the Client asks them not to or it is confidential.</p>
+<h3>Reviews</h3>
+<p>Clients may review a Professional after a Contract is paid. Reviews must be honest and based on real experience. We may remove reviews that are fake, abusive, contain personal information or break the law, but we do not remove reviews just because they are negative.</p>
+<h3>Our intellectual property</h3>
+<p>The Platform, the TalentBridge name and logo, our designs, text, photographs, software and databases belong to us or our licensors and are protected by law. You may use them only to use the Platform as these Terms allow.</p>
+<h3>Reporting infringing content</h3>
+<p>If you believe Content on the Platform infringes your rights, email <span data-co="email" data-ph="[support email]">[support email]</span> with details. We respond to take-down notices in line with section 77 of the Electronic Communications and Transactions Act 25 of 2002 (“ECTA”).</p></section><section id="privacy"><h2><span class="n">12.</span> Privacy and communications</h2>
+<p>We process personal information as described in our <a href="/privacy.html">Privacy Policy</a>. You agree to receive service messages by email and in the Platform (for example verification, Bids, Offers, payments and security notices). Marketing messages are sent only with your consent and you can opt out at any time.</p>
+<p>When you receive another user’s personal information through the Platform, you may use it only to perform the Contract or communicate about the Job, and you must protect it as the Protection of Personal Information Act 4 of 2013 (“POPIA”) requires.</p></section><section id="third-party"><h2><span class="n">13.</span> Third-party services</h2>
+<p>The Platform relies on third parties such as payment service providers, hosting providers and email services. Your use of a third party’s service may also be governed by its own terms. We are not responsible for third-party websites linked from the Platform, including links in portfolios.</p></section><section id="availability"><h2><span class="n">14.</span> Availability and changes to the Platform</h2>
+<p>We aim to keep the Platform available and secure, but it may sometimes be unavailable for maintenance, upgrades or reasons outside our control. We may change, add or remove features. If a change materially reduces what you have paid for, we will tell you and, where appropriate, offer a fair remedy.</p></section><section id="suspension"><h2><span class="n">15.</span> Suspension and closing your account</h2>
+<ul>
+<li>You may close your account at any time from the Account page. Active Contracts must be completed, cancelled or resolved first.</li>
+<li>We may warn you, limit features, remove Content, withhold payouts, or suspend or close your account if you break these Terms, if we must do so by law, or if we reasonably believe your use puts other users or TalentBridge at risk. Where reasonable, we will tell you why and give you a chance to respond.</li>
+<li>When an account is closed, we deal with your personal information as described in the Privacy Policy. Records we must keep by law (such as payment and tax records) are retained but anonymised where possible.</li>
+<li>Clauses that by their nature should continue (including fees owed, intellectual property, liability, indemnities and dispute resolution) survive the closure of your account.</li>
+</ul></section><section id="warranties"><h2><span class="n">16.</span> Disclaimers</h2>
+<p><strong>To the extent the law allows, the Platform is provided “as is” and “as available”. We do not warrant that it will be uninterrupted, error-free or free of harmful components, or that information provided by users is accurate.</strong></p>
+<p>Nothing in these Terms excludes or limits any right you have under the CPA, ECTA or any other law that cannot be excluded or limited, including your right to receive services in a manner and quality that persons are generally entitled to expect.</p></section><section id="liability"><h2><span class="n">17.</span> Limitation of liability</h2>
+<p><strong>To the extent the law allows:</strong></p>
+<ul>
+<li><strong>TalentBridge is not liable for the acts, omissions, work, conduct or Content of any user, or for any loss arising from a Service Contract.</strong></li>
+<li><strong>TalentBridge is not liable for any indirect, consequential or special loss, loss of profit, revenue, data, business or goodwill, however caused.</strong></li>
+<li><strong>Our total liability to you for all claims arising out of or relating to the Platform in any 12-month period is limited to the greater of (a) the Service Fees you paid us, or that were deducted from your payouts, in that period, and (b) R1,000.</strong> This limit does not apply to Escrow funds we hold for you, which remain payable as set out in these Terms.</li>
+</ul>
+<p>Nothing in this clause limits liability for gross negligence, fraud, wilful misconduct, death or personal injury caused by our negligence, or any liability that cannot be limited by law.</p></section><section id="indemnity"><h2><span class="n">18.</span> Indemnity</h2>
+<p><strong>You indemnify TalentBridge, its directors, employees and agents against any claim, loss, damage, penalty, cost or expense (including reasonable legal costs) arising from your breach of these Terms, your Content, your Service Contracts, your violation of any law, or your infringement of anyone’s rights,</strong> except to the extent caused by our own breach or negligence.</p></section><section id="complaints"><h2><span class="n">19.</span> Complaints and disputes with TalentBridge</h2>
+<ol class="steps">
+<li><b>Contact us.</b> Email <span data-co="email" data-ph="[support email]">[support email]</span> or use the contact form with your account email and a description of the problem. We acknowledge complaints within 2 business days and aim to resolve them within 15 business days.</li>
+<li><b>Escalation.</b> If we cannot resolve it, either party may refer the dispute to mediation by an accredited mediator agreed by both, with costs shared equally, before going to court.</li>
+<li><b>Consumer bodies.</b> If you are a consumer, you may also contact the Consumer Goods and Services Ombud (<a href="https://www.cgso.org.za" rel="noopener">cgso.org.za</a>, 0860 000 272) or the National Consumer Commission. Privacy complaints may be lodged with the Information Regulator (see the Privacy Policy).</li>
+<li><b>Courts.</b> Otherwise, the South African courts have jurisdiction. You may institute proceedings in the Magistrates’ Court having jurisdiction even if the amount exceeds its normal limit, if we both agree, and you keep any right you have as a consumer to approach a court with jurisdiction where you live.</li>
+</ol></section><section id="general"><h2><span class="n">20.</span> General</h2>
+<ul>
+<li><b>Governing law.</b> These Terms are governed by the laws of the Republic of South Africa.</li>
+<li><b>Changes to these Terms.</b> We may update these Terms. We will give at least 30 days’ notice of material changes by email or on the Platform, unless a change is needed sooner for legal or security reasons. If you do not agree, you may close your account before the change takes effect.</li>
+<li><b>Entire agreement.</b> These Terms, the Privacy Policy and the Refund Policy are the entire agreement between you and TalentBridge about the Platform.</li>
+<li><b>Severability.</b> If any provision is found invalid, the rest remains in force.</li>
+<li><b>No waiver.</b> A delay in enforcing a right is not a waiver of it.</li>
+<li><b>Assignment.</b> You may not transfer your rights under these Terms without our written consent. We may transfer ours to an affiliate or successor business, with notice to you.</li>
+<li><b>Force majeure.</b> Neither party is liable for failure caused by events beyond its reasonable control, such as load-shedding, natural disasters, strikes or network failures.</li>
+<li><b>Notices.</b> We send notices to the email address on your account. Legal notices to us must be sent to <span data-co="email" data-ph="[support email]">[support email]</span> and our address for service below.</li>
+<li><b>Electronic agreement.</b> These Terms are concluded electronically under ECTA. Your acceptance online has the same effect as a signature.</li>
+</ul></section><section id="ecta"><h2><span class="n">21.</span> Our details (ECTA section 43)</h2>
+<table class="info"><tbody>
+<tr><th>Full name and legal status</th><td><span data-co="name" data-ph="VINK Group (Pty) Ltd">VINK Group (Pty) Ltd</span>, a private company, trading as TalentBridge</td></tr>
+<tr><th>Registration number</th><td><span data-co="reg" data-ph="2018/079316/07">2018/079316/07</span></td></tr>
+<tr><th>VAT number</th><td><span data-vat>15%</span></td></tr>
+<tr><th>Physical address and address for service of legal documents</th><td><span data-co="address" data-ph="[physical address]">[physical address]</span></td></tr>
+<tr><th>Email</th><td><span data-co="email" data-ph="[support email]">[support email]</span></td></tr>
+<tr><th>Telephone</th><td><span data-co="phone" data-ph="[support phone]">[support phone]</span></td></tr>
+<tr><th>Website</th><td>this website</td></tr>
+<tr><th>Information Officer</th><td><span data-co="info_officer" data-ph="[Information Officer name]">[Information Officer name]</span></td></tr>
+<tr><th>Payment methods</th><td>Card and instant EFT through our payment service provider, and manual EFT</td></tr>
+<tr><th>Security</th><td>Encrypted connections (HTTPS), hashed passwords, access controls and audit logs, described in the Privacy Policy</td></tr>
+<tr><th>Cancellation and refunds</th><td>See the <a href="/refunds.html">Refund Policy</a>, including your cooling-off right under ECTA section 44</td></tr>
+<tr><th>Codes of conduct and self-regulatory bodies</th><td>None at present</td></tr>
+</tbody></table></section>
+<p class="related">Related: <a href="/privacy.html">Privacy Policy</a> · <a href="/refunds.html">Refund Policy</a></p>
+</main></div>
+<footer class="lf"><a href="/">Home</a> · <a href="/terms.html">Terms of Use</a> · <a href="/privacy.html">Privacy Policy</a> · <a href="/refunds.html">Refund Policy</a> · <a href="/#contact">Contact</a><br><span>© 2026 TalentBridge. All rights reserved. TalentBridge is a division of VINK Group (Pty) Ltd, registration number 2018/079316/07.</span></footer>
+<script>
+fetch('/api/config').then(r=>r.json()).then(c=>{const k=c.company||{};document.querySelectorAll('[data-co]').forEach(e=>{e.textContent=k[e.dataset.co]||e.dataset.ph});document.querySelectorAll('[data-fee]').forEach(e=>{});if(c.draft){const d=document.getElementById('draft');if(d)d.hidden=false}}).catch(()=>{});
+fetch('/api/meta').then(r=>r.json()).then(m=>{document.querySelectorAll('[data-fee]').forEach(e=>e.textContent=m.commission_pct+'%');document.querySelectorAll('[data-vat]').forEach(e=>e.textContent=m.vat_pct+'%')}).catch(()=>{});
+document.getElementById('printBtn').addEventListener('click',()=>print());
+</script>
+</body></html>
