@@ -518,6 +518,8 @@ const { outbox } = require('../src/mailer');
     assert.equal(sa.meta.total, 1); assert.equal(sa.data[0].source_name, 'Remotive'); assert.equal(sa.data[0].excerpt, 'Build React apps & more'); assert.equal(sa.data[0].category, 'Software & IT');
     assert.equal((await call('GET', '/remote?source=partners&region=all')).body.partners.meta.total, 2);
     assert.equal((await call('GET', '/remote?source=partners&region=all&q=account')).body.partners.data[0].title, 'Account Executive');
+    F.store('jobicy', [{ id: 'jobicy:7', url: 'https://jobicy.com/jobs/7', title: 'Founder’s associate – 100% remote weltweit', company: 'P', region: 'Berlin (remote)', published_at: now }]);
+    assert.ok((await call('GET', '/remote?source=partners&q=weltweit')).body.partners.data.length === 1);
     assert.equal(F.openToSA('EMEA'), 1); assert.equal(F.openToSA('USA, Canada'), 0);
 
     // Suggested remote jobs for a professional, from their skills

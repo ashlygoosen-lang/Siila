@@ -95,7 +95,7 @@ const upsert = db.prepare(`INSERT INTO feed_jobs (id, source, url, title, compan
 function store(source, rows) {
   const clean = rows.map(r => ({
     id: clip(r.id, 200), source, url: httpsUrl(r.url), title: clip(text(r.title, 200), 200), company: clip(text(r.company, 120), 120), category: r.category || 'Other',
-    job_type: clip(r.job_type, 60), region: clip(text(r.region, 160), 160), open_to_sa: openToSA(r.region), salary: clip(text(r.salary, 80), 80),
+    job_type: clip(r.job_type, 60), region: clip(text(r.region, 160), 160), open_to_sa: openToSA(r.region) || /\b(worldwide|weltweit|work from anywhere|anywhere in the world)\b/i.test(r.title) ? 1 : 0, salary: clip(text(r.salary, 80), 80),
     tags: clip(list(r.tags).map(t => text(t, 40)).join(', '), 300), excerpt: clip(r.excerpt, 300),
     published_at: isNaN(Date.parse(r.published_at)) ? new Date().toISOString() : new Date(r.published_at).toISOString(),
   })).filter(r => r.url && r.title);
