@@ -208,6 +208,51 @@ addCol('users', 'kyc_status', "TEXT NOT NULL DEFAULT 'none'"); // none | draft |
 addCol('users', 'failed_logins', 'INTEGER NOT NULL DEFAULT 0');
 addCol('users', 'locked_until', 'TEXT');
 addCol('contracts', 'aml_hold', 'INTEGER NOT NULL DEFAULT 0');
+// Allow work permit and SAQA certificate uploads in databases created before these kinds existed (SQLite can't alter a CHECK, so rebuild).
+if (!/work_permit/.test(db.prepare("SELECT sql FROM sqlite_master WHERE name = 'kyc_documents'").get()?.sql || 'work_permit')) {
+  db.pragma('foreign_keys = OFF');
+  db.transaction(() => {
+    const sql = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'kyc_documents'").get().sql.replace("'qualification'))", "'qualification','work_permit','saqa'))").replace(/CREATE TABLE (IF NOT EXISTS )?"?kyc_documents"?/, 'CREATE TABLE kyc_documents_new');
+    db.exec(sql);
+    db.exec('INSERT INTO kyc_documents_new SELECT * FROM kyc_documents; DROP TABLE kyc_documents; ALTER TABLE kyc_documents_new RENAME TO kyc_documents;');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_kyc_docs_user ON kyc_documents(user_id, kind); CREATE INDEX IF NOT EXISTS idx_kyc_docs_sha ON kyc_documents(sha256);');
+  })();
+  db.pragma('foreign_keys = ON');
+}
+// International talent and work-visa sponsorship
+for (const [c, d] of [['contract_term', "TEXT NOT NULL DEFAULT ''"], ['duration_months', 'INTEGER'], ['occupation_ofo', "TEXT NOT NULL DEFAULT ''"], ['remote', 'INTEGER NOT NULL DEFAULT 0'],
+  ['intl_status', "TEXT NOT NULL DEFAULT 'none'"], ['intl_requested_at', 'TEXT'], ['intl_decided_at', 'TEXT'], ['intl_decider_id', 'INTEGER'], ['intl_note', "TEXT NOT NULL DEFAULT ''"],
+  ['local_applicants', 'INTEGER'], ['local_reason', "TEXT NOT NULL DEFAULT ''"], ['salary_annual', 'INTEGER']]) addCol('jobs', c, d);
+for (const [c, d] of [['residency', "TEXT NOT NULL DEFAULT ''"], ['work_rights', "TEXT NOT NULL DEFAULT ''"], ['country', "TEXT NOT NULL DEFAULT ''"], ['nationality', "TEXT NOT NULL DEFAULT ''"],
+  ['relocate', 'INTEGER NOT NULL DEFAULT 0'], ['occupation_ofo', "TEXT NOT NULL DEFAULT ''"], ['experience_years', 'INTEGER'], ['saqa_status', "TEXT NOT NULL DEFAULT ''"],
+  ['prof_body', "TEXT NOT NULL DEFAULT ''"], ['prof_reg_no', "TEXT NOT NULL DEFAULT ''"]]) addCol('profiles', c, d);
+db.exec(`CREATE TABLE IF NOT EXISTS sponsorships (
+  id INTEGER PRIMARY KEY,
+  job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  application_id INTEGER REFERENCES applications(id) ON DELETE SET NULL,
+  client_id INTEGER NOT NULL REFERENCES users(id),
+  talent_id INTEGER NOT NULL REFERENCES users(id),
+  route TEXT NOT NULL CHECK (route IN ('critical_skills','general_work')),
+  occupation_ofo TEXT NOT NULL DEFAULT '',
+  salary_annual INTEGER NOT NULL,
+  start_date TEXT,
+  terms TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'offered' CHECK (status IN ('offered','accepted','declined','withdrawn','documents','submitted','approved','refused','arrived','closed')),
+  use_agent INTEGER NOT NULL DEFAULT 1,
+  reference TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_spons_parties ON sponsorships(client_id, talent_id);
+CREATE TABLE IF NOT EXISTS sponsorship_events (
+  id INTEGER PRIMARY KEY,
+  sponsorship_id INTEGER NOT NULL REFERENCES sponsorships(id) ON DELETE CASCADE,
+  actor_id INTEGER,
+  status TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);`);
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS kyc_profiles (
@@ -244,7 +289,7 @@ CREATE INDEX IF NOT EXISTS idx_kyc_idhash ON kyc_profiles(id_number_hash);
 CREATE TABLE IF NOT EXISTS kyc_documents (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  kind TEXT NOT NULL CHECK (kind IN ('id_front','id_back','proof_of_address','selfie','company_reg','cv','qualification')),
+  kind TEXT NOT NULL CHECK (kind IN ('id_front','id_back','proof_of_address','selfie','company_reg','cv','qualification','work_permit','saqa')),
   qualification_id INTEGER,
   file_path TEXT NOT NULL,
   file_name TEXT NOT NULL DEFAULT '',

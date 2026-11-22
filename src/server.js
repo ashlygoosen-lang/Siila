@@ -50,7 +50,15 @@ app.get('/api/meta', (_req, res) => res.json({
   categories: CATEGORIES.map(name => ({ name, open_jobs: db.prepare("SELECT COUNT(*) c FROM jobs WHERE status='open' AND category = ?").get(name).c,
     professionals: db.prepare("SELECT COUNT(DISTINCT a.user_id) c FROM applications a JOIN jobs j ON j.id = a.job_id WHERE j.category = ?").get(name).c })),
   commission_pct: setting('commission_pct', 10), vat_pct: setting('vat_pct', 15),
+  sponsorship: { wait_days: require('./sponsor').WAIT_DAYS, min_months: require('./sponsor').MIN_MONTHS },
+  critical_skills: require('./skills').CRITICAL.map(c => ({ ofo: c.ofo, name: c.name, field: c.field })),
 }));
+// Full South African skills catalogue: Critical Skills List (with NQF level and registration) and general skills by category.
+app.get('/api/skills', (req, res) => {
+  const S = require('./skills');
+  if (req.query.q !== undefined) return res.json({ data: S.search(String(req.query.q).slice(0, 60), { limit: 30 }) });
+  res.json({ data: { source: S.CRITICAL_SOURCE, critical: S.CRITICAL, general: S.GENERAL } });
+});
 app.get('/api/stats', (_req, res) => {
   const c = (sql) => db.prepare(sql).get().c;
   res.json({
@@ -88,13 +96,16 @@ app.use('/api/me', require('./routes/me'));
 app.use('/api/contracts', require('./routes/contracts'));
 app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/kyc', require('./routes/kyc'));
+const spons = require('./routes/sponsorships');
+app.use('/api/sponsorships', spons.router);
+app.use('/api/admin', spons.admin);
 app.use('/api/admin', require('./routes/kyc-admin'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Endpoint not found')));
 
 const base = (req) => process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
 app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nDisallow: /api/\nDisallow: /app.html\nSitemap: ${base(req)}/sitemap.xml\n`));
-app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/terms.html', '/privacy.html', '/refunds.html'].map(p => `<url><loc>${base(req)}${p}</loc></url>`).join('')}</urlset>`));
+app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/skills.html', '/terms.html', '/privacy.html', '/refunds.html'].map(p => `<url><loc>${base(req)}${p}</loc></url>`).join('')}</urlset>`));
 // Pages, styles and scripts are revalidated on every visit so a new deploy shows at once;
 // photos, fonts and icons are cached for a week.
 app.use(express.static(path.join(__dirname, '..', 'public'), {

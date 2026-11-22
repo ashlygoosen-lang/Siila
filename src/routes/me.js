@@ -48,7 +48,17 @@ router.get('/jobs', requireRole('client', 'admin'), (req, res) => {
 router.put('/profile', requireRole('talent'), validate(z.object({
   headline: z.string().trim().max(120).optional(),
   bio: z.string().trim().max(2000).optional(),
-  skills: z.array(z.string().trim().min(1).max(30)).max(15).optional(),
+  skills: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+  residency: z.enum(['citizen', 'permanent_resident', 'foreign']).optional(),
+  work_rights: z.enum(['yes', 'needs_sponsorship']).optional(),
+  country: z.string().trim().max(60).optional(),
+  nationality: z.string().trim().max(60).optional(),
+  relocate: z.boolean().optional(),
+  occupation_ofo: z.string().trim().max(20).optional().refine(v => !v || !!require('../skills').byOfo(v), 'Choose an occupation from the Critical Skills List'),
+  experience_years: z.number().int().min(0).max(60).optional(),
+  saqa_status: z.enum(['', 'not_started', 'applied', 'evaluated']).optional(),
+  prof_body: z.string().trim().max(120).optional(),
+  prof_reg_no: z.string().trim().max(60).optional(),
   hourly_rate: z.number().int().min(0).max(100000).optional(),
   province: z.enum(PROVINCES).optional(),
   city: z.string().trim().max(80).optional(),
@@ -57,7 +67,12 @@ router.put('/profile', requireRole('talent'), validate(z.object({
 })), (req, res) => {
   const b = req.body;
   const sets = [], args = [];
-  for (const k of ['headline', 'bio', 'hourly_rate', 'province', 'city', 'languages']) if (b[k] !== undefined) { sets.push(`${k} = ?`); args.push(b[k]); }
+  // Once identity is verified, residency comes from the ID document and can't be changed here.
+  const locked = db.prepare("SELECT kyc_status FROM users WHERE id = ?").get(req.user.id).kyc_status !== 'none';
+  if (locked) delete b.residency;
+  if (b.residency && b.residency !== 'foreign') b.work_rights = 'yes';
+  if (b.relocate !== undefined) b.relocate = b.relocate ? 1 : 0;
+  for (const k of ['headline', 'bio', 'hourly_rate', 'province', 'city', 'languages', 'residency', 'work_rights', 'country', 'nationality', 'relocate', 'occupation_ofo', 'experience_years', 'saqa_status', 'prof_body', 'prof_reg_no']) if (b[k] !== undefined) { sets.push(`${k} = ?`); args.push(b[k]); }
   if (b.skills) { sets.push('skills = ?'); args.push(JSON.stringify(b.skills)); }
   if (b.portfolio) { sets.push('portfolio = ?'); args.push(JSON.stringify(b.portfolio)); }
   if (sets.length) db.prepare(`UPDATE profiles SET ${sets.join(', ')} WHERE user_id = ?`).run(...args, req.user.id);
@@ -67,6 +82,10 @@ router.put('/profile', requireRole('talent'), validate(z.object({
 
 const n = (sql, ...a) => db.prepare(sql).get(...a).n || 0;
 
+router.get('/work-info', requireRole('talent'), (req, res) => {
+  const p = db.prepare('SELECT residency, work_rights, country, nationality, relocate, occupation_ofo, experience_years, saqa_status, prof_body, prof_reg_no FROM profiles WHERE user_id = ?').get(req.user.id) || {};
+  res.json({ data: { ...p, relocate: !!p.relocate, locked: db.prepare('SELECT kyc_status FROM users WHERE id = ?').get(req.user.id).kyc_status !== 'none' } });
+});
 router.get('/overview', (req, res) => {
   const id = req.user.id;
   if (req.user.role === 'talent') {

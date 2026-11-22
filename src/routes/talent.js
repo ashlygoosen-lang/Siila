@@ -9,6 +9,10 @@ const shape = (r) => ({
   hourly_rate: r.hourly_rate, province: r.province, city: r.city, verified: !!r.verified,
   rating: r.rating, jobs_done: r.jobs_done, avatar_color: r.avatar_color,
   languages: r.languages || '', portfolio: JSON.parse(r.portfolio || '[]'), member_since: r.member_since,
+  international: r.residency === 'foreign' && r.work_rights !== 'yes', country: r.residency === 'foreign' ? r.country || r.nationality || '' : '',
+  relocate: !!r.relocate, occupation_ofo: r.occupation_ofo || '', occupation: require('../skills').byOfo(r.occupation_ofo)?.name || '',
+  critical_skill: !!require('../skills').byOfo(r.occupation_ofo), experience_years: r.experience_years ?? null,
+  saqa_status: r.saqa_status || '', prof_body: r.prof_body || '',
 });
 const BASE = `SELECT p.*, u.id, u.name, u.created_at AS member_since FROM users u JOIN profiles p ON p.user_id = u.id WHERE u.role = 'talent' AND u.status = 'active'`;
 

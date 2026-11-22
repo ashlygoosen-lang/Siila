@@ -30,7 +30,9 @@ const icon=name=>{const k=Object.keys(ICONS).find(k=>name.toLowerCase().includes
 async function loadMeta(){
   S.meta=await get('/meta');
   $('#sprov').innerHTML='<option value="">All provinces</option>'+S.meta.provinces.map(p=>`<option>${esc(p)}</option>`).join('');
-  $('#cats').innerHTML=S.meta.categories.map(c=>{const t=tasksFor(c.name);const k=Object.keys(TASKS).find(k=>c.name.toLowerCase().includes(k));const photo={trade:'cat-trades',constr:'cat-construction',clean:'cat-cleaning',creat:'cat-creative',trans:'cat-transport',busin:'cat-business'}[k];return`<div class="cat">${photo?`<img class="cat-img" src="/assets/photos/${photo}-800.jpg" alt="" loading="lazy">`:''}<div class="top"><span class="ic">${icon(c.name)}</span><div><h3>${esc(c.name)}</h3><span class="count">${c.open_jobs?`${c.open_jobs} open job${c.open_jobs>1?'s':''}`:'Be the first to post'}</span></div></div>
+  const PHOTO=n=>({trade:'cat-trades',constr:'cat-construction',clean:'cat-cleaning',creat:'cat-creative',trans:'cat-transport',busin:'cat-business'}[Object.keys(TASKS).find(k=>n.toLowerCase().includes(k))]);
+  $('#morecats').innerHTML=S.meta.categories.filter(c=>!PHOTO(c.name)).map(c=>`<button class="chip" data-cat="${esc(c.name)}">${esc(c.name)}${c.open_jobs?` <small>${c.open_jobs}</small>`:''}</button>`).join('');
+  $('#cats').innerHTML=S.meta.categories.filter(c=>PHOTO(c.name)).map(c=>{const t=tasksFor(c.name);const k=Object.keys(TASKS).find(k=>c.name.toLowerCase().includes(k));const photo={trade:'cat-trades',constr:'cat-construction',clean:'cat-cleaning',creat:'cat-creative',trans:'cat-transport',busin:'cat-business'}[k];return`<div class="cat">${photo?`<img class="cat-img" src="/assets/photos/${photo}-800.jpg" alt="" loading="lazy">`:''}<div class="top"><span class="ic">${icon(c.name)}</span><div><h3>${esc(c.name)}</h3><span class="count">${c.open_jobs?`${c.open_jobs} open job${c.open_jobs>1?'s':''}`:'Be the first to post'}</span></div></div>
     <div class="tasks">${t.map(x=>`<button data-task="${esc(x)}">${esc(x)}</button>`).join('')}</div><button class="all" data-cat="${esc(c.name)}">See ${esc(c.name.toLowerCase())} jobs</button></div>`}).join('');
   $('#popular').innerHTML='Popular:'+S.meta.categories.slice().sort((a,b)=>b.open_jobs-a.open_jobs).slice(0,4).map(c=>`<button class="chip" data-cat="${esc(c.name)}">${esc(c.name)}</button>`).join('');
   $('#types').innerHTML=[['','All jobs'],...S.meta.types.map(t=>[t,t])].map(([v,l])=>`<button class="chip" data-type="${esc(v)}" aria-pressed="${v===S.type}">${esc(l)}</button>`).join('');
@@ -66,7 +68,7 @@ async function loadFacts(){
 /* jobs */
 const bitsAny=()=>['q','province','category','type'].some(k=>S[k]);
 const jobCard=j=>`<article class="job" data-job="${j.id}" tabindex="0" aria-label="${esc(j.title)}">
-  <div><h3>${esc(j.title)}${j.featured?'<span class="feat">Featured</span>':''}</h3><div class="meta"><span>${esc(j.location)}</span><span>${esc(j.type)}</span><span>${esc(j.category)}</span><span>${ago(j.created_at)}</span></div></div>
+  <div><h3>${esc(j.title)}${j.featured?'<span class="feat">Featured</span>':''}${j.open_to_international?'<span class="feat visa">Visa sponsorship</span>':''}${j.remote?'<span class="feat visa">Remote</span>':''}</h3><div class="meta"><span>${esc(j.location)}</span><span>${esc(j.type)}</span><span>${esc(j.category)}</span><span>${ago(j.created_at)}</span></div></div>
   <div class="pay"><b>${esc(j.pay_label)}</b><span>${j.bids?`${j.bids} bid${j.bids>1?'s':''}${j.avg_bid?` · avg bid ${rand(j.avg_bid)}`:''}`:'No bids yet'}</span></div>
   <p class="desc">${esc(j.description)}</p></article>`;
 async function loadJobs(append){
@@ -164,6 +166,7 @@ async function loadReviews(){try{const {data}=await get('/reviews');if(!data.len
 async function loadProvinces(){try{const {data}=await get('/provinces');
   if(!data.some(p=>p.open_jobs||p.professionals)){$('#provs').innerHTML=data.map(p=>`<button class="prov" data-prov="${esc(p.name)}"><span><b>${esc(p.name)}</b><small>Hire or work here</small></span><span class="go-arrow" aria-hidden="true">›</span></button>`).join('');return}
   $('#provs').innerHTML=data.map(p=>`<button class="prov" data-prov="${esc(p.name)}"><span><b>${esc(p.name)}</b><small>${p.professionals} professional${p.professionals===1?'':'s'}</small></span><span class="n" aria-label="${p.open_jobs} open jobs">${p.open_jobs}<small style="display:block;font:600 12px var(--sans);color:var(--mut);text-align:right">open jobs</small></span></button>`).join('')}catch{$('#areas').hidden=true}}
+{const q0=new URLSearchParams(location.search).get('q');if(q0){S.q=q0.slice(0,80);const qi=$('#q');if(qi)qi.value=S.q;setTimeout(()=>$('#jobs').scrollIntoView(),300)}}
 loadPulse();loadFacts();loadJobs();loadTalent();loadReviews();loadProvinces();deep();
 setInterval(()=>{if(!document.hidden)loadPulse()},20000);
 

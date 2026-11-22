@@ -377,3 +377,14 @@ footer{background:var(--night)}
 .empty.invite h3{font-size:28px}
 .empty.invite p{max-width:52ch;margin:0 0 10px;color:var(--ink2)}
 .prov .go-arrow{font:400 30px var(--serif);color:var(--jac-d)}
+
+/* more categories + international hiring */
+.morecats{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:22px}.morecats>span{font-weight:700;color:var(--ink)}.morecats>div{display:flex;flex-wrap:wrap;gap:8px}.morecats small{opacity:.6;margin-left:2px}.morecats>a{font-weight:700;margin-left:auto}
+.intl-band{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center;background:var(--mist,#eef3f0);border-radius:28px;padding:48px}
+.intl-copy h2{font-size:clamp(28px,3.4vw,40px);line-height:1.1;margin:0 0 14px}.intl-copy p{max-width:56ch}
+.intl-steps{list-style:none;margin:0;padding:0;display:grid;gap:14px;counter-reset:s}
+.intl-steps li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;column-gap:14px;background:var(--paper,#fff);border-radius:18px;padding:16px 18px}
+.intl-steps li::before{content:counter(s);grid-row:span 2;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:#fff;font-weight:700}
+.intl-steps b{display:block}.intl-steps span{color:var(--ink2,#4a5a52);font-size:15px}
+.feat.visa{background:#e6f4ec;color:#1f6b45}
+@media(max-width:900px){.intl-band{grid-template-columns:1fr;padding:28px;gap:24px}.morecats>a{margin-left:0}}

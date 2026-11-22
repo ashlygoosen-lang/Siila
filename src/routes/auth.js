@@ -11,7 +11,7 @@ function sendVerify(req, user) {
   sendMail(user.email, 'Verify your TalentBridge email', `Hi ${user.name},\n\nConfirm your email address to start using TalentBridge:\n${baseUrl(req)}/api/auth/verify-email?token=${t}\n\nThe link works for 3 days.`);
 }
 
-const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, email_verified: !!u.email_verified, kyc_status: u.kyc_status || 'none' });
+const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, email_verified: !!u.email_verified, kyc_status: u.kyc_status || 'none', needs_visa: u.role === 'talent' && require('../sponsor').needsSponsorship(u.id) });
 
 router.post('/register', validate(z.object({
   name: z.string().trim().min(2).max(80),

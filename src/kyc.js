@@ -34,7 +34,8 @@ const ageOn = (dobIso, at = new Date()) => {
 };
 
 // ---- What each account must provide ----
-function requirements(user, kyc) {
+function requirements(user, kyc, prof = {}) {
+  const foreign = prof.residency === 'foreign' || kyc?.id_type === 'passport';
   const req = [
     { key: 'details', label: 'Personal details' },
     { key: 'id_front', label: kyc?.id_type === 'passport' ? 'Passport photo page' : 'ID document (front)', doc: true },
@@ -43,10 +44,13 @@ function requirements(user, kyc) {
   ];
   if (kyc?.id_type !== 'passport') req.splice(2, 0, { key: 'id_back', label: 'ID document (back, for smart ID cards)', doc: true, optional: true });
   if (kyc?.account_type === 'business') req.push({ key: 'company_reg', label: 'Company registration document (CIPC)', doc: true });
+  if (foreign && prof.work_rights === 'yes') req.push({ key: 'work_permit', label: 'South African visa or permit that allows you to work', doc: true });
   if (user.role === 'talent') {
-    req.push({ key: 'bank', label: 'Bank account for payouts' });
+    // Foreign professionals who still need a work visa are hired as employees, so a South African payout account is optional until they arrive.
+    req.push({ key: 'bank', label: 'Bank account for payouts', optional: foreign && prof.work_rights !== 'yes' });
     req.push({ key: 'cv', label: 'CV', doc: true });
     req.push({ key: 'qualifications', label: 'Qualifications (at least one, with certificate)', optional: false });
+    if (foreign) req.push({ key: 'saqa', label: 'SAQA evaluation certificate for foreign qualifications', doc: true, optional: true });
   }
   return req;
 }
@@ -60,7 +64,8 @@ function state(userId) {
   const have = (k) => docs.some(d => d.kind === k && d.status !== 'rejected');
   const detailsDone = !!(kyc && kyc.legal_name && kyc.id_last4 && kyc.dob && kyc.address_line && kyc.city && kyc.postal_code && kyc.phone && kyc.consent_at
     && (kyc.account_type !== 'business' || (kyc.business_name && kyc.business_reg)));
-  const reqs = requirements(user, kyc).map(r => {
+  const prof = db.prepare('SELECT residency, work_rights FROM profiles WHERE user_id = ?').get(userId) || {};
+  const reqs = requirements(user, kyc, prof).map(r => {
     let done;
     if (r.key === 'details') done = detailsDone;
     else if (r.key === 'bank') done = !!bank;

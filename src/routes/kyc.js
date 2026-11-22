@@ -7,7 +7,7 @@ const multer = require('multer');
 const db = require('../db');
 const { HttpError, auth, requireRole, validate, z, PROVINCES } = require('../util');
 const { UPLOAD_DIR, notify, audit } = require('../services');
-const { encrypt, decrypt, encryptText, blindHash, sha256 } = require('../vault');
+const { encrypt, decrypt, encryptText, decryptText, blindHash, sha256 } = require('../vault');
 const K = require('../kyc');
 const { emit } = require('../events');
 
@@ -103,6 +103,10 @@ router.put('/details', validate(z.object({
       business_role=excluded.business_role, consent_at=datetime('now'), updated_at=datetime('now')`)
     .run(uid, b.account_type, b.legal_name, b.id_type, idEnc, idHash, last4, b.id_country, dob, b.nationality, b.phone, b.address_line, b.suburb, b.city, b.province,
       b.postal_code, b.is_pep ? 1 : 0, b.pep_details, b.source_of_funds, b.business_name, b.business_reg, b.business_role);
+  // Residency follows the identity document: SA ID numbers show citizen or permanent resident; a passport means a foreign national.
+  const saved = db.prepare('SELECT id_number_enc FROM kyc_profiles WHERE user_id = ?').get(uid);
+  const residency = b.id_type === 'passport' ? 'foreign' : (K.parseSaId(decryptText(saved.id_number_enc)).citizen || 'citizen');
+  db.prepare("UPDATE profiles SET residency = ?, nationality = ?, work_rights = CASE WHEN ? = 'foreign' THEN work_rights ELSE 'yes' END WHERE user_id = ?").run(residency, b.nationality, residency, uid);
   res.json({ data: view(uid) });
 });
 
@@ -111,7 +115,7 @@ router.post('/documents', upload.single('file'), (req, res) => {
   const uid = req.user.id;
   assertEditable(uid);
   const kind = String(req.body?.kind || '');
-  const allowed = ['id_front', 'id_back', 'proof_of_address', 'selfie', 'company_reg', 'qualification', ...(req.user.role === 'talent' ? ['cv'] : [])];
+  const allowed = ['id_front', 'id_back', 'proof_of_address', 'selfie', 'company_reg', 'qualification', 'work_permit', ...(req.user.role === 'talent' ? ['cv', 'saqa'] : [])];
   if (!allowed.includes(kind)) throw new HttpError(400, 'Choose what this document is');
   const f = req.file;
   if (!f) throw new HttpError(400, 'Choose a file to upload');

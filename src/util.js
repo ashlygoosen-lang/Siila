@@ -73,7 +73,7 @@ const money = (n) => 'R' + Number(n).toLocaleString('en-ZA').replace(/\s/g, ' ')
 const payLabel = (j) => `${money(j.pay_min)} – ${money(j.pay_max)}/${j.pay_unit}`;
 
 const PROVINCES = ['Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape'];
-const CATEGORIES = ['Trades & Repairs', 'Construction', 'Cleaning & Care', 'Creative & Digital', 'Transport & Delivery', 'Business Support'];
+const CATEGORIES = require('./skills').CATEGORY_LIST; // the first six are the original marketplace categories
 const TYPES = ['Full-Time', 'Part-Time', 'Freelance', 'Short-Term'];
 
 module.exports = { requireEmailVerified, HttpError, signToken, auth, requireRole, validate, payLabel, PROVINCES, CATEGORIES, TYPES, z };

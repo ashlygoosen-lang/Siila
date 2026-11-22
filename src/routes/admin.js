@@ -28,6 +28,8 @@ router.get('/overview', (_req, res) => {
     new_messages: n("SELECT COUNT(*) n FROM contact_messages WHERE status='new'"),
     contracts_active: n("SELECT COUNT(*) n FROM contracts WHERE status IN ('accepted','funded','delivered')"),
     kyc_pending: n("SELECT COUNT(*) n FROM users WHERE kyc_status = 'pending'"),
+    intl_requests: n("SELECT COUNT(*) n FROM jobs WHERE intl_status = 'requested'"),
+    visa_cases_active: n("SELECT COUNT(*) n FROM sponsorships WHERE status IN ('accepted','documents','submitted')"),
     quals_pending: n("SELECT COUNT(*) n FROM qualifications q JOIN users u ON u.id = q.user_id WHERE q.status IN ('pending','in_progress') AND u.kyc_status IN ('pending','approved')"),
     risk_open: n("SELECT COUNT(*) n FROM risk_flags WHERE status = 'open'"),
     risk_high: n("SELECT COUNT(*) n FROM risk_flags WHERE status = 'open' AND severity = 'high'"),

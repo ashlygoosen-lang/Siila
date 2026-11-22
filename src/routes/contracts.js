@@ -109,6 +109,8 @@ router.post('/:id/withdraw', requireRole('client'), (req, res) => {
 router.post('/:id/accept', requireRole('talent'), (req, res) => {
   const c = load(req, req.params.id, 'talent'); need(c, 'offered');
   K.requireVerified(req.user.id, 'accept offers');
+  if (require('../sponsor').needsSponsorship(req.user.id) && !db.prepare('SELECT remote FROM jobs WHERE id = ?').get(c.job_id)?.remote)
+    throw new HttpError(403, 'You need a South African work visa to do on-site work. You can accept remote jobs, or a sponsored job offer from an employer.');
   if (!db.prepare('SELECT 1 FROM bank_accounts WHERE user_id = ?').get(req.user.id)) throw new HttpError(403, 'Add your bank account under Verification before accepting offers, so we can pay you.');
   K.checkContract(c);
   setStatus(c.id, 'accepted');

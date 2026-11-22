@@ -246,7 +246,7 @@ const { outbox } = require('../src/mailer');
     const prof = (await call('GET', `/talent/${t1id}`)).body.data;
     assert.equal(prof.portfolio[0].title, 'Solar install'); assert.ok(Array.isArray(prof.reviews)); assert.equal(prof.reviews.length, 1);
     const meta = (await call('GET', '/meta')).body;
-    assert.equal(meta.brand.name, 'TalentBridge'); assert.equal(meta.categories.length, 6); assert.ok(meta.categories[0].open_jobs >= 0);
+    assert.equal(meta.brand.name, 'TalentBridge'); assert.equal(meta.categories.length, 18); assert.ok(meta.categories[0].open_jobs >= 0);
     assert.ok('jobs_completed' in (await call('GET', '/stats')).body);
     assert.equal((await call('GET', '/provinces')).body.data.length, 9);
     const rv = (await call('GET', '/reviews')).body.data;
@@ -366,6 +366,67 @@ const { outbox } = require('../src/mailer');
     // Brute-force lockout after 5 wrong passwords
     for (let i = 0; i < 5; i++) await call('POST', '/auth/login', { email: 'kyc-dup@talentbridge.test', password: 'wrong' + i });
     assert.equal((await call('POST', '/auth/login', { email: 'kyc-dup@talentbridge.test', password: 'Passw0rdOK' })).status, 429);
+  });
+  await step('skills catalogue and international sponsorship after the local search period', async () => {
+    const dbx = require('../src/db');
+    const sk = (await call('GET', '/skills')).body.data;
+    assert.equal(sk.critical.length, 142); assert.ok(sk.critical.some(c => c.ofo === '2021-251201' && c.name === 'Software Developer' && c.nqf === 7));
+    assert.ok(Object.keys(sk.general).length >= 18);
+    assert.ok((await call('GET', '/skills?q=plumb')).body.data.some(x => x.name === 'Plumber'));
+    const pw = 'TalentBridge#2026';
+    const admin = (await call('POST', '/auth/login', { email: 'admin@talentbridge.test', password: pw })).body.token;
+    const client = (await call('POST', '/auth/login', { email: 'client@talentbridge.test', password: pw })).body.token;
+    const r = await call('POST', '/auth/register', { name: 'Amara Okafor', email: 'amara@talentbridge.test', password: 'Passw0rdOK', role: 'talent', accept_terms: true, province: 'Gauteng' });
+    const vt = outbox.filter(m => m.to === 'amara@talentbridge.test').pop().text.match(/token=([a-f0-9]+)/)[1];
+    await fetch(base + '/auth/verify-email?token=' + vt, { redirect: 'manual' });
+    const ft = r.body.token, fid = r.body.user.id;
+    assert.equal((await call('PUT', '/me/profile', { residency: 'foreign', work_rights: 'needs_sponsorship', country: 'Nigeria', nationality: 'Nigerian', relocate: true, occupation_ofo: '2021-251201', experience_years: 8, saqa_status: 'applied' }, ft)).status, 200);
+    const job = (await call('POST', '/jobs', { title: 'Senior software developer (permanent)', description: 'Build and maintain our logistics platform in Node and React.', category: 'IT & Software', type: 'Full-Time', province: 'Gauteng', city: 'Sandton', pay_min: 60000, pay_max: 80000, pay_unit: 'month', contract_term: 'permanent', occupation_ofo: '2021-251201' }, client)).body.data;
+    assert.equal(job.critical_skill, true); assert.equal(job.long_term, true); assert.equal(job.open_to_international, false);
+    const short = (await call('POST', '/jobs', { title: 'Fix a leaking geyser', description: 'Geyser is leaking from the valve, needs replacing.', category: 'Trades & Repairs', type: 'Short-Term', province: 'Gauteng', city: 'Sandton', pay_min: 800, pay_max: 1500, pay_unit: 'project' }, client)).body.data;
+    const remote = (await call('POST', '/jobs', { title: 'Design a logo for a bakery', description: 'Logo and colours for a small bakery brand, delivered as files.', category: 'Creative & Digital', type: 'Freelance', province: 'Gauteng', city: 'Sandton', pay_min: 1500, pay_max: 3000, pay_unit: 'project', remote: true }, client)).body.data;
+    // Foreign professional without work rights: sees remote jobs only, can't bid on local jobs
+    const seen = (await call('GET', '/jobs?limit=50', null, ft)).body.data.map(j => j.id);
+    assert.ok(!seen.includes(job.id) && !seen.includes(short.id) && seen.includes(remote.id));
+    assert.equal((await call('POST', `/jobs/${job.id}/apply`, { message: 'Interested' }, ft)).status, 403);
+    assert.equal((await call('POST', `/jobs/${remote.id}/apply`, { message: 'I can do this remotely', bid_amount: 2000, delivery_days: 5 }, ft)).status, 201);
+    // Client can't open the job to foreign nationals before the local search period ends
+    const body = { local_applicants: 14, local_reason: 'We interviewed 6 local applicants; none had production experience with high-volume logistics systems.', salary_annual: 900000, confirm: true };
+    const early = await call('POST', `/jobs/${job.id}/international`, body, client);
+    assert.equal(early.status, 409); assert.ok(early.body.error.includes('90 days'));
+    assert.equal((await call('POST', `/jobs/${short.id}/international`, body, client)).status, 409);
+    dbx.prepare("UPDATE jobs SET created_at = datetime('now','-91 days') WHERE id IN (?,?)").run(job.id, short.id);
+    const det = (await call('GET', '/jobs/' + job.id, null, client)).body.data.international;
+    assert.equal(det.eligible, true); assert.equal(det.route, 'critical_skills');
+    assert.equal((await call('POST', `/jobs/${job.id}/international`, { ...body, local_reason: 'None fit' }, client)).status, 400);
+    assert.ok((await call('POST', `/jobs/${short.id}/international`, body, client)).body.error.includes('Full-time'));
+    const reqd = await call('POST', `/jobs/${job.id}/international`, body, client);
+    assert.equal(reqd.status, 200);
+    assert.equal((await call('POST', `/jobs/${job.id}/apply`, { message: 'Interested' }, ft)).status, 403); // still waiting for review
+    const intl = (await call('GET', '/admin/international', null, admin)).body.data;
+    assert.ok(intl.jobs.some(j => j.id === job.id && j.intl_status === 'requested' && j.route_label === 'Critical Skills Work Visa'));
+    assert.equal((await call('POST', `/admin/international/jobs/${job.id}/decision`, { decision: 'approved' }, admin)).status, 200);
+    assert.ok((await call('GET', '/me/notifications', null, ft)).body.data.some(n => n.text.includes('visa sponsorship')));
+    assert.ok((await call('GET', '/jobs?international=true', null, ft)).body.data.some(j => j.id === job.id && j.open_to_international));
+    assert.equal((await call('POST', `/jobs/${job.id}/apply`, { message: 'I have 8 years of Node and React experience and can relocate.' }, ft)).status, 201);
+    const app = (await call('GET', `/jobs/${job.id}/applications`, null, client)).body.data.find(a => a.user_id === fid || a.name === 'Amara Okafor');
+    const offer = { application_id: app.id, salary_annual: 900000, start_date: '2027-03-01', terms: 'Permanent, 40 hours a week, medical aid and relocation allowance.', confirm: true };
+    assert.equal((await call('POST', '/sponsorships', offer, client)).status, 409); // professional not verified yet
+    dbx.prepare("UPDATE users SET kyc_status = 'approved' WHERE id = ?").run(fid);
+    const sp = await call('POST', '/sponsorships', offer, client);
+    assert.equal(sp.status, 201); assert.equal(sp.body.data.route, 'critical_skills'); assert.ok(sp.body.data.checklist.length > 5);
+    assert.equal((await call('POST', '/sponsorships', offer, client)).status, 409); // no duplicate offer
+    assert.equal((await call('POST', `/admin/sponsorships/${sp.body.data.id}/status`, { status: 'documents' }, admin)).status, 409); // not accepted yet
+    assert.equal((await call('POST', `/sponsorships/${sp.body.data.id}/respond`, { accept: true }, ft)).status, 200);
+    assert.equal((await call('GET', '/jobs/' + job.id)).body.data.status, 'closed');
+    assert.equal((await call('POST', `/admin/sponsorships/${sp.body.data.id}/status`, { status: 'submitted' }, admin)).status, 400); // reference needed
+    assert.equal((await call('POST', `/admin/sponsorships/${sp.body.data.id}/status`, { status: 'submitted', reference: 'VFS-PTA-123456' }, admin)).status, 200);
+    const fin = (await call('POST', `/admin/sponsorships/${sp.body.data.id}/status`, { status: 'approved', note: 'Visa issued for 5 years' }, admin)).body.data;
+    assert.equal(fin.status, 'approved'); assert.equal(fin.events.length, 4);
+    assert.ok((await call('GET', '/sponsorships', null, ft)).body.data.some(x => x.id === fin.id && x.status_label === 'Visa approved'));
+    assert.equal((await call('GET', `/sponsorships/${fin.id}`, null, (await call('POST', '/auth/login', { email: 'talent1@talentbridge.test', password: pw })).body.token)).status, 403);
+    const pub = (await call('GET', '/talent/' + fid)).body.data;
+    assert.equal(pub.international, true); assert.equal(pub.occupation, 'Software Developer'); assert.equal(pub.country, 'Nigeria');
   });
   await step('unknown API route returns JSON 404', async () => {
     assert.equal((await call('GET', '/nope')).status, 404);
