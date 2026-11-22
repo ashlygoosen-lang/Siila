@@ -5,7 +5,7 @@ const { validate, z } = require('../util');
 const { company } = require('../services');
 const { sendMail } = require('../mailer');
 
-router.get('/config', (_req, res) => res.json({ company: company(), draft: !process.env.COMPANY_NAME }));
+router.get('/config', (_req, res) => res.json({ company: company(), draft: !process.env.SUPPORT_EMAIL }));
 
 const limiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 6, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Too many messages, please try again later' } });
 router.post('/contact', limiter, validate(z.object({
