@@ -339,3 +339,28 @@ footer{background:var(--night)}
 .feed .ico.job{display:flex;align-items:center;justify-content:center;text-align:center;padding:0;line-height:1}
 .biz::after{display:none}
 .biz dl{align-content:center}
+
+/* ===== hero slideshow ===== */
+.hero-photo{position:relative;isolation:isolate}
+.hero-photo .slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.08);transition:opacity 1.4s ease,transform 7s ease-out}
+.hero-photo .slide.on{opacity:1;transform:scale(1);z-index:1}
+.hero-photo::after{content:"";position:absolute;inset:0;z-index:2;background:linear-gradient(180deg,rgba(15,27,22,.45),transparent 22%,transparent 60%,rgba(15,27,22,.55));pointer-events:none}
+.hero-photo .bars{position:absolute;z-index:3;top:16px;left:18px;right:18px;display:flex;gap:6px}
+.hero-photo .bar{flex:1;height:18px;border:0;background:none;padding:7px 0;cursor:pointer}
+.hero-photo .bar i{display:block;height:3px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden;position:relative}
+.hero-photo .bar i::after{content:"";position:absolute;inset:0;background:#fff;transform:scaleX(0);transform-origin:left}
+.hero-photo .bar.done i::after{transform:scaleX(1)}
+.hero-photo .bar.on i::after{animation:fill var(--dur,6s) linear forwards}
+.hero-photo.paused .bar.on i::after{animation-play-state:paused}
+@keyframes fill{to{transform:scaleX(1)}}
+.hero-photo .cap{position:absolute;z-index:3;right:20px;top:46px;text-align:right;color:#fff;margin:0;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.hero-photo .cap b{display:block;font:400 22px/1.15 var(--serif)}
+.hero-photo .cap span{font-size:13px;opacity:.85;font-weight:600}
+.hero-photo .cap.swap{animation:capin .7s ease}
+@keyframes capin{from{opacity:0;transform:translateY(6px)}}
+.chip-float.rate{top:auto;bottom:268px;left:-30px}
+@media (max-width:960px){.chip-float.rate{bottom:auto;top:auto}.hero-photo .cap{top:auto;bottom:70px;right:16px}}
+@media (prefers-reduced-motion:reduce){.hero-photo .slide{transition:opacity .01ms;transform:none}}
+.chip-float.rate{top:64px;bottom:auto;left:-30px;right:auto}
+@media (max-width:1200px){.chip-float.rate{left:-6px}}
+@media (max-width:960px){.chip-float.rate{top:40px;left:12px;padding:8px 12px}.chip-float.rate small{display:none}.chip-float.esc{display:none}}

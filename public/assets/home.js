@@ -158,3 +158,32 @@ async function loadProvinces(){try{const {data}=await get('/provinces');
   $('#provs').innerHTML=data.map(p=>`<button class="prov" data-prov="${esc(p.name)}"><span><b>${esc(p.name)}</b><small>${p.professionals} professional${p.professionals===1?'':'s'}</small></span><span class="n" aria-label="${p.open_jobs} open jobs">${p.open_jobs}<small style="display:block;font:600 12px var(--sans);color:var(--mut);text-align:right">open jobs</small></span></button>`).join('')}catch{$('#areas').hidden=true}}
 loadPulse();loadFacts();loadJobs();loadTalent();loadReviews();loadProvinces();deep();
 setInterval(()=>{if(!document.hidden)loadPulse()},20000);
+
+/* hero slideshow */
+(function(){
+  const box=document.getElementById('heroShow');if(!box)return;
+  const slides=[...box.querySelectorAll('.slide')],bars=[...box.querySelectorAll('.bar')];
+  const capT=document.getElementById('capT'),capC=document.getElementById('capC'),cap=box.querySelector('.cap');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;const DUR=6000;
+  let i=0,timer=null,left=DUR,started=0,paused=false;
+  const load=n=>{const im=slides[n];if(im&&im.dataset.src&&!im.src){im.src=im.dataset.src}};
+  function show(n){
+    load(n);load((n+1)%slides.length);
+    const go=()=>{slides.forEach((s,k)=>s.classList.toggle('on',k===n));
+      bars.forEach((b,k)=>{b.classList.toggle('done',k<n);b.classList.remove('on');b.setAttribute('aria-current',k===n)});
+      void bars[n].offsetWidth;bars[n].classList.add('on');
+      capT.textContent=slides[n].dataset.cap;capC.textContent=slides[n].dataset.city;cap.classList.remove('swap');void cap.offsetWidth;cap.classList.add('swap');
+      i=n;left=DUR;schedule()};
+    const im=slides[n];if(im.complete&&im.naturalWidth)go();else{im.addEventListener('load',go,{once:true});im.addEventListener('error',()=>{i=n;next()},{once:true})}
+  }
+  function schedule(){clearTimeout(timer);if(paused||reduce)return;started=Date.now();timer=setTimeout(next,left)}
+  function next(){show((i+1)%slides.length)}
+  function pause(){if(paused)return;paused=true;clearTimeout(timer);left-=Date.now()-started;box.classList.add('paused')}
+  function resume(){if(!paused)return;paused=false;box.classList.remove('paused');schedule()}
+  box.style.setProperty('--dur',DUR+'ms');
+  bars.forEach((b,k)=>b.addEventListener('click',()=>{paused=false;box.classList.remove('paused');show(k)}));
+  box.addEventListener('mouseenter',pause);box.addEventListener('mouseleave',resume);
+  document.addEventListener('visibilitychange',()=>document.hidden?pause():resume());
+  if(reduce)box.classList.add('paused');
+  show(0);
+})();
