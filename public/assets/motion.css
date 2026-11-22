@@ -13,6 +13,9 @@
 .bridge .spark{fill:#fff;opacity:0}
 .hero>.wrap,.hero .facts-band{position:relative;z-index:1}
 
+/* sideways reveals must never widen the page */
+main,footer{overflow-x:clip}
+
 /* scroll progress, shown on every page that has the sticky header */
 .hd{position:sticky}
 .hd .prog,.lh .prog{position:absolute;left:0;right:0;bottom:-1px;height:2px;transform-origin:0 50%;transform:scaleX(var(--p,0));background:linear-gradient(90deg,var(--jac),var(--glow,#8b6cf0) 60%,var(--sun));pointer-events:none;opacity:.9}
