@@ -42,7 +42,8 @@ async function loadMeta(){
 let seen=new Set(),firstPulse=true;
 async function loadPulse(){
   try{const {data}=await get('/pulse');
-    if(!data.length){$('#pulse').innerHTML='<li><span>No activity yet. <a href="/app.html#register">Post the first job</a>.</span></li>';return}
+    if(!data.length){$('#pulse').innerHTML=`<li class="start"><span class="ico job" aria-hidden="true">NEW</span><div><b>TalentBridge is open for business</b><small>New jobs and bids will show here the moment they’re posted.</small></div></li>
+      <li class="start-cta"><a class="btn sm" href="/app.html#register">Post the first job</a><a class="btn sm ghost-light" href="/app.html#register">Join as a professional</a></li>`;return}
     $('#pulse').innerHTML=data.map(p=>{const key=p.kind+(p.id||p.job_id)+p.at,isNew=!firstPulse&&!seen.has(key);seen.add(key);
       return p.kind==='job'
         ?`<li class="${isNew?'new':''}"><span class="ico job" aria-hidden="true">JOB</span><div><a href="#job-${p.id}" data-job="${p.id}">${esc(p.title)}</a> posted in ${esc(p.city)}<small>${p.bids?`${p.bids} bid${p.bids>1?'s':''}${p.avg_bid?`, avg bid ${rand(p.avg_bid)}`:''}`:'Be the first to bid'} · ${ago(p.at)}</small></div></li>`
@@ -53,13 +54,17 @@ async function loadPulse(){
 
 async function loadFacts(){
   try{const s=await get('/stats');
-    const f=[[num(s.professionals),'professionals'],[num(s.open_jobs),'open jobs'],[s.avg_rating?s.avg_rating.toFixed(1)+' / 5':'New','average rating'],[num(s.jobs_completed),'jobs completed'],[num(s.bids_this_week),'bids this week']];
+    const fresh=(s.professionals+s.open_jobs+s.jobs_completed)<3;
+    const pct=S.meta?.commission_pct??10;
+    const f=fresh?[['Free','to post a job or bid'],[pct+'%','fee, only when you’re paid'],['9','provinces covered'],['Escrow','on every contract'],['Live','chat, bids and offers']]
+      :[[num(s.professionals),'professionals'],[num(s.open_jobs),'open jobs'],[s.avg_rating?s.avg_rating.toFixed(1)+' / 5':'New','average rating'],[num(s.jobs_completed),'jobs completed'],[num(s.bids_this_week),'bids this week']];
     if(s.avg_rating){$('#rateVal').textContent=s.avg_rating.toFixed(1)+' out of 5';$('#rateChip').hidden=false}
     $('#facts').innerHTML=f.map(([v,l])=>`<div><b>${v}</b>${l}</div>`).join('');
   }catch{$('#facts').hidden=true}
 }
 
 /* jobs */
+const bitsAny=()=>['q','province','category','type'].some(k=>S[k]);
 const jobCard=j=>`<article class="job" data-job="${j.id}" tabindex="0" aria-label="${esc(j.title)}">
   <div><h3>${esc(j.title)}${j.featured?'<span class="feat">Featured</span>':''}</h3><div class="meta"><span>${esc(j.location)}</span><span>${esc(j.type)}</span><span>${esc(j.category)}</span><span>${ago(j.created_at)}</span></div></div>
   <div class="pay"><b>${esc(j.pay_label)}</b><span>${j.bids?`${j.bids} bid${j.bids>1?'s':''}${j.avg_bid?` · avg bid ${rand(j.avg_bid)}`:''}`:'No bids yet'}</span></div>
@@ -70,7 +75,7 @@ async function loadJobs(append){
   const p=new URLSearchParams({page:S.page,limit:8});for(const k of['q','province','category','type'])if(S[k])p.set(k,S[k]);
   try{const j=await get('/jobs?'+p);
     const html=j.data.map(jobCard).join('');
-    if(append)list.insertAdjacentHTML('beforeend',html);else list.innerHTML=html||`<div class="empty panel"><h3>No open jobs match</h3><p>Try another search, or <a href="/app.html#register">post this job yourself</a>.</p></div>`;
+    if(append)list.insertAdjacentHTML('beforeend',html);else list.innerHTML=html||(!bitsAny()?`<div class="empty panel invite"><h3>Be the first to post a job</h3><p>Describe what you need and verified professionals will send you their price and timeline.</p><a class="btn" href="/app.html#register">Post a job for free</a></div>`:'')||`<div class="empty panel"><h3>No open jobs match</h3><p>Try another search, or <a href="/app.html#register">post this job yourself</a>.</p></div>`;
     $('#jobmore').hidden=j.meta.page>=j.meta.pages;
     const bits=[S.q&&`“${S.q}”`,S.category,S.type,S.province].filter(Boolean);
     $('#jobs-sub').textContent=bits.length?`${j.meta.total} job${j.meta.total===1?'':'s'} for ${bits.join(', ')}.`:'Place a bid with your price and timeline. Clients compare bids, chat, then hire.';
@@ -87,7 +92,7 @@ const personCard=t=>`<button class="person" data-talent="${t.id}">
 async function loadTalent(){
   const box=$('#people');box.innerHTML=Array(4).fill('<div class="skel" style="height:190px;border-radius:18px"></div>').join('');
   const p=new URLSearchParams({limit:8,sort:S.tsort});if(S.mode==='talent'&&S.q)p.set('q',S.q);if(S.province)p.set('province',S.province);
-  try{const j=await get('/talent?'+p);box.innerHTML=j.data.map(personCard).join('')||'<div class="empty panel"><h3>No professionals match yet</h3><p>Try a broader search.</p></div>'}
+  try{const j=await get('/talent?'+p);box.innerHTML=j.data.map(personCard).join('')||(!(S.mode==='talent'&&S.q)&&!S.province?'<div class="empty panel invite"><h3>Be one of our first professionals</h3><p>Create a free profile, add your skills and get alerts when matching jobs are posted near you.</p><a class="btn" href="/app.html#register">Create your profile</a></div>':'')||'<div class="empty panel"><h3>No professionals match yet</h3><p>Try a broader search.</p></div>'}
   catch(e){box.innerHTML='';box.append(failBox(e.message,loadTalent))}
 }
 
@@ -155,6 +160,7 @@ loadMeta().catch(()=>{$('#cats').innerHTML='';$('#cats').append(failBox('Could n
 async function loadReviews(){try{const {data}=await get('/reviews');if(!data.length)return;$('#reviews').hidden=false;
   $('#quotes').innerHTML=data.map(r=>`<figure class="quote"><span class="stars" aria-label="${r.rating} out of 5">${'★'.repeat(r.rating)}</span><blockquote>“${esc(r.comment)}”</blockquote><figcaption><span class="av" style="--c:${esc(r.avatar_color||'#6a4bd8')}">${initials(r.talent_name)}</span><span><b>${esc(r.client_name)} hired ${esc(r.talent_name)}</b>${esc(r.job_title)}${r.city?', '+esc(r.city):''} · ${ago(r.created_at)}</span></figcaption></figure>`).join('')}catch{}}
 async function loadProvinces(){try{const {data}=await get('/provinces');
+  if(!data.some(p=>p.open_jobs||p.professionals)){$('#provs').innerHTML=data.map(p=>`<button class="prov" data-prov="${esc(p.name)}"><span><b>${esc(p.name)}</b><small>Hire or work here</small></span><span class="go-arrow" aria-hidden="true">›</span></button>`).join('');return}
   $('#provs').innerHTML=data.map(p=>`<button class="prov" data-prov="${esc(p.name)}"><span><b>${esc(p.name)}</b><small>${p.professionals} professional${p.professionals===1?'':'s'}</small></span><span class="n" aria-label="${p.open_jobs} open jobs">${p.open_jobs}<small style="display:block;font:600 12px var(--sans);color:var(--mut);text-align:right">open jobs</small></span></button>`).join('')}catch{$('#areas').hidden=true}}
 loadPulse();loadFacts();loadJobs();loadTalent();loadReviews();loadProvinces();deep();
 setInterval(()=>{if(!document.hidden)loadPulse()},20000);
