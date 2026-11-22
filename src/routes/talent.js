@@ -45,7 +45,7 @@ router.post('/:id/hire-request', validate(z.object({
   const { from_name, from_email, message } = req.body;
   const id = db.prepare('INSERT INTO hire_requests (talent_id,from_name,from_email,message) VALUES (?,?,?,?)').run(req.params.id, from_name, from_email, message).lastInsertRowid;
   notify(req.params.id, 'lead', `${from_name} would like to hire you. TalentBridge will connect you shortly.`);
-  sendMail(process.env.SUPPORT_EMAIL, 'New hire enquiry', `${from_name} <${from_email}> wants to hire talent #${req.params.id}:\n\n${message}`);
+  sendMail(process.env.SUPPORT_EMAIL || 'support@talentbridge.co.za', 'New hire enquiry', `${from_name} <${from_email}> wants to hire talent #${req.params.id}:\n\n${message}`);
   res.status(201).json({ data: { id } });
 });
 

@@ -5,7 +5,7 @@ const { validate, z } = require('../util');
 const { company } = require('../services');
 const { sendMail } = require('../mailer');
 
-router.get('/config', (_req, res) => res.json({ company: company(), draft: !process.env.SUPPORT_EMAIL }));
+router.get('/config', (_req, res) => res.json({ company: company(), draft: !process.env.COMPANY_ADDRESS }));
 
 const limiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 6, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Too many messages, please try again later' } });
 router.post('/contact', limiter, validate(z.object({
@@ -15,7 +15,7 @@ router.post('/contact', limiter, validate(z.object({
   if (req.body.website) return res.status(201).json({ ok: true }); // bot
   const { name, email, topic, message } = req.body;
   db.prepare('INSERT INTO contact_messages (name,email,topic,message) VALUES (?,?,?,?)').run(name, email, topic, message);
-  sendMail(process.env.SUPPORT_EMAIL, `TalentBridge enquiry: ${topic}`, `From: ${name} <${email}>\n\n${message}`);
+  sendMail(process.env.SUPPORT_EMAIL || 'support@talentbridge.co.za', `TalentBridge enquiry: ${topic}`, `From: ${name} <${email}>\n\n${message}`);
   res.status(201).json({ ok: true });
 });
 // Real client reviews for the homepage (only written ones, 4 stars and up).

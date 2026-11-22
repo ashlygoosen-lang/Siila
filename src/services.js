@@ -9,7 +9,7 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'siira.
 const UPLOAD_DIR = process.env.UPLOAD_DIR || (dbPath === ':memory:' ? path.join(os.tmpdir(), 'talentbridge-uploads') : path.join(path.dirname(dbPath), 'uploads'));
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const baseUrl = (req) => process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
-const company = () => ({ name: process.env.COMPANY_NAME || '', reg: process.env.COMPANY_REG || '', vat: process.env.VAT_NUMBER || '', address: process.env.COMPANY_ADDRESS || '', email: process.env.SUPPORT_EMAIL || '', phone: process.env.SUPPORT_PHONE || '', info_officer: process.env.INFO_OFFICER || '' });
+const company = () => ({ name: process.env.COMPANY_NAME || '', reg: process.env.COMPANY_REG || '', vat: process.env.VAT_NUMBER || '', address: process.env.COMPANY_ADDRESS || '', email: process.env.SUPPORT_EMAIL || 'support@talentbridge.co.za', phone: process.env.SUPPORT_PHONE || '', info_officer: process.env.INFO_OFFICER || '' });
 
 function createToken(uid, kind, minutes) {
   const raw = crypto.randomBytes(32).toString('hex');
